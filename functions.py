@@ -53,9 +53,14 @@ def dimreduce_all_columns(df):
 
 
 
-def calc_shap_values(data, background, model, columns):
-    explainer = shap.KernelExplainer(lambda x: detangled_predict(x, model, column_names=columns), background, columns, keep_index=True)
-    shap_values = explainer(data)
+def calc_shap_values(data, background, model, columns, combined_columns=None):
+    if combined_columns is None:
+        combined_columns = []
+    comb_data = combine_columns(data.copy(), combined_columns)
+    comb_background = combine_columns(background.copy(), combined_columns)
+
+    explainer = shap.KernelExplainer(lambda x: detangled_predict(x, model, column_names=columns), comb_background, columns, keep_index=True)
+    shap_values = explainer(comb_data)
     shap_values.data = dimreduce_all_columns(shap_values.data)
     return shap_values
 
