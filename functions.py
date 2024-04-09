@@ -8,13 +8,13 @@ import pandas as pd
 # do the same changes to multiple data frames
 def combine_columns(df, columns):
     if len(columns) > 0:
-        #combine column names to a string
-        combined_name = ', '.join(columns)
-        #combine the columns
-        df[combined_name] = df.apply(lambda x: tuple(x[columns]), axis=1)
-        #delete the original columns
-        df = df.drop(columns, axis=1)
-
+        for i in range(len(columns)):
+            #combine column names to a string
+            combined_name = ', '.join(columns[i])
+            #combine the columns
+            df[combined_name] = df.apply(lambda x: tuple(x[columns[i]]), axis=1)
+            #delete the original columns
+            df = df.drop(columns[i], axis=1)
     return df
 
 def split_columns(df, combined_name):
