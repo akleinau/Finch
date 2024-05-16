@@ -26,7 +26,7 @@ with open('weather_result.pkl', 'rb') as file:
     # prepare the data
     shap_weather = pickle.load(file)
 
-    columns_data = [name for name in shap_weather.columns if not (name.startswith('shap_') | name.startswith('prob_'))]
+    columns_data = [name for name in shap_weather.columns if not (name.startswith('shap_') | name.startswith('prob_') | name.startswith('prediction'))]
     columns_shap = [name for name in shap_weather.columns if name.startswith('shap_')]
 
     shap_weather_values = shap_weather[columns_shap]
@@ -59,7 +59,7 @@ with open('weather_result.pkl', 'rb') as file:
     def chart3(data, col, prob, index):
         item = data.iloc[index]
         chart3 = figure(title="example", x_axis_label=col, y_axis_label=prob, tools='tap')
-        chart3.scatter(data[col], data[prob], color='forestgreen')
+        chart3.scatter(data[col], data[prob], color='forestgreen', alpha=0.5)
         chart3.scatter(item[col], item[prob], color='purple', size=7)
         return chart3
 
