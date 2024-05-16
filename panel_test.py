@@ -5,8 +5,6 @@ from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 from bokeh.models import ColumnDataSource
 
-shap_weather = 0
-
 def get_item_shap_values(explanation, index):
     item = explanation.iloc[index]
     item = pd.DataFrame({'feature': item.index, 'shap_value': item.values})
@@ -25,7 +23,7 @@ def get_item_data(explanation, index):
 
 with open('weather_result.pkl', 'rb') as file:
 
-    # Call load method to deserialze
+    # prepare the data
     shap_weather = pickle.load(file)
 
     columns_data = [name for name in shap_weather.columns if not (name.startswith('shap_') | name.startswith('prob_'))]
@@ -35,11 +33,11 @@ with open('weather_result.pkl', 'rb') as file:
     weather_data = shap_weather[columns_data]
 
 
+    #create widgets
     x = pn.widgets.IntSlider(name='x', start=0, end=199, value=26).servable()
-    col = pn.widgets.Select(name='column', options=[col for col in shap_weather.columns]).servable()
-    prob = pn.widgets.Select(name='column', options=[col for col in shap_weather.columns if col.startswith('prob_')]).servable()
+    col = pn.widgets.Select(name='column', options=[col for col in shap_weather.columns])
 
-    item = pn.bind(get_item_shap_values, shap_weather_values, x)
+    item_shap = pn.bind(get_item_shap_values, shap_weather_values, x)
 
     def chart2(data):
         item_source = ColumnDataSource(data=data)
@@ -52,28 +50,38 @@ with open('weather_result.pkl', 'rb') as file:
                 select = ""
             else:
                 select = select['feature'].values[0]
-                print(select)
                 #change the value of the col widget
                 col.value = select[5:]
 
         chart2.on_event('tap', setCol)
         return chart2
 
-    def chart3(data, col, prob):
-        chart3 = figure(title="example")
-        chart3.scatter(data[col], data[prob])
+    def chart3(data, col, prob, index):
+        item = data.iloc[index]
+        chart3 = figure(title="example", x_axis_label=col, y_axis_label=prob, tools='tap')
+        chart3.scatter(data[col], data[prob], color='forestgreen')
+        chart3.scatter(item[col], item[prob], color='purple', size=7)
         return chart3
 
-    pn.extension('vega')
+    def probability(data, index, prob):
+        return data.iloc[index][prob]
 
-    print(col)
+    def prediction(data, index):
+        return data.iloc[index]['prediction']
 
-    shap_plot = pn.bind(chart2,item)
 
+    #displayed data
+    item_prediction = pn.bind(prediction, shap_weather, x)
+    prob_data = pn.bind(probability, shap_weather, x, item_prediction)
     item_data = pn.bind(get_item_data, weather_data, x)
 
-    dep_plot = pn.bind(chart3, shap_weather, col, prob)
+    #displayed bokeh plots
+    shap_plot = pn.bind(chart2, item_shap)
+    dep_plot = pn.bind(chart3, shap_weather, col, item_prediction, x)
 
+    #remaining layout
+    pn.panel(item_prediction).servable()
+    pn.panel(prob_data).servable()
     pn.Row(item_data, shap_plot, dep_plot).servable()
 
 
