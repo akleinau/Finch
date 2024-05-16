@@ -1,23 +1,26 @@
-import altair as alt
-import pandas
+import pandas as pd
 import panel as pn
 import pickle
+from bokeh.plotting import figure
+from bokeh.transform import factor_cmap
+from bokeh.models import ColumnDataSource
 
 shap_weather = 0
 
 def get_item_shap_values(explanation, index):
     item = explanation.iloc[index]
-    item = pandas.DataFrame({'feature': item.index, 'shap_value': item.values})
+    item = pd.DataFrame({'feature': item.index, 'shap_value': item.values})
     #add column containing the absolute value of the shap value
     item['abs_shap_value'] = item['shap_value'].abs()
+    item['positive'] = item['shap_value'].map(lambda x: 'pos' if x > 0 else 'neg')
     #sort by the absolute value of the shap value
-    item = item.sort_values(by='abs_shap_value', ascending=False)
+    item = item.sort_values(by='abs_shap_value', ascending=True)
 
     return item
 
 def get_item_data(explanation, index):
     item = explanation.iloc[index]
-    item = pandas.DataFrame({'feature': item.index, 'value': item.values})
+    item = pd.DataFrame({'feature': item.index, 'value': item.values})
     return item
 
 with open('weather_result.pkl', 'rb') as file:
@@ -38,39 +41,38 @@ with open('weather_result.pkl', 'rb') as file:
 
     item = pn.bind(get_item_shap_values, shap_weather_values, x)
 
-    def chart1(data):
-        chart1 = alt.Chart(data).mark_bar().encode(
-            y=alt.Y('feature').sort(),
-            x=alt.X('shap_value', scale=alt.Scale(domain=(-1, 1))),
-            tooltip=['feature', 'shap_value'],
-            color=alt.condition(
-                alt.datum.shap_value > 0,
-                alt.value("steelblue"),  # The positive color
-                alt.value("crimson")  # The negative color
-            )
-        ).properties(
-            height=400,
-            width=200
-        ).interactive()
-        return chart1
+    def chart2(data):
+        item_source = ColumnDataSource(data=data)
+        chart2 = figure(title="example0", y_range=data['feature'], x_range=(-1, 1), tools='tap')
+        chart2.hbar(y='feature', right='shap_value', fill_color=factor_cmap("positive", palette=["steelblue", "crimson"], factors=["pos", "neg"]), line_width=0, source=item_source)
 
-    def chart2(data, col, prob):
-        chart2 = alt.Chart(data).mark_point().encode(
-            y=alt.Y(prob),
-            x=alt.X(col),
-        ).properties(
-            height=400,
-            width=200
-        ).interactive()
+        def setCol():
+            select = data.iloc[item_source.selected.indices]
+            if (len(select) == 0):
+                select = ""
+            else:
+                select = select['feature'].values[0]
+                print(select)
+                #change the value of the col widget
+                col.value = select[5:]
+
+        chart2.on_event('tap', setCol)
         return chart2
+
+    def chart3(data, col, prob):
+        chart3 = figure(title="example")
+        chart3.scatter(data[col], data[prob])
+        return chart3
 
     pn.extension('vega')
 
-    shap_plot = pn.bind(chart1,item)
+    print(col)
+
+    shap_plot = pn.bind(chart2,item)
 
     item_data = pn.bind(get_item_data, weather_data, x)
 
-    dep_plot = pn.bind(chart2,shap_weather, col, prob)
+    dep_plot = pn.bind(chart3, shap_weather, col, prob)
 
     pn.Row(item_data, shap_plot, dep_plot).servable()
 
