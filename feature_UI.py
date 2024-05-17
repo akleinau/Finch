@@ -29,14 +29,6 @@ def get_item_data(explanation, index):
     item = pd.DataFrame({'feature': item.index, 'value': item.values})
     return item
 
-#combine the column groups into a nested list
-def combine_column_groups(*args):
-    columns = []
-    for arg in args:
-        if (len(arg) > 0):
-            columns.append(arg)
-    return columns
-
 # load weather files
 file_nn = open('weather_nn.pkl', 'rb')
 nn = pickle.load(file_nn)
@@ -57,12 +49,63 @@ data_and_probabilities = feature.combine_data_and_results(data, nn, classes)
 #create widgets
 x = pn.widgets.IntSlider(name='x', start=0, end=199, value=26).servable()
 col = pn.widgets.Select(name='column', options=[col for col in data.columns])
-columngroup1 = pn.widgets.MultiChoice(name='column group 1', value=[], options=[name for name in columns])
-columngroup2 = pn.widgets.MultiChoice(name='column group 2', value=[], options=[name for name in columns])
-columngroup3 = pn.widgets.MultiChoice(name='column group 3', value=[], options=[name for name in columns])
-columngroup4 = pn.widgets.MultiChoice(name='column group 4', value=[], options=[name for name in columns])
-pn.Row(columngroup1, columngroup2, columngroup3, columngroup4).servable()
-combined_columns = pn.bind(combine_column_groups, columngroup1, columngroup2, columngroup3, columngroup4)
+
+columngroup = []
+combined_columns = pn.widgets.LiteralInput(value=[])
+num_groups = pn.widgets.LiteralInput(value=1)
+
+row = pn.Row().servable()
+all_options = [name for name in columns]
+remaining_options = pn.widgets.LiteralInput(value=[name for name in columns])
+
+#watcher = num_groups.param.watch(callbackNum, parameter_names=['value'], onlychanged=False)
+
+def clean_column_groups(group):
+    columns = []
+    for col in group:
+        if (len(col.value) > 1):
+            columns.append(col.value)
+
+    return columns
+
+def get_group_options(index):
+    #combine lists remaining_options with items in columngroup[index]
+    return remaining_options.value.copy() + columngroup[index].value.copy()
+
+def callback(event):
+    index = int(event.obj.name)
+    combined_columns.value = clean_column_groups(columngroup)
+    length = len(columngroup[index].value)
+    if length == 0 and index != (num_groups.value - 1):
+        #remove old widget
+        columngroup.pop(index)
+        row.pop(index)
+        updateNames()
+        num_groups.value -= 1
+    if length > 1 and (index == (num_groups.value - 1)):
+        #add new widget
+        columngroup.append(pn.widgets.MultiChoice(name=str(num_groups.value), value=[], options=remaining_options.value.copy()))
+        watcher = columngroup[num_groups.value].param.watch(callback, parameter_names=['value'], onlychanged=False)
+        row.append(columngroup[num_groups.value])
+        num_groups.value += 1
+
+    # update remaining options
+    columns = []
+    for col in columngroup:
+        for name in col.value:
+            columns.append(name)
+    remaining_options.value = [name for name in all_options if name not in columns]
+    for col in columngroup:
+        col.options = get_group_options(int(col.name))
+
+def updateNames():
+    for i in range(num_groups.value - 1):
+        columngroup[i].name = str(i)
+
+for i in range(num_groups.value):
+    columngroup.append(pn.widgets.MultiChoice(name=str(i), value=[], options=remaining_options.value.copy()))
+    watcher = columngroup[i].param.watch(callback, parameter_names=['value'], onlychanged=False)
+    row.append(columngroup[i])
 
 item_shap = pn.bind(get_item_shap_values, testdata[0: 200], x, means, nn, columns, combined_columns)
 
