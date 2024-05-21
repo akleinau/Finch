@@ -47,14 +47,14 @@ data = testdata[0:200]
 data_and_probabilities = feature.combine_data_and_results(data, nn, classes)
 
 #create widgets
-x = pn.widgets.IntSlider(name='x', start=0, end=199, value=26).servable()
+x = pn.widgets.EditableIntSlider(name='x', start=0, end=199, value=26).servable()
 col = pn.widgets.Select(name='column', options=[col for col in data.columns])
 
 columngroup = []
 combined_columns = pn.widgets.LiteralInput(value=[])
 num_groups = pn.widgets.LiteralInput(value=1)
 
-row = pn.Row().servable()
+row = pn.FlexBox().servable()
 all_options = [name for name in columns]
 remaining_options = pn.widgets.LiteralInput(value=[name for name in columns])
 
@@ -113,24 +113,41 @@ item_shap = pn.bind(get_item_shap_values, testdata[0: 200], x, means, nn, column
 def shap_tornado_plot(data):
     item_source = ColumnDataSource(data=data)
     chart2 = figure(title="example0", y_range=data['feature'], x_range=(-1, 1), tools='tap')
-    chart2.hbar(y='feature', right='shap_value', fill_color=factor_cmap("positive", palette=["steelblue", "crimson"], factors=["pos", "neg"]), line_width=0, source=item_source)
+    chart2.hbar(
+        y='feature',
+        right='shap_value',
+        fill_color=factor_cmap("positive", palette=["steelblue", "crimson"], factors=["pos", "neg"]),
+        line_width=0,
+        source=item_source,
+        nonselection_fill_alpha=0.7,
+        selection_hatch_pattern='horizontal_wave',
+        selection_hatch_scale=7,
+        selection_hatch_weight=1.5,
+        selection_hatch_color='purple'
+    )
 
     def setCol():
-        select = data.iloc[item_source.selected.indices]
-        if (len(select) == 0):
-            select = ""
-        else:
+        if (len(item_source.selected.indices) > 0):
+            if (len(item_source.selected.indices) > 1):
+                item_source.selected.indices = item_source.selected.indices[1:2]
+            select = data.iloc[item_source.selected.indices]
             select = select['feature'].values[0]
-            #change the value of the col widget
             col.value = select
 
     chart2.on_event('tap', setCol)
     return chart2
 
-def dependency_scatterplot(data, col, prob, index):
+def dependency_scatterplot(data, col, all_selected_cols, prob, index):
     item = data.iloc[index]
+
+    if (len(all_selected_cols) > 1):
+        item_val = item[all_selected_cols[1]]
+        data["scatter_group"] = data[all_selected_cols[1]].apply(lambda x: 'sandybrown' if x >= item_val else 'skyblue')
+    else:
+        data["scatter_group"] = 'palegreen'
+
     chart3 = figure(title="example", y_axis_label=prob, tools='tap')
-    chart3.scatter(data[col], data[prob], color='forestgreen', alpha=0.5)
+    chart3.scatter(data[col], data[prob], color=data["scatter_group"], alpha=1)
     chart3.scatter(item[col], item[prob], color='purple', size=7)
     return chart3
 
@@ -150,11 +167,12 @@ def return_col(combined_col):
     col = combined_col.split(", ")
     return [c for c in col]
 
-cur_feature = pn.widgets.Select(name='', options=pn.bind(return_col, col), align='center')
+all_selected_cols = pn.bind(return_col, col)
+cur_feature = pn.widgets.Select(name='', options=all_selected_cols, align='center')
 
 #displayed bokeh plots
 shap_plot = pn.bind(shap_tornado_plot, item_shap)
-dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, cur_feature, item_prediction, x)
+dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, cur_feature, all_selected_cols, item_prediction, x)
 
 
 
