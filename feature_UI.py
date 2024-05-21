@@ -58,8 +58,6 @@ row = pn.Row().servable()
 all_options = [name for name in columns]
 remaining_options = pn.widgets.LiteralInput(value=[name for name in columns])
 
-#watcher = num_groups.param.watch(callbackNum, parameter_names=['value'], onlychanged=False)
-
 def clean_column_groups(group):
     columns = []
     for col in group:
@@ -102,10 +100,13 @@ def updateNames():
     for i in range(num_groups.value - 1):
         columngroup[i].name = str(i)
 
-for i in range(num_groups.value):
-    columngroup.append(pn.widgets.MultiChoice(name=str(i), value=[], options=remaining_options.value.copy()))
-    watcher = columngroup[i].param.watch(callback, parameter_names=['value'], onlychanged=False)
-    row.append(columngroup[i])
+#add first columngroup widget
+columngroup.append(pn.widgets.MultiChoice(name=str(0), value=['Humidity9am', 'Humidity3pm'], options=remaining_options.value.copy()))
+watcher = columngroup[0].param.watch(callback, parameter_names=['value'], onlychanged=False)
+row.append(columngroup[0])
+#trigger event to update remaining options
+columngroup[0].param.trigger('value')
+
 
 item_shap = pn.bind(get_item_shap_values, testdata[0: 200], x, means, nn, columns, combined_columns)
 
@@ -126,10 +127,9 @@ def shap_tornado_plot(data):
     chart2.on_event('tap', setCol)
     return chart2
 
-def dependency_scatterplot(data, combined_col, prob, index):
+def dependency_scatterplot(data, col, prob, index):
     item = data.iloc[index]
-    col = combined_col.split(", ")[0]
-    chart3 = figure(title="example", x_axis_label=col, y_axis_label=prob, tools='tap')
+    chart3 = figure(title="example", y_axis_label=prob, tools='tap')
     chart3.scatter(data[col], data[prob], color='forestgreen', alpha=0.5)
     chart3.scatter(item[col], item[prob], color='purple', size=7)
     return chart3
@@ -146,12 +146,20 @@ item_prediction = pn.bind(prediction, data_and_probabilities, x)
 prob_data = pn.bind(probability, data_and_probabilities, x, item_prediction)
 item_data = pn.bind(get_item_data, data, x)
 
+def return_col(combined_col):
+    col = combined_col.split(", ")
+    return [c for c in col]
+
+cur_feature = pn.widgets.Select(name='', options=pn.bind(return_col, col), align='center')
+
 #displayed bokeh plots
 shap_plot = pn.bind(shap_tornado_plot, item_shap)
-dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, col, item_prediction, x)
+dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, cur_feature, item_prediction, x)
+
+
 
 #remaining layout
 pn.panel(prob_data).servable()
-pn.Row(item_data, shap_plot, dep_plot).servable()
+pn.Row(item_data, shap_plot, pn.Column(dep_plot, cur_feature)).servable()
 
 
