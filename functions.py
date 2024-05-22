@@ -84,3 +84,6 @@ def combine_data_and_results(data, model, classes):
     #merge X_test, shap, predictions
     all_data = pd.concat([data, all_predictions], axis=1)
     return all_data
+
+def get_means(data):
+    return data.mean().to_frame().T

@@ -8,11 +8,12 @@ from plots.tornado_plot import shap_tornado_plot
 
 pn.extension()
 
-nn, means, testdata = data_loader.load_weather_data()
+nn, raw_data = data_loader.load_weather_data()
+means = feature.get_means(raw_data)
 
 CLASSES = nn.classes_
-COLUMNS = testdata.columns
-data = testdata  # [0:200]
+COLUMNS = raw_data.columns
+data = raw_data  # [0:200]
 data_and_probabilities = feature.combine_data_and_results(data, nn, CLASSES)
 
 # create widgets
@@ -45,7 +46,7 @@ prob_data = pn.bind(item_functions.get_item_probability_string, data_and_probabi
 item_data = pn.bind(item_functions.get_item_data, data, x)
 
 # display shap plot
-item_shap = pn.bind(item_functions.get_item_shap_values, testdata[0: 200], x, means, nn, COLUMNS, combined_columns)
+item_shap = pn.bind(item_functions.get_item_shap_values, data, x, means, nn, COLUMNS, combined_columns)
 shap_plot = pn.bind(shap_tornado_plot, item_shap, [col])  # col is wrapped to be passed as reference
 
 # display dependency plot
