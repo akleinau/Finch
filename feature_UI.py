@@ -1,9 +1,13 @@
+import bokeh.colors
 import pandas as pd
 import panel as pn
 import pickle
 from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 from bokeh.models import Band, ColumnDataSource
+from bokeh.palettes import Blues9
+import numpy as np
+from scipy.stats import gaussian_kde
 import functions as feature
 
 pn.extension()
@@ -42,14 +46,15 @@ file_means.close()
 
 classes = nn.classes_
 columns = testdata.columns
-data = testdata   # [0:200]
+data = testdata
 
 data_and_probabilities = feature.combine_data_and_results(data, nn, classes)
 
 #create widgets
 x = pn.widgets.EditableIntSlider(name='x', start=0, end=199, value=26).servable()
 col = pn.widgets.Select(name='column', options=[col for col in data.columns])
-chart_type = pn.widgets.MultiChoice(name='chart_type', options=['scatter', 'line', 'band'], value=['scatter']).servable()
+chart_type_options = ['scatter', 'line', 'band', 'contour']
+chart_type = pn.widgets.MultiChoice(name='chart_type', options=chart_type_options, value=['scatter']).servable()
 
 columngroup = []
 combined_columns = pn.widgets.LiteralInput(value=[])
@@ -144,41 +149,77 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
     if (len(all_selected_cols) > 1):
         item_val = item[all_selected_cols[1]]
-        sorted_data["scatter_group"] = sorted_data[all_selected_cols[1]].apply(lambda x: 'sandybrown' if x >= item_val else 'skyblue')
+        sorted_data["scatter_group"] = sorted_data[all_selected_cols[1]].apply(lambda x: 'saddlebrown' if x >= item_val else 'midnightblue')
     else:
-        sorted_data["scatter_group"] = 'palegreen'
+        sorted_data["scatter_group"] = 'forestgreen'
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
     chart3 = figure(title="example", y_axis_label=prob, tools='tap', y_range=(0,1), x_range=x_range)
+    chart3.grid.level = "overlay"
+    chart3.grid.grid_line_color = "black"
+    chart3.grid.grid_line_alpha = 0.05
+
+    #for the contours
+    def kde(x, y, N):
+        xmin, xmax = x.min(), x.max()
+        ymin, ymax = y.min(), y.max()
+
+        X, Y = np.mgrid[xmin:xmax:N * 1j, ymin:ymax:N * 1j]
+        positions = np.vstack([X.ravel(), Y.ravel()])
+        values = np.vstack([x, y])
+        kernel = gaussian_kde(values)
+        Z = np.reshape(kernel(positions).T, X.shape)
+
+        return X, Y, Z
+
+    #create bands and contours
+    colors = ['midnightblue', 'saddlebrown', 'forestgreen']
+    for i, color in enumerate(colors):
+        filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
+        if (len(filtered_data) > 0):
+            window = len(filtered_data) // 20
+            rolling = filtered_data[prob].rolling(window=window, center=True).agg(['mean', 'std'])
+            rolling['upper'] = rolling['mean'] + rolling['std']
+            rolling['lower'] = rolling['mean'] - rolling['std']
+            combined = pd.concat([filtered_data, rolling], axis=1)
+            combined = ColumnDataSource(combined.reset_index())
+
+            if "line" in chart_type:
+                chart3.line(col, 'mean', source=combined, color=color, line_width=2)
+
+            if "band" in chart_type:
+                band = Band(base=col, lower='lower', upper='upper', source=combined,
+                        fill_color=color)
+
+                chart3.add_layout(band)
+
+            if "contour" in chart_type:
+                #contours
+                #only use subset of data for performance reasons
+                subsetted_data = filtered_data.sample(n=1000)
+                x,y,z = kde(subsetted_data[col], subsetted_data[prob], 100)
+
+                #use the color to create a palette
+                cur_color =  bokeh.colors.named.NamedColor.find(color)
+                palette = [cur_color]
+                for i in range(0, 3):
+                    palette.append(palette[i].lighten(0.2))
+                #convert to hex
+                palette = [c.to_hex() for c in palette]
+                #invert the palette
+                palette = palette[::-1]
+
+
+                levels = np.linspace(np.min(z), np.max(z), 7)
+                chart3.contour(x, y, z, levels[1:], fill_color=palette, line_color=palette, fill_alpha=0.8)
+
+
     if "scatter" in chart_type:
-        alpha = min(len(sorted_data) / 1000, 0.7)
+        alpha = 0.3
         chart3.scatter(sorted_data[col], sorted_data[prob], color=sorted_data["scatter_group"],
                        alpha=alpha, marker='dot', size=7)
     chart3.scatter(item[col], item[prob], color='purple', size=7)
-
-    #create bands
-    colors = ['skyblue', 'sandybrown', 'palegreen']
-    for i, color in enumerate(colors):
-        filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
-        window = len(filtered_data) // 20
-        rolling = filtered_data[prob].rolling(window=window, center=True).agg(['mean', 'std'])
-        rolling['upper'] = rolling['mean'] + rolling['std']
-        rolling['lower'] = rolling['mean'] - rolling['std']
-        combined = pd.concat([filtered_data, rolling], axis=1)
-        combined = ColumnDataSource(combined.reset_index())
-
-        if "line" in chart_type:
-            chart3.line(col, 'mean', source=combined, color=color, line_width=2)
-
-        if "band" in chart_type:
-            band = Band(base=col, lower='lower', upper='upper', source=combined,
-                    fill_color=color)
-
-            chart3.add_layout(band)
-
-    #chart3.line(data[col], rolling['upper'], color='black', line_dash='dashed')
-    #chart3.line(data[col], rolling['lower'], color='black', line_dash='dashed')
 
 
     return chart3
