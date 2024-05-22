@@ -3,7 +3,7 @@ import panel as pn
 import pickle
 from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
-from bokeh.models import ColumnDataSource
+from bokeh.models import Band, ColumnDataSource
 import functions as feature
 
 pn.extension()
@@ -42,13 +42,14 @@ file_means.close()
 
 classes = nn.classes_
 columns = testdata.columns
-data = testdata[0:200]
+data = testdata   # [0:200]
 
 data_and_probabilities = feature.combine_data_and_results(data, nn, classes)
 
 #create widgets
 x = pn.widgets.EditableIntSlider(name='x', start=0, end=199, value=26).servable()
 col = pn.widgets.Select(name='column', options=[col for col in data.columns])
+chart_type = pn.widgets.MultiChoice(name='chart_type', options=['scatter', 'line', 'band'], value=['scatter']).servable()
 
 columngroup = []
 combined_columns = pn.widgets.LiteralInput(value=[])
@@ -137,18 +138,49 @@ def shap_tornado_plot(data):
     chart2.on_event('tap', setCol)
     return chart2
 
-def dependency_scatterplot(data, col, all_selected_cols, prob, index):
+def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type):
     item = data.iloc[index]
+    sorted_data = data.sort_values(by=col)
 
     if (len(all_selected_cols) > 1):
         item_val = item[all_selected_cols[1]]
-        data["scatter_group"] = data[all_selected_cols[1]].apply(lambda x: 'sandybrown' if x >= item_val else 'skyblue')
+        sorted_data["scatter_group"] = sorted_data[all_selected_cols[1]].apply(lambda x: 'sandybrown' if x >= item_val else 'skyblue')
     else:
-        data["scatter_group"] = 'palegreen'
+        sorted_data["scatter_group"] = 'palegreen'
 
-    chart3 = figure(title="example", y_axis_label=prob, tools='tap')
-    chart3.scatter(data[col], data[prob], color=data["scatter_group"], alpha=1)
+    x_range = (sorted_data[col].min(), sorted_data[col].max())
+
+    chart3 = figure(title="example", y_axis_label=prob, tools='tap', y_range=(0,1), x_range=x_range)
+    if "scatter" in chart_type:
+        alpha = min(len(sorted_data) / 1000, 0.7)
+        chart3.scatter(sorted_data[col], sorted_data[prob], color=sorted_data["scatter_group"],
+                       alpha=alpha, marker='dot', size=7)
     chart3.scatter(item[col], item[prob], color='purple', size=7)
+
+    #create bands
+    colors = ['skyblue', 'sandybrown', 'palegreen']
+    for i, color in enumerate(colors):
+        filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
+        window = len(filtered_data) // 20
+        rolling = filtered_data[prob].rolling(window=window, center=True).agg(['mean', 'std'])
+        rolling['upper'] = rolling['mean'] + rolling['std']
+        rolling['lower'] = rolling['mean'] - rolling['std']
+        combined = pd.concat([filtered_data, rolling], axis=1)
+        combined = ColumnDataSource(combined.reset_index())
+
+        if "line" in chart_type:
+            chart3.line(col, 'mean', source=combined, color=color, line_width=2)
+
+        if "band" in chart_type:
+            band = Band(base=col, lower='lower', upper='upper', source=combined,
+                    fill_color=color)
+
+            chart3.add_layout(band)
+
+    #chart3.line(data[col], rolling['upper'], color='black', line_dash='dashed')
+    #chart3.line(data[col], rolling['lower'], color='black', line_dash='dashed')
+
+
     return chart3
 
 def probability(data, index, prob):
@@ -172,7 +204,7 @@ cur_feature = pn.widgets.Select(name='', options=all_selected_cols, align='cente
 
 #displayed bokeh plots
 shap_plot = pn.bind(shap_tornado_plot, item_shap)
-dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, cur_feature, all_selected_cols, item_prediction, x)
+dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, cur_feature, all_selected_cols, item_prediction, x, chart_type)
 
 
 
