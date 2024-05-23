@@ -60,3 +60,21 @@ def update_names(widgets):
     num_groups = widgets[2]
     for i in range(num_groups.value - 1):
         column_group[i].name = str(i)
+
+def init_groups(widgets):
+    column_group = widgets[0]
+    row = widgets[1]
+    num_groups = widgets[2]
+    remaining_options = widgets[3]
+    combined_columns = widgets[4]
+
+    combined_columns.value = []
+    num_groups.value = 1
+    column_group.clear()
+    row.clear()
+    column_group.append(
+        pn.widgets.MultiChoice(name=str(0), value=[], options=remaining_options.value.copy()))
+    column_group[0].param.watch(lambda event: column_group_changed(event, widgets),
+                                parameter_names=['value'], onlychanged=False)
+    row.append(column_group[0])
+    column_group[0].param.trigger('value')  # trigger event to update remaining options

@@ -60,7 +60,11 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
             if "contour" in chart_type:
                 # only use subset of data for performance reasons
-                data_subset = filtered_data.sample(n=1000)
+                if len(filtered_data) > 1000:
+                    data_subset = filtered_data.sample(n=1000)
+                else:
+                    data_subset = filtered_data
+
                 x, y, z = kde(data_subset[col], data_subset[prob], 100)
 
                 # use the color to create a palette
@@ -78,7 +82,7 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     if "scatter" in chart_type:
         alpha = 0.3
         chart3.scatter(sorted_data[col], sorted_data[prob], color=sorted_data["scatter_group"],
-                       alpha=alpha, marker='dot', size=7)
+                       alpha=alpha, marker='dot', size=20)
     chart3.scatter(item[col], item[prob], color='purple', size=7)
 
     return chart3

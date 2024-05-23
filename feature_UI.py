@@ -11,13 +11,13 @@ pn.extension()
 file_input_data = pn.widgets.FileInput(accept='.csv', name='Upload data').servable()
 file_input_nn = pn.widgets.FileInput(accept='.pkl', name='Upload neural network').servable()
 
-raw_data = pn.bind(data_loader.load_data, file_input_data)
-nn = pn.bind(data_loader.load_nn, file_input_nn)
+raw_data = pn.bind(data_loader.load_data, file_input_data, file_input_nn)
+nn = pn.bind(data_loader.load_nn, file_input_nn, file_input_data)
 means = pn.bind(feature.get_means, raw_data)
 
 CLASSES = pn.bind(lambda nn: nn.classes_, nn)
 COLUMNS = pn.bind(lambda data: [col for col in data.columns], raw_data)
-data = raw_data  # [0:200]
+data = pn.bind(lambda data: data[0:200], raw_data)
 data_and_probabilities = pn.bind(feature.combine_data_and_results, data, nn, CLASSES)
 
 # create widgets
@@ -30,19 +30,10 @@ chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTION
 column_group = []
 combined_columns = pn.widgets.LiteralInput(value=[])
 num_groups = pn.widgets.LiteralInput(value=1)
-
 row = pn.FlexBox().servable()
-all_options = COLUMNS
 remaining_options = pn.widgets.LiteralInput(value=COLUMNS)
-
-# add first columngroup widget
-column_group.append(
-    pn.widgets.MultiChoice(name=str(0), value=['Humidity9am', 'Humidity3pm'], options=remaining_options.value.copy()))
-widget = [column_group, row, num_groups, remaining_options, combined_columns, all_options]
-column_group[0].param.watch(lambda event: column_functions.column_group_changed(event, widget),
-                            parameter_names=['value'], onlychanged=False)
-row.append(column_group[0])
-column_group[0].param.trigger('value') # trigger event to update remaining options
+widget = [column_group, row, num_groups, remaining_options, combined_columns, COLUMNS]
+column_functions.init_groups(widget)
 
 # display prediction
 item_prediction = pn.bind(item_functions.get_item_prediction, data_and_probabilities, x)
@@ -58,6 +49,10 @@ all_selected_cols = pn.bind(column_functions.return_col, col)
 cur_feature = pn.widgets.Select(name='', options=all_selected_cols, align='center')
 dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, cur_feature, all_selected_cols,
                    item_prediction, x, chart_type)
+
+#update everything when the data changes
+file_input_data.param.watch(lambda event: data_loader.data_changed(event, [col, cur_feature, all_selected_cols, widget]), parameter_names=['value'], onlychanged=False)
+file_input_nn.param.watch(lambda event: data_loader.data_changed(event, [col, cur_feature, all_selected_cols, widget]), parameter_names=['value'], onlychanged=False)
 
 # remaining layout
 pn.panel(prob_data).servable()
