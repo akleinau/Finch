@@ -5,6 +5,13 @@ from scipy.stats import gaussian_kde
 import pandas as pd
 import bokeh.colors
 
+def get_legend_label(color, cols):
+    if color == 'midnightblue':
+        return "lower " + cols[1]
+    elif color == 'saddlebrown':
+        return "higher " + cols[1]
+    else:
+        return "all"
 
 def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type):
     item = data.iloc[index]
@@ -53,7 +60,8 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
             combined = ColumnDataSource(combined.reset_index())
 
             if "line" in chart_type:
-                chart3.line(col, 'median', source=combined, color=color, line_width=2)
+                chart3.line(col, 'median', source=combined, color=color, line_width=2,
+                            legend_label=get_legend_label(color, all_selected_cols))
 
             if "band" in chart_type:
                 band = Band(base=col, lower='lower', upper='upper', source=combined,
