@@ -42,15 +42,18 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     for i, color in enumerate(colors):
         filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
         if len(filtered_data) > 0:
-            window = len(filtered_data) // 20
-            rolling = filtered_data[prob].rolling(window=window, center=True).agg(['mean', 'std'])
-            rolling['upper'] = rolling['mean'] + rolling['std']
-            rolling['lower'] = rolling['mean'] - rolling['std']
+            window = max(len(filtered_data) // 10, 10)
+            rolling = filtered_data[prob].rolling(window=window, center=True, min_periods=1).agg(
+                {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
+                 'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
+                 'median': 'median',
+                 'count': 'count'})
+            rolling = rolling.rolling(window=window, center=True, min_periods=1).mean()
             combined = pd.concat([filtered_data, rolling], axis=1)
             combined = ColumnDataSource(combined.reset_index())
 
             if "line" in chart_type:
-                chart3.line(col, 'mean', source=combined, color=color, line_width=2)
+                chart3.line(col, 'median', source=combined, color=color, line_width=2)
 
             if "band" in chart_type:
                 band = Band(base=col, lower='lower', upper='upper', source=combined,

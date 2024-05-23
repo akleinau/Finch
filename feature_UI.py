@@ -17,7 +17,7 @@ means = pn.bind(feature.get_means, raw_data)
 
 CLASSES = pn.bind(lambda nn: nn.classes_, nn)
 COLUMNS = pn.bind(lambda data: [col for col in data.columns], raw_data)
-data = pn.bind(lambda data: data[0:200], raw_data)
+data = pn.bind(lambda data: data[0:1000], raw_data)
 data_and_probabilities = pn.bind(feature.combine_data_and_results, data, nn, CLASSES)
 
 # create widgets
