@@ -50,7 +50,7 @@ def column_group_changed(event, widgets):
     for col in column_group:
         for name in col.value:
             columns.append(name)
-    remaining_options.value = [name for name in all_options if name not in columns]
+    remaining_options.value = pn.bind(lambda all: [name for name in all if name not in columns], all_options)
     for col in column_group:
         col.options = get_group_options(int(col.name), widgets)
 

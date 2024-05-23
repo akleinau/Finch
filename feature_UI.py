@@ -8,17 +8,21 @@ from plots.tornado_plot import shap_tornado_plot
 
 pn.extension()
 
-nn, raw_data = data_loader.load_weather_data()
-means = feature.get_means(raw_data)
+file_input_data = pn.widgets.FileInput(accept='.csv', name='Upload data').servable()
+file_input_nn = pn.widgets.FileInput(accept='.pkl', name='Upload neural network').servable()
 
-CLASSES = nn.classes_
-COLUMNS = raw_data.columns
+raw_data = pn.bind(data_loader.load_data, file_input_data)
+nn = pn.bind(data_loader.load_nn, file_input_nn)
+means = pn.bind(feature.get_means, raw_data)
+
+CLASSES = pn.bind(lambda nn: nn.classes_, nn)
+COLUMNS = pn.bind(lambda data: [col for col in data.columns], raw_data)
 data = raw_data  # [0:200]
-data_and_probabilities = feature.combine_data_and_results(data, nn, CLASSES)
+data_and_probabilities = pn.bind(feature.combine_data_and_results, data, nn, CLASSES)
 
 # create widgets
 x = pn.widgets.EditableIntSlider(name='x', start=0, end=199, value=26).servable()
-col = pn.widgets.Select(name='column', options=[col for col in data.columns])
+col = pn.widgets.Select(name='column', options=COLUMNS)
 CHART_TYPE_OPTIONS = ['scatter', 'line', 'band', 'contour']
 chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTIONS, value=['scatter']).servable()
 
@@ -28,8 +32,8 @@ combined_columns = pn.widgets.LiteralInput(value=[])
 num_groups = pn.widgets.LiteralInput(value=1)
 
 row = pn.FlexBox().servable()
-all_options = [name for name in COLUMNS]
-remaining_options = pn.widgets.LiteralInput(value=[name for name in COLUMNS])
+all_options = COLUMNS
+remaining_options = pn.widgets.LiteralInput(value=COLUMNS)
 
 # add first columngroup widget
 column_group.append(
