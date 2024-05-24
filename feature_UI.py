@@ -3,6 +3,7 @@ import functions as feature
 import calculations.item_functions as item_functions
 import calculations.column_functions as column_functions
 import calculations.data_loader as data_loader
+import calculations.similarity as similarity
 from plots.dependency_plot import dependency_scatterplot
 from plots.tornado_plot import shap_tornado_plot
 
@@ -43,6 +44,9 @@ item_prediction = pn.bind(item_functions.get_item_prediction, data_and_probabili
 prob_data = pn.bind(item_functions.get_item_probability_string, data_and_probabilities, x, item_prediction)
 item_data = pn.bind(item_functions.get_item_data, data, x)
 
+# similarity experiments
+test = pn.bind(similarity.test_setup, data_and_probabilities, COLUMNS, item_prediction)
+
 # display shap plot
 item_shap = pn.bind(item_functions.get_item_shap_values, data, x, means, nn, COLUMNS, combined_columns)
 shap_plot = pn.bind(shap_tornado_plot, item_shap, [col])  # col is wrapped to be passed as reference
@@ -60,3 +64,4 @@ file_input_nn.param.watch(lambda event: data_loader.data_changed(event, [col, cu
 # remaining layout
 pn.pane.Str(prob_data, sizing_mode="stretch_width", align="center", styles={"font-size":"20px", "text-align": "center"}).servable()
 pn.Row(item_data, shap_plot, pn.Column(dep_plot, cur_feature)).servable()
+pn.panel(test).servable()
