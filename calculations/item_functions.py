@@ -26,7 +26,7 @@ def get_item_data(explanation, index):
 
 
 def get_item_probability_string(data, index, prob):
-    return prob + " with probability: " + "{:10.2f}".format(data.iloc[index][prob])
+    return "Prediction: " + prob[5:] + "  " + "{:10.0f}".format(data.iloc[index][prob]*100) + "% certainty"
 
 
 def get_item_prediction(data, index):

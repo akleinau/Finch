@@ -6,6 +6,20 @@ import pandas as pd
 import bokeh.colors
 
 
+# for the contours
+def kde(x, y, N):
+    xmin, xmax = x.min(), x.max()
+    ymin, ymax = y.min(), y.max()
+
+    X, Y = np.mgrid[xmin:xmax:N * 1j, ymin:ymax:N * 1j]
+    positions = np.vstack([X.ravel(), Y.ravel()])
+    values = np.vstack([x, y])
+    kernel = gaussian_kde(values)
+    Z = np.reshape(kernel(positions).T, X.shape)
+
+    return X, Y, Z
+
+
 def get_legend_label(color, cols):
     if color == 'midnightblue':
         return "lower " + cols[1]
@@ -35,20 +49,7 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
 
-    # for the contours
-    def kde(x, y, N):
-        xmin, xmax = x.min(), x.max()
-        ymin, ymax = y.min(), y.max()
-
-        X, Y = np.mgrid[xmin:xmax:N * 1j, ymin:ymax:N * 1j]
-        positions = np.vstack([X.ravel(), Y.ravel()])
-        values = np.vstack([x, y])
-        kernel = gaussian_kde(values)
-        Z = np.reshape(kernel(positions).T, X.shape)
-
-        return X, Y, Z
-
-    # create bands and contours
+    # create bands and contours for each group
     colors = ['midnightblue', 'saddlebrown', 'forestgreen']
     for i, color in enumerate(colors):
         filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
@@ -102,6 +103,8 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
         alpha = 0.3
         chart3.scatter(col, prob, color="scatter_group", source=sorted_data,
                        alpha=alpha, marker='circle', size=3, name="label", legend_group="label")
+
+    # add the selected item
     item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item",
                                   legend_label="selected item")
 

@@ -8,8 +8,8 @@ from plots.tornado_plot import shap_tornado_plot
 
 pn.extension()
 
-file_input_data = pn.widgets.FileInput(accept='.csv', name='Upload data').servable()
-file_input_nn = pn.widgets.FileInput(accept='.pkl', name='Upload neural network').servable()
+file_input_data = pn.widgets.FileInput(accept='.csv', name='Upload data')
+file_input_nn = pn.widgets.FileInput(accept='.pkl', name='Upload neural network')
 
 raw_data = pn.bind(data_loader.load_data, file_input_data, file_input_nn)
 nn = pn.bind(data_loader.load_nn, file_input_nn, file_input_data)
@@ -21,7 +21,8 @@ data = pn.bind(lambda data: data[0:1000], raw_data)
 data_and_probabilities = pn.bind(feature.combine_data_and_results, data, nn, CLASSES)
 
 # create widgets
-x = pn.widgets.EditableIntSlider(name='x', start=0, end=199, value=26).servable()
+x = pn.widgets.EditableIntSlider(name='x', start=0, end=100, value=26)
+pn.Row(file_input_data, file_input_nn, x).servable()
 col = pn.widgets.Select(name='column', options=COLUMNS)
 CHART_TYPE_OPTIONS = ['scatter', 'line', 'band', 'contour']
 chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTIONS, value=['scatter']).servable()
@@ -30,6 +31,8 @@ chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTION
 column_group = []
 combined_columns = pn.widgets.LiteralInput(value=[])
 num_groups = pn.widgets.LiteralInput(value=1)
+pn.panel("<br>").servable()
+pn.panel("### Grouped columns:").servable()
 row = pn.FlexBox().servable()
 remaining_options = pn.widgets.LiteralInput(value=COLUMNS)
 widget = [column_group, row, num_groups, remaining_options, combined_columns, COLUMNS]
@@ -55,5 +58,5 @@ file_input_data.param.watch(lambda event: data_loader.data_changed(event, [col, 
 file_input_nn.param.watch(lambda event: data_loader.data_changed(event, [col, cur_feature, all_selected_cols, widget]), parameter_names=['value'], onlychanged=False)
 
 # remaining layout
-pn.panel(prob_data).servable()
+pn.pane.Str(prob_data, sizing_mode="stretch_width", align="center", styles={"font-size":"20px", "text-align": "center"}).servable()
 pn.Row(item_data, shap_plot, pn.Column(dep_plot, cur_feature)).servable()

@@ -27,6 +27,8 @@ def shap_tornado_plot(data, col):
         selection_hatch_weight=1.5,
         selection_hatch_color='purple'
     )
+    chart2.grid.grid_line_color = "black"
+    chart2.grid.grid_line_alpha = 0.05
 
     chart2.on_event('tap', lambda event: set_col(data, item_source, col))
     return chart2
