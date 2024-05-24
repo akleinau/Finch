@@ -1,9 +1,10 @@
 from bokeh.plotting import figure
-from bokeh.models import Band, ColumnDataSource
+from bokeh.models import Band, ColumnDataSource, HoverTool
 import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
 import bokeh.colors
+
 
 def get_legend_label(color, cols):
     if color == 'midnightblue':
@@ -12,6 +13,7 @@ def get_legend_label(color, cols):
         return "higher " + cols[1]
     else:
         return "all"
+
 
 def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type):
     item = data.iloc[index]
@@ -24,9 +26,11 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     else:
         sorted_data["scatter_group"] = 'forestgreen'
 
+    sorted_data["label"] = sorted_data["scatter_group"].apply(lambda x: get_legend_label(x, all_selected_cols))
+
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
-    chart3 = figure(title="example", y_axis_label=prob, tools='tap', y_range=(0, 1), x_range=x_range)
+    chart3 = figure(title="example", y_axis_label=prob, tools="tap", y_range=(0, 1), x_range=x_range)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
@@ -60,14 +64,18 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
             combined = ColumnDataSource(combined.reset_index())
 
             if "line" in chart_type:
-                chart3.line(col, 'median', source=combined, color=color, line_width=2,
-                            legend_label=get_legend_label(color, all_selected_cols))
+                line = chart3.line(col, 'median', source=combined, color=color, line_width=2,
+                                   legend_label=get_legend_label(color, all_selected_cols),
+                                   name=get_legend_label(color, all_selected_cols))
+                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
+                chart3.add_tools(line_hover)
 
             if "band" in chart_type:
-                band = Band(base=col, lower='lower', upper='upper', source=combined,
-                            fill_color=color)
-
-                chart3.add_layout(band)
+                band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
+                                    legend_label=get_legend_label(color, all_selected_cols), fill_color=color,
+                                    alpha=0.3, name=get_legend_label(color, all_selected_cols))
+                band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
+                chart3.add_tools(band_hover)
 
             if "contour" in chart_type:
                 # only use subset of data for performance reasons
@@ -92,8 +100,12 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
     if "scatter" in chart_type:
         alpha = 0.3
-        chart3.scatter(sorted_data[col], sorted_data[prob], color=sorted_data["scatter_group"],
-                       alpha=alpha, marker='dot', size=20)
-    chart3.scatter(item[col], item[prob], color='purple', size=7)
+        chart3.scatter(col, prob, color="scatter_group", source=sorted_data,
+                       alpha=alpha, marker='circle', size=3, name="label", legend_group="label")
+    item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item",
+                                  legend_label="selected item")
+
+    scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
+    chart3.add_tools(scatter_hover)
 
     return chart3
