@@ -1,5 +1,5 @@
 from bokeh.plotting import figure
-from bokeh.models import Band, ColumnDataSource, HoverTool
+from bokeh.models import Band, ColumnDataSource, HoverTool, Legend, LegendItem
 import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
@@ -44,12 +44,14 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
-    chart3 = figure(title="example", y_axis_label=prob, tools="tap", y_range=(0, 1), x_range=x_range)
+    chart3 = figure(title="example", y_axis_label=prob, tools="tap", y_range=(0, 1), x_range=x_range, width=800)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
+    chart3.add_layout(Legend(), 'right')
 
     # create bands and contours for each group
+    legend_items = []
     colors = ['midnightblue', 'saddlebrown', 'forestgreen']
     for i, color in enumerate(colors):
         filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
@@ -97,7 +99,17 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                 palette = palette[::-1]  # invert the palette
 
                 levels = np.linspace(np.min(z), np.max(z), 7)
-                chart3.contour(x, y, z, levels[1:], fill_color=palette, line_color=palette, fill_alpha=0.8)
+                contour = chart3.contour(x, y, z, levels[1:], fill_color=palette, line_color=palette, fill_alpha=0.8)
+                contour.fill_renderer.name = get_legend_label(color, all_selected_cols)
+
+                #contour.fill_renderer
+                contour_hover = HoverTool(renderers=[ contour.fill_renderer], tooltips=[('', '$name')])
+                chart3.add_tools(contour_hover)
+
+                # add legend items
+                dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
+                legend_items.append((get_legend_label(color, all_selected_cols), [dummy_for_legend]))
+
 
     if "scatter" in chart_type:
         alpha = 0.3
@@ -105,10 +117,12 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                        alpha=alpha, marker='circle', size=3, name="label", legend_group="label")
 
     # add the selected item
-    item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item",
-                                  legend_label="selected item")
+    item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item", legend_label="selected item")
 
     scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
     chart3.add_tools(scatter_hover)
 
+    # add legend
+    chart3.legend.items.extend([LegendItem(label=x,renderers=y) for (x,y) in legend_items])
+    chart3.legend.location = "right"
     return chart3
