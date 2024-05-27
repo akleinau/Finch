@@ -98,7 +98,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction):
     all_selected_cols = [col for col in all_selected_cols if col != cur_col]
 
     if (len(all_selected_cols) > 0):
-        tree = DecisionTreeRegressor(max_leaf_nodes=2)
+        tree = DecisionTreeRegressor(max_leaf_nodes=4, max_depth=2, min_samples_leaf=0.1)
         tree.fit(data[all_selected_cols], data[prediction])
 
         data["group"] = tree.apply(data[all_selected_cols])

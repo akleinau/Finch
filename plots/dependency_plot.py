@@ -48,6 +48,10 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
             combined = pd.concat([filtered_data, rolling], axis=1)
             combined = ColumnDataSource(combined.reset_index())
 
+            # add legend items
+            dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
+            legend_items.append((cluster_label, [dummy_for_legend]))
+
             if "contour" in chart_type:
                 # only use subset of data for performance reasons
                 if len(filtered_data) > 1000:
@@ -63,7 +67,9 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                 cur_color = bokeh.colors.RGB(*rgb)
                 palette = [cur_color]
                 for i in range(0, 3):
-                    palette.append(palette[i].lighten(0.2))
+                    new_color = palette[i].copy()
+                    new_color.a -= 0.3
+                    palette.append(new_color)
 
                 palette = [c.to_hex() for c in palette]  # convert to hex
                 palette = palette[::-1]  # invert the palette
@@ -76,20 +82,18 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                 contour_hover = HoverTool(renderers=[ contour.fill_renderer], tooltips=[('', '$name')])
                 chart3.add_tools(contour_hover)
 
-                # add legend items
-                dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
-                legend_items.append((cluster_label, [dummy_for_legend]))
 
             if "band" in chart_type:
                 band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
-                                    legend_label=cluster_label, fill_color=color,
+                                    #legend_label=cluster_label,
+                                    fill_color=color,
                                     alpha=0.3, name=cluster_label)
                 band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
                 chart3.add_tools(band_hover)
 
             if "line" in chart_type:
                 line = chart3.line(col, 'median', source=combined, color=color, line_width=2,
-                                   legend_label=cluster_label,
+                                   #legend_label=cluster_label,
                                    name=cluster_label)
                 line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
                 chart3.add_tools(line_hover)
@@ -99,7 +103,9 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     if "scatter" in chart_type:
         alpha = 0.3
         chart3.scatter(col, prob, color="scatter_group", source=sorted_data,
-                       alpha=alpha, marker='circle', size=3, name="scatter_label", legend_group="scatter_label")
+                       alpha=alpha, marker='circle', size=3, name="scatter_label",
+                       #legend_group="scatter_label"
+                       )
 
     # add the selected item
     item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item", legend_label="selected item")
