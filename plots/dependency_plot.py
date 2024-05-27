@@ -48,20 +48,6 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
             combined = pd.concat([filtered_data, rolling], axis=1)
             combined = ColumnDataSource(combined.reset_index())
 
-            if "line" in chart_type:
-                line = chart3.line(col, 'median', source=combined, color=color, line_width=2,
-                                   legend_label=cluster_label,
-                                   name=cluster_label)
-                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
-                chart3.add_tools(line_hover)
-
-            if "band" in chart_type:
-                band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
-                                    legend_label=cluster_label, fill_color=color,
-                                    alpha=0.3, name=cluster_label)
-                band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
-                chart3.add_tools(band_hover)
-
             if "contour" in chart_type:
                 # only use subset of data for performance reasons
                 if len(filtered_data) > 1000:
@@ -93,6 +79,21 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                 # add legend items
                 dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
                 legend_items.append((cluster_label, [dummy_for_legend]))
+
+            if "band" in chart_type:
+                band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
+                                    legend_label=cluster_label, fill_color=color,
+                                    alpha=0.3, name=cluster_label)
+                band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
+                chart3.add_tools(band_hover)
+
+            if "line" in chart_type:
+                line = chart3.line(col, 'median', source=combined, color=color, line_width=2,
+                                   legend_label=cluster_label,
+                                   name=cluster_label)
+                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
+                chart3.add_tools(line_hover)
+
 
 
     if "scatter" in chart_type:

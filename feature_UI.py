@@ -26,7 +26,7 @@ x = pn.widgets.EditableIntSlider(name='x', start=0, end=100, value=26)
 pn.Row(file_input_data, file_input_nn, x).servable()
 col = pn.widgets.Select(name='column', options=COLUMNS)
 CHART_TYPE_OPTIONS = ['scatter', 'line', 'band', 'contour']
-chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTIONS, value=['scatter']).servable()
+chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTIONS, value=['line']).servable()
 
 # create all the widgets and variables needed for the column group selection
 column_group = []
