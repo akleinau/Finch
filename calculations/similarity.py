@@ -13,3 +13,14 @@ def test_setup(data, columns, prediction):
     output += "The difference between the two predictions is: " + str(pred_diff(x1, x2, prediction)) + "\n"
 
     return output
+
+
+def l2_loss(data, prediction):
+    # calculate mean prediction across group
+    mean_prediction = data[prediction].mean()
+    # calculate difference between each prediction and the mean
+    diff = data[prediction] - mean_prediction
+    # square the differences
+    squared_diff = diff ** 2
+    # return the sum of the squared differences
+    return squared_diff.sum()
