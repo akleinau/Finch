@@ -19,16 +19,6 @@ def kde(x, y, N):
 
     return X, Y, Z
 
-
-def get_legend_label(color, cols):
-    if color == 'midnightblue':
-        return "lower " + cols[1]
-    elif color == 'saddlebrown':
-        return "higher " + cols[1]
-    else:
-        return "all"
-
-
 def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type):
     item = data.iloc[index]
     sorted_data = data.sort_values(by=col)
@@ -40,8 +30,6 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     else:
         sorted_data["scatter_group"] = 'forestgreen'
 
-    sorted_data["label"] = sorted_data["scatter_group"].apply(lambda x: get_legend_label(x, all_selected_cols))
-
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
     chart3 = figure(title="example", y_axis_label=prob, tools="tap", y_range=(0, 1), x_range=x_range, width=800)
@@ -52,10 +40,11 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
     # create bands and contours for each group
     legend_items = []
-    colors = ['midnightblue', 'saddlebrown', 'forestgreen']
+    colors = sorted_data["scatter_group"].unique()
     for i, color in enumerate(colors):
         filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
         if len(filtered_data) > 0:
+            cluster_label = filtered_data["scatter_label"].iloc[0]
             window = max(len(filtered_data) // 10, 10)
             rolling = filtered_data[prob].rolling(window=window, center=True, min_periods=1).agg(
                 {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
@@ -68,15 +57,15 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
             if "line" in chart_type:
                 line = chart3.line(col, 'median', source=combined, color=color, line_width=2,
-                                   legend_label=get_legend_label(color, all_selected_cols),
-                                   name=get_legend_label(color, all_selected_cols))
+                                   legend_label=cluster_label,
+                                   name=cluster_label)
                 line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
                 chart3.add_tools(line_hover)
 
             if "band" in chart_type:
                 band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
-                                    legend_label=get_legend_label(color, all_selected_cols), fill_color=color,
-                                    alpha=0.3, name=get_legend_label(color, all_selected_cols))
+                                    legend_label=cluster_label, fill_color=color,
+                                    alpha=0.3, name=cluster_label)
                 band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
                 chart3.add_tools(band_hover)
 
@@ -100,7 +89,7 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
                 levels = np.linspace(np.min(z), np.max(z), 7)
                 contour = chart3.contour(x, y, z, levels[1:], fill_color=palette, line_color=palette, fill_alpha=0.8)
-                contour.fill_renderer.name = get_legend_label(color, all_selected_cols)
+                contour.fill_renderer.name = cluster_label
 
                 #contour.fill_renderer
                 contour_hover = HoverTool(renderers=[ contour.fill_renderer], tooltips=[('', '$name')])
@@ -108,13 +97,13 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
                 # add legend items
                 dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
-                legend_items.append((get_legend_label(color, all_selected_cols), [dummy_for_legend]))
+                legend_items.append((cluster_label, [dummy_for_legend]))
 
 
     if "scatter" in chart_type:
         alpha = 0.3
         chart3.scatter(col, prob, color="scatter_group", source=sorted_data,
-                       alpha=alpha, marker='circle', size=3, name="label", legend_group="label")
+                       alpha=alpha, marker='circle', size=3, name="scatter_label", legend_group="scatter_label")
 
     # add the selected item
     item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item", legend_label="selected item")

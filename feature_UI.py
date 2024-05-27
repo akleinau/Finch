@@ -54,7 +54,8 @@ shap_plot = pn.bind(shap_tornado_plot, item_shap, [col])  # col is wrapped to be
 # display dependency plot
 all_selected_cols = pn.bind(column_functions.return_col, col)
 cur_feature = pn.widgets.Select(name='', options=all_selected_cols, align='center')
-dep_plot = pn.bind(dependency_scatterplot, data_and_probabilities, cur_feature, all_selected_cols,
+clustered_data = pn.bind(similarity.get_relative_groups, data_and_probabilities, all_selected_cols, x)
+dep_plot = pn.bind(dependency_scatterplot, clustered_data, cur_feature, all_selected_cols,
                    item_prediction, x, chart_type)
 
 #update everything when the data changes
