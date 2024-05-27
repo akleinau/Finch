@@ -23,13 +23,6 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     item = data.iloc[index]
     sorted_data = data.sort_values(by=col)
 
-    if len(all_selected_cols) > 1:
-        item_val = item[all_selected_cols[1]]
-        sorted_data["scatter_group"] = sorted_data[all_selected_cols[1]].apply(
-            lambda x: 'saddlebrown' if x >= item_val else 'midnightblue')
-    else:
-        sorted_data["scatter_group"] = 'forestgreen'
-
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
     chart3 = figure(title="example", y_axis_label=prob, tools="tap", y_range=(0, 1), x_range=x_range, width=800)
@@ -79,7 +72,9 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                 x, y, z = kde(data_subset[col], data_subset[prob], 100)
 
                 # use the color to create a palette
-                cur_color = bokeh.colors.named.NamedColor.find(color)
+                rgb = color = tuple(int(color[1:][i:i+2], 16) for i in (0, 2, 4)) # convert hex to rgb
+                # to bokeh
+                cur_color = bokeh.colors.RGB(*rgb)
                 palette = [cur_color]
                 for i in range(0, 3):
                     palette.append(palette[i].lighten(0.2))
