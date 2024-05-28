@@ -31,3 +31,18 @@ def get_item_probability_string(data, index, prob):
 
 def get_item_prediction(data, index):
     return data.iloc[index]['prediction']
+
+
+def get_prob_wo_selected_cols(nn, all_selected_cols, means, item, pred_label):
+    item_df = pd.DataFrame(item['value'].values, index=item['feature'].values).T
+    new_item = means.copy()
+
+    # replace the values of the selected columns with the mean
+    for col in all_selected_cols:
+        new_item[col] = item_df[col].iloc[0]
+
+    # calculate the prediction without the selected columns
+    prediction = nn.predict_proba(new_item)
+    index = int(pred_label[5:])
+
+    return prediction[0][index]

@@ -19,7 +19,7 @@ def kde(x, y, N):
 
     return X, Y, Z
 
-def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type):
+def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type, prob_wo_selected_cols=None):
     item = data.iloc[index]
     sorted_data = data.sort_values(by=col)
 
@@ -117,4 +117,13 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
     # add legend
     chart3.legend.items.extend([LegendItem(label=x,renderers=y) for (x,y) in legend_items])
     chart3.legend.location = "right"
+
+    # add the "standard probability" line
+    mean = data[prob].mean()
+    chart3.line(x=[x_range[0], x_range[1]], y=[mean, mean], line_width=2, color='black', alpha=0.5, legend_label='mean probability')
+
+    # add the point when only selected cols are used
+    if prob_wo_selected_cols is not None:
+        chart3.scatter(x=item[col], y=prob_wo_selected_cols, color='grey', legend_label='selection probability')
+
     return chart3
