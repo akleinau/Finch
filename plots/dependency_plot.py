@@ -25,11 +25,12 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
-    chart3 = figure(title="example", y_axis_label=prob, tools="tap", y_range=(0, 1), x_range=x_range, width=800)
+    chart3 = figure(title="dependency plot", y_axis_label="probability", tools="tap", y_range=(0, 1), x_range=x_range, width=800)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
     chart3.add_layout(Legend(), 'right')
+    chart3.y_range.bounds = (-0.1, 1.1)  # add a little padding around y axis
 
     # create bands and contours for each group
     legend_items = []

@@ -30,6 +30,15 @@ def l2_loss(data, prediction):
     # return the sum of the squared differences
     return squared_diff.sum()
 
+def get_color(x, item_val, range):
+    #lambda x: 'saddlebrown' if x >= item_val else 'midnightblue'
+    if (x < item_val - range):
+        return '#8B4513'
+    elif (x > item_val + range):
+        return '#191970'
+    else:
+        return '#800080'
+
 
 def get_relative_groups(data, col, index):
     item = data.iloc[index]
@@ -37,10 +46,12 @@ def get_relative_groups(data, col, index):
 
     if len(col) > 1:
         item_val = item[col[1]]
-        data["scatter_group"] = data[col[1]].apply(
-            lambda x: 'saddlebrown' if x >= item_val else 'midnightblue')
-        labels['midnightblue'] = 'Higher ' + str(col[1])
-        labels['saddlebrown'] = 'Lower ' + str(col[1])
+        range = data[col[1]].max() - data[col[1]].min()
+
+        data["scatter_group"] = data[col[1]].apply(lambda x: get_color(x, item_val, range/20))
+        labels['#191970'] = 'Higher ' + str(col[1])
+        labels['#8B4513'] = 'Lower ' + str(col[1])
+        labels['#800080'] = 'Similar ' + str(col[1])
     else:
         data["scatter_group"] = '#228b22'
 
@@ -115,3 +126,9 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction):
         data["scatter_label"] = 'All'
 
     return data
+
+def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index):
+    if cluster_type == 'Relative':
+        return get_relative_groups(data, all_selected_cols, index)
+    else:
+        return get_tree_groups(data, all_selected_cols, cur_col, prediction)

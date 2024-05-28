@@ -14,7 +14,7 @@ def set_col(data, item_source, col):
 
 def shap_tornado_plot(data, col):
     item_source = ColumnDataSource(data=data)
-    chart2 = figure(title="example0", y_range=data['feature'], x_range=(-1, 1), tools='tap')
+    chart2 = figure(title="relevance", y_range=data['feature'], x_range=(-1, 1), tools='tap')
     chart2.hbar(
         y='feature',
         right='shap_value',
