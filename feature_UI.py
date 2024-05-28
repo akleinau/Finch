@@ -6,6 +6,7 @@ import calculations.data_loader as data_loader
 import calculations.similarity as similarity
 from plots.dependency_plot import dependency_scatterplot
 from plots.tornado_plot import shap_tornado_plot
+from plots.parallel_plot import parallel_plot
 
 pn.extension()
 
@@ -65,3 +66,7 @@ file_input_nn.param.watch(lambda event: data_loader.data_changed(event, [col, cu
 # remaining layout
 pn.pane.Str(prob_data, sizing_mode="stretch_width", align="center", styles={"font-size":"20px", "text-align": "center"}).servable()
 pn.Row(item_data, shap_plot, pn.Column(dep_plot, cur_feature)).servable()
+
+parallel_plot = pn.bind(parallel_plot, clustered_data, cur_feature, all_selected_cols,
+                   item_prediction, item_data, chart_type)
+pn.Row(parallel_plot).servable()
