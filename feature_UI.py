@@ -28,7 +28,8 @@ pn.Row(file_input_data, file_input_nn, x).servable()
 col = pn.widgets.Select(name='column', options=COLUMNS)
 CHART_TYPE_OPTIONS = ['scatter', 'line', 'band', 'contour']
 chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTIONS, value=['line']).servable()
-cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative', 'Decision Tree'], value='Decision Tree').servable()
+cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative', 'Decision Tree'],
+                                 value='Decision Tree').servable()
 
 # create all the widgets and variables needed for the column group selection
 column_group = []
@@ -56,19 +57,25 @@ shap_plot = pn.bind(shap_tornado_plot, item_shap, [col])  # col is wrapped to be
 # display dependency plot
 all_selected_cols = pn.bind(column_functions.return_col, col)
 cur_feature = pn.widgets.Select(name='', options=all_selected_cols, align='center')
-prob_wo_selected_cols = pn.bind(item_functions.get_prob_wo_selected_cols, nn, all_selected_cols, means, item_data, item_prediction)
-clustered_data = pn.bind(similarity.get_clustering, cluster_type,data_and_probabilities, all_selected_cols, cur_feature, item_prediction, x)
+prob_wo_selected_cols = pn.bind(item_functions.get_prob_wo_selected_cols, nn, all_selected_cols, means, item_data,
+                                item_prediction)
+clustered_data = pn.bind(similarity.get_clustering, cluster_type, data_and_probabilities, all_selected_cols,
+                         cur_feature, item_prediction, x)
 dep_plot = pn.bind(dependency_scatterplot, clustered_data, cur_feature, all_selected_cols,
                    item_prediction, x, chart_type, prob_wo_selected_cols)
 
-#update everything when the data changes
-file_input_data.param.watch(lambda event: data_loader.data_changed(event, [col, cur_feature, all_selected_cols, widget]), parameter_names=['value'], onlychanged=False)
-file_input_nn.param.watch(lambda event: data_loader.data_changed(event, [col, cur_feature, all_selected_cols, widget]), parameter_names=['value'], onlychanged=False)
+# update everything when the data changes
+file_input_data.param.watch(
+    lambda event: data_loader.data_changed(event, [col, cur_feature, all_selected_cols, widget]),
+    parameter_names=['value'], onlychanged=False)
+file_input_nn.param.watch(lambda event: data_loader.data_changed(event, [col, cur_feature, all_selected_cols, widget]),
+                          parameter_names=['value'], onlychanged=False)
 
 # remaining layout
-pn.pane.Str(prob_data, sizing_mode="stretch_width", align="center", styles={"font-size":"20px", "text-align": "center"}).servable()
+pn.pane.Str(prob_data, sizing_mode="stretch_width", align="center",
+            styles={"font-size": "20px", "text-align": "center"}).servable()
 pn.Row(item_data, shap_plot, pn.Column(dep_plot, cur_feature)).servable()
 
 parallel_plot = pn.bind(parallel_plot, clustered_data, cur_feature, all_selected_cols,
-                   item_prediction, item_data, chart_type)
+                        item_prediction, item_data, chart_type)
 pn.Row(parallel_plot).servable()

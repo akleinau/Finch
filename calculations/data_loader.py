@@ -3,6 +3,7 @@ import pandas as pd
 import io
 import calculations.column_functions as column_functions
 
+
 def load_weather_data():
     # load weather files
     file_nn = open('weather_data/weather_nn.pkl', 'rb')
@@ -26,6 +27,7 @@ def load_nn(file_nn, file_data):
         return load_weather_data()[0]
     else:
         return pickle.load(io.BytesIO(file_nn))
+
 
 def data_changed(event, widgets):
     col = widgets[0]

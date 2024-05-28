@@ -1,5 +1,6 @@
 import panel as pn
 
+
 def clean_column_groups(group):
     columns = []
     for col in group:
@@ -12,6 +13,7 @@ def clean_column_groups(group):
 def return_col(combined_col):
     col = combined_col.split(", ")
     return [c for c in col]
+
 
 def get_group_options(index, widgets):
     column_group = widgets[0]
@@ -41,7 +43,8 @@ def column_group_changed(event, widgets):
         # add new widget
         column_group.append(
             pn.widgets.MultiChoice(name=str(num_groups.value), value=[], options=remaining_options.value.copy()))
-        column_group[num_groups.value].param.watch(lambda event: column_group_changed(event, widgets), parameter_names=['value'], onlychanged=False)
+        column_group[num_groups.value].param.watch(lambda event: column_group_changed(event, widgets),
+                                                   parameter_names=['value'], onlychanged=False)
         row.append(column_group[num_groups.value])
         num_groups.value += 1
 
@@ -60,6 +63,7 @@ def update_names(widgets):
     num_groups = widgets[2]
     for i in range(num_groups.value - 1):
         column_group[i].name = str(i)
+
 
 def init_groups(widgets):
     column_group = widgets[0]

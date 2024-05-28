@@ -11,7 +11,6 @@ from bokeh.models import (BasicTickFormatter, ColumnDataSource,
 
 
 def bokeh_parallel_plot(data, all_selected_cols):
-
     curr_data = data[all_selected_cols]
 
     """From a dataframe create a parallel coordinate plot
@@ -25,13 +24,13 @@ def bokeh_parallel_plot(data, all_selected_cols):
 
     data_source = ColumnDataSource(dict(
         xs=np.arange(ndims)[None, :].repeat(npts, axis=0).tolist(),
-        ys=np.array((curr_data-curr_data.min())/(curr_data.max()-curr_data.min())).tolist(),
+        ys=np.array((curr_data - curr_data.min()) / (curr_data.max() - curr_data.min())).tolist(),
         color=data['prob_0'].tolist()))
 
     p = figure(title="parallel_plot",
-                x_range=(-1, ndims),
-                y_range=(0, 1),
-                width=800)
+               x_range=(-1, ndims),
+               y_range=(0, 1),
+               width=800)
     p.add_layout(Legend(), 'right')
 
     # Create x axis ticks from columns contained in dataframe
@@ -45,7 +44,7 @@ def bokeh_parallel_plot(data, all_selected_cols):
     p.yaxis.visible = False
     p.y_range.start = 0
     p.y_range.end = 1
-    p.y_range.bounds = (-0.1, 1.1) # add a little padding around y axis
+    p.y_range.bounds = (-0.1, 1.1)  # add a little padding around y axis
     p.xgrid.visible = False
     p.ygrid.visible = False
 
@@ -54,8 +53,8 @@ def bokeh_parallel_plot(data, all_selected_cols):
     for index, col in enumerate(all_selected_cols):
         start = curr_data[col].min()
         end = curr_data[col].max()
-        bound_min = start + abs(end-start) * (p.y_range.bounds[0] - p.y_range.start)
-        bound_max = end + abs(end-start) * (p.y_range.bounds[1] - p.y_range.end)
+        bound_min = start + abs(end - start) * (p.y_range.bounds[0] - p.y_range.start)
+        bound_max = end + abs(end - start) * (p.y_range.bounds[1] - p.y_range.end)
         p.extra_y_ranges.update(
             {col: Range1d(start=bound_min, end=bound_max, bounds=(bound_min, bound_max))})
 
@@ -80,16 +79,15 @@ def bokeh_parallel_plot(data, all_selected_cols):
     p.y_range.start = p.y_range.bounds[0]
     p.y_range.end = p.y_range.bounds[1]
 
-    #add color legend
+    # add color legend
     color_mapper = LinearColorMapper(palette=viridis(256), low=0, high=1)
-    color_bar = ColorBar(color_mapper=color_mapper, width=8, location=(0,0))
+    color_bar = ColorBar(color_mapper=color_mapper, width=8, location=(0, 0))
     p.add_layout(color_bar, 'right')
-
 
     return p
 
-def parallel_plot(data, col, all_selected_cols, prob, item, chart_type):
 
+def parallel_plot(data, col, all_selected_cols, prob, item, chart_type):
     p = bokeh_parallel_plot(data, all_selected_cols)
 
     return p

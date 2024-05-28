@@ -3,6 +3,7 @@ from bokeh.palettes import Category20
 import numpy as np
 from sklearn.tree import _tree
 
+
 def pred_diff(x1, x2, prediction):
     y1 = x1[prediction].values[0]
     y2 = x2[prediction].values[0]
@@ -30,8 +31,9 @@ def l2_loss(data, prediction):
     # return the sum of the squared differences
     return squared_diff.sum()
 
+
 def get_color(x, item_val, range):
-    #lambda x: 'saddlebrown' if x >= item_val else 'midnightblue'
+    # lambda x: 'saddlebrown' if x >= item_val else 'midnightblue'
     if (x < item_val - range):
         return '#8B4513'
     elif (x > item_val + range):
@@ -48,7 +50,7 @@ def get_relative_groups(data, col, index):
         item_val = item[col[1]]
         range = data[col[1]].max() - data[col[1]].min()
 
-        data["scatter_group"] = data[col[1]].apply(lambda x: get_color(x, item_val, range/20))
+        data["scatter_group"] = data[col[1]].apply(lambda x: get_color(x, item_val, range / 20))
         labels['#191970'] = 'Higher ' + str(col[1])
         labels['#8B4513'] = 'Lower ' + str(col[1])
         labels['#800080'] = 'Similar ' + str(col[1])
@@ -82,7 +84,7 @@ def get_tree_rules(tree, feature_names):
             recurse(tree_.children_right[node], p2, paths)
         else:
             path += [(tree_.value[node], tree_.n_node_samples[node])]
-            #add class name at the end
+            # add class name at the end
             path += [node]
 
             paths += [path]
@@ -105,7 +107,7 @@ def get_tree_rules(tree, feature_names):
 
 
 def get_tree_groups(data, all_selected_cols, cur_col, prediction):
-    #remove the current column from the list of all selected columns
+    # remove the current column from the list of all selected columns
     all_selected_cols = [col for col in all_selected_cols if col != cur_col]
 
     if (len(all_selected_cols) > 0):
@@ -117,7 +119,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction):
         # create a color for each group
         data["scatter_group"] = data["group"].apply(lambda x: Category20[20][x])
 
-        #create human-readable labels for each group containing the path to the group
+        # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, all_selected_cols)
 
         data["scatter_label"] = data["group"].apply(lambda x: rules[x])
@@ -126,6 +128,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction):
         data["scatter_label"] = 'All'
 
     return data
+
 
 def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index):
     if cluster_type == 'Relative':

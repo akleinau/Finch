@@ -19,13 +19,15 @@ def kde(x, y, N):
 
     return X, Y, Z
 
+
 def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type, prob_wo_selected_cols=None):
     item = data.iloc[index]
     sorted_data = data.sort_values(by=col)
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
-    chart3 = figure(title="dependency plot", y_axis_label="probability", tools="tap", y_range=(0, 1), x_range=x_range, width=800)
+    chart3 = figure(title="dependency plot", y_axis_label="probability", tools="tap", y_range=(0, 1), x_range=x_range,
+                    width=800)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
@@ -63,7 +65,7 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                 x, y, z = kde(data_subset[col], data_subset[prob], 100)
 
                 # use the color to create a palette
-                rgb = color = tuple(int(color[1:][i:i+2], 16) for i in (0, 2, 4)) # convert hex to rgb
+                rgb = color = tuple(int(color[1:][i:i + 2], 16) for i in (0, 2, 4))  # convert hex to rgb
                 # to bokeh
                 cur_color = bokeh.colors.RGB(*rgb)
                 palette = [cur_color]
@@ -79,14 +81,13 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
                 contour = chart3.contour(x, y, z, levels[1:], fill_color=palette, line_color=palette, fill_alpha=0.8)
                 contour.fill_renderer.name = cluster_label
 
-                #contour.fill_renderer
-                contour_hover = HoverTool(renderers=[ contour.fill_renderer], tooltips=[('', '$name')])
+                # contour.fill_renderer
+                contour_hover = HoverTool(renderers=[contour.fill_renderer], tooltips=[('', '$name')])
                 chart3.add_tools(contour_hover)
-
 
             if "band" in chart_type:
                 band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
-                                    #legend_label=cluster_label,
+                                    # legend_label=cluster_label,
                                     fill_color=color,
                                     alpha=0.3, name=cluster_label)
                 band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
@@ -94,33 +95,33 @@ def dependency_scatterplot(data, col, all_selected_cols, prob, index, chart_type
 
             if "line" in chart_type:
                 line = chart3.line(col, 'median', source=combined, color=color, line_width=2,
-                                   #legend_label=cluster_label,
+                                   # legend_label=cluster_label,
                                    name=cluster_label)
                 line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
                 chart3.add_tools(line_hover)
-
-
 
     if "scatter" in chart_type:
         alpha = 0.3
         chart3.scatter(col, prob, color="scatter_group", source=sorted_data,
                        alpha=alpha, marker='circle', size=3, name="scatter_label",
-                       #legend_group="scatter_label"
+                       # legend_group="scatter_label"
                        )
 
     # add the selected item
-    item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item", legend_label="selected item")
+    item_scatter = chart3.scatter(item[col], item[prob], color='purple', size=7, name="selected item",
+                                  legend_label="selected item")
 
     scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
     chart3.add_tools(scatter_hover)
 
     # add legend
-    chart3.legend.items.extend([LegendItem(label=x,renderers=y) for (x,y) in legend_items])
+    chart3.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
     chart3.legend.location = "right"
 
     # add the "standard probability" line
     mean = data[prob].mean()
-    chart3.line(x=[x_range[0], x_range[1]], y=[mean, mean], line_width=2, color='black', alpha=0.5, legend_label='mean probability')
+    chart3.line(x=[x_range[0], x_range[1]], y=[mean, mean], line_width=2, color='black', alpha=0.5,
+                legend_label='mean probability')
 
     # add the point when only selected cols are used
     if prob_wo_selected_cols is not None:
