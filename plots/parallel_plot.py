@@ -10,7 +10,7 @@ from bokeh.models import (BasicTickFormatter, ColumnDataSource,
                           LinearAxis, LinearColorMapper, MultiLine, Range1d)
 
 
-def bokeh_parallel_plot(data, all_selected_cols):
+def bokeh_parallel_plot(data, all_selected_cols, prob):
     curr_data = data[all_selected_cols]
 
     """From a dataframe create a parallel coordinate plot
@@ -25,7 +25,7 @@ def bokeh_parallel_plot(data, all_selected_cols):
     data_source = ColumnDataSource(dict(
         xs=np.arange(ndims)[None, :].repeat(npts, axis=0).tolist(),
         ys=np.array((curr_data - curr_data.min()) / (curr_data.max() - curr_data.min())).tolist(),
-        color=data['prob_0'].tolist()))
+        color=data[prob].tolist()))
 
     p = figure(title="parallel_plot",
                x_range=(-1, ndims),
@@ -88,6 +88,6 @@ def bokeh_parallel_plot(data, all_selected_cols):
 
 
 def parallel_plot(data, col, all_selected_cols, prob, item, chart_type):
-    p = bokeh_parallel_plot(data, all_selected_cols)
+    p = bokeh_parallel_plot(data, all_selected_cols, prob)
 
     return p

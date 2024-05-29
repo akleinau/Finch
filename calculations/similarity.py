@@ -106,21 +106,24 @@ def get_tree_rules(tree, feature_names):
     return rules
 
 
-def get_tree_groups(data, all_selected_cols, cur_col, prediction):
+def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=True):
     # remove the current column from the list of all selected columns
-    all_selected_cols = [col for col in all_selected_cols if col != cur_col]
+    if exclude_col:
+        columns = [col for col in all_selected_cols if col != cur_col]
+    else:
+        columns = all_selected_cols
 
-    if (len(all_selected_cols) > 0):
+    if (len(columns) > 0):
         tree = DecisionTreeRegressor(max_leaf_nodes=4, max_depth=2, min_samples_leaf=0.1)
-        tree.fit(data[all_selected_cols], data[prediction])
+        tree.fit(data[columns], data[prediction])
 
-        data["group"] = tree.apply(data[all_selected_cols])
+        data["group"] = tree.apply(data[columns])
 
         # create a color for each group
         data["scatter_group"] = data["group"].apply(lambda x: Category20[20][x])
 
         # create human-readable labels for each group containing the path to the group
-        rules = get_tree_rules(tree, all_selected_cols)
+        rules = get_tree_rules(tree, columns)
 
         data["scatter_label"] = data["group"].apply(lambda x: rules[x])
     else:
@@ -130,8 +133,8 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction):
     return data
 
 
-def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index):
+def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index, exclude_col=True):
     if cluster_type == 'Relative':
         return get_relative_groups(data, all_selected_cols, index)
     else:
-        return get_tree_groups(data, all_selected_cols, cur_col, prediction)
+        return get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col)

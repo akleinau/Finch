@@ -43,6 +43,8 @@ def get_prob_wo_selected_cols(nn, all_selected_cols, means, item, pred_label):
 
     # calculate the prediction without the selected columns
     prediction = nn.predict_proba(new_item)
-    index = int(pred_label[5:])
+    prediction = pd.DataFrame(prediction, columns=[str(a) for a in nn.classes_])
+    #print(prediction)
+    index = str(pred_label[5:])
 
-    return prediction[0][index]
+    return prediction[index][0]
