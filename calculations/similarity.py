@@ -53,8 +53,8 @@ def get_relative_groups(data, col, index):
         range = data[col[1]].max() - data[col[1]].min()
 
         data["scatter_group"] = data[col[1]].apply(lambda x: get_color(x, item_val, range / 20))
-        labels['#191970'] = 'Higher ' + str(col[1])
-        labels['#8B4513'] = 'Lower ' + str(col[1])
+        labels['#191970'] = 'higher ' + str(col[1])
+        labels['#8B4513'] = 'lower ' + str(col[1])
         labels['#800080'] = 'Similar ' + str(col[1])
     else:
         data["scatter_group"] = '#228b22'
@@ -112,15 +112,15 @@ def get_tree_rules(tree, feature_names):
 
 def _make_readable_axiom(axiom):
     if (axiom['operator'] == '>' and axiom['value'] == '0.5'):
-        return 'Higher '
+        return 'higher '
     elif (axiom['operator'] == '<=' and axiom['value'] == '-0.5'):
-        return 'Lower '
+        return 'lower '
     elif (axiom['operator'] == '>' and axiom['value'] == '-0.5'):
-        return 'Similar/ Higher '
+        return 'similar or higher '
     elif (axiom['operator'] == '<=' and axiom['value'] == '0.5'):
-        return 'Similar/ Lower '
+        return 'similar or lower '
     else:
-        return 'Similar '
+        return 'similar '
 
 def make_readable(x):
     axioms = x.split(' and ')
@@ -132,12 +132,12 @@ def make_readable(x):
     new_rules = []
     axioms['new_rule'] = axioms.apply(_make_readable_axiom, axis=1)
 
-    #if both'Similar/ Higher' and 'Similar/ Lower' exist for a feature, merge them together into 'Similar'
+    #if both'similar/ higher' and 'similar/ lower' exist for a feature, merge them together into 'similar'
     rule_groups = axioms.groupby('feature')
     rule_list = []
     for name, group in rule_groups:
-        if 'Similar/ Higher ' in group['new_rule'].values and 'Similar/ Lower ' in group['new_rule'].values:
-                rule_list.append('Similar ' + group['feature'].values[0])
+        if 'similar or higher ' in group['new_rule'].values and 'similar or lower ' in group['new_rule'].values:
+                rule_list.append('similar ' + group['feature'].values[0])
         else:
             rule_list.extend(group['new_rule'].values + group['feature'].values)
 
@@ -242,7 +242,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
 
 
 def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index, exclude_col=True):
-    if cluster_type == 'Relative':
+    if cluster_type == 'Relative Decision Tree':
         return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col)
     else:
         return get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col)

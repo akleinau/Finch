@@ -28,9 +28,12 @@ x = pn.widgets.EditableIntSlider(name='x', start=0, end=100, value=26)
 pn.Row(file_input_data, file_input_nn, x).servable()
 col = pn.widgets.Select(name='column', options=COLUMNS)
 CHART_TYPE_OPTIONS = ['scatter', 'line', 'band', 'contour']
-chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTIONS, value=['line']).servable()
-cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative', 'Decision Tree'],
-                                 value='Decision Tree').servable()
+chart_type = pn.widgets.MultiChoice(name='chart_type', options=CHART_TYPE_OPTIONS, value=['line'])
+cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree'],
+                                 value='Relative Decision Tree')
+graph_type = pn.widgets.Select(name='graph_type', options=['Cluster', 'Dependency', 'Parallel'],
+                                 value='Cluster')
+pn.Row(cluster_type, graph_type, chart_type).servable()
 
 # create all the widgets and variables needed for the column group selection
 column_group = []
@@ -51,11 +54,11 @@ item_data = pn.bind(item_functions.get_item_data, data, x)
 # similarity experiments
 test = pn.bind(similarity.test_setup, data_and_probabilities, COLUMNS, item_prediction)
 
-# display shap plot
+# shap plot
 item_shap = pn.bind(item_functions.get_item_shap_values, data, x, means, nn, COLUMNS, combined_columns)
 shap_plot = pn.bind(shap_tornado_plot, item_shap, [col])  # col is wrapped to be passed as reference
 
-# display dependency plot
+# dependency plot
 all_selected_cols = pn.bind(column_functions.return_col, col)
 cur_feature = pn.widgets.Select(name='', options=all_selected_cols, align='center')
 prob_wo_selected_cols = pn.bind(item_functions.get_prob_wo_selected_cols, nn, all_selected_cols, means, item_data,
@@ -64,6 +67,14 @@ clustered_data = pn.bind(similarity.get_clustering, cluster_type, data_and_proba
                          cur_feature, item_prediction, x, exclude_col=False)
 dep_plot = pn.bind(dependency_scatterplot, clustered_data, cur_feature, all_selected_cols,
                    item_prediction, x, chart_type, prob_wo_selected_cols)
+
+# parallel plot
+parallel_plot = pn.bind(parallel_plot, clustered_data, cur_feature, all_selected_cols,
+                        item_prediction, item_data, chart_type)
+
+# cluster bar plot
+cluster_plot = pn.bind(cluster_bar_plot, clustered_data, cur_feature, all_selected_cols,
+                       item_prediction, x, chart_type, prob_wo_selected_cols)
 
 # update everything when the data changes
 file_input_data.param.watch(
@@ -75,14 +86,17 @@ file_input_nn.param.watch(lambda event: data_loader.data_changed(event, [col, cu
 # remaining layout
 pn.pane.Str(prob_data, sizing_mode="stretch_width", align="center",
             styles={"font-size": "20px", "text-align": "center"}).servable()
-pn.Row(item_data, shap_plot, pn.Column(dep_plot, cur_feature)).servable()
 
-# parallel plot
-parallel_plot = pn.bind(parallel_plot, clustered_data, cur_feature, all_selected_cols,
-                        item_prediction, item_data, chart_type)
 
-# cluster bar plot
-cluster_plot = pn.bind(cluster_bar_plot, clustered_data, cur_feature, all_selected_cols,
-                       item_prediction, x, chart_type, prob_wo_selected_cols)
+def render_plot(graph_type, dep_plot, cluster_plot, parallel_plot, cur_feature):
+    if graph_type == 'Cluster':
+        return cluster_plot
+    elif graph_type == 'Dependency':
+        return pn.Column(dep_plot, cur_feature[0])
+    else:
+        return parallel_plot
 
-pn.Row(parallel_plot, cluster_plot).servable()
+rendered_plot = pn.bind(render_plot, graph_type, dep_plot, cluster_plot, parallel_plot, [cur_feature])
+pn.Row(item_data, shap_plot, rendered_plot).servable()
+cur_feature.servable()
+
