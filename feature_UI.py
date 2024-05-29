@@ -7,6 +7,7 @@ import calculations.similarity as similarity
 from plots.dependency_plot import dependency_scatterplot
 from plots.tornado_plot import shap_tornado_plot
 from plots.parallel_plot import parallel_plot
+from plots.cluster_bar_plot import cluster_bar_plot
 
 pn.extension()
 
@@ -60,7 +61,7 @@ cur_feature = pn.widgets.Select(name='', options=all_selected_cols, align='cente
 prob_wo_selected_cols = pn.bind(item_functions.get_prob_wo_selected_cols, nn, all_selected_cols, means, item_data,
                                 item_prediction)
 clustered_data = pn.bind(similarity.get_clustering, cluster_type, data_and_probabilities, all_selected_cols,
-                         cur_feature, item_prediction, x)
+                         cur_feature, item_prediction, x, exclude_col=False)
 dep_plot = pn.bind(dependency_scatterplot, clustered_data, cur_feature, all_selected_cols,
                    item_prediction, x, chart_type, prob_wo_selected_cols)
 
@@ -76,6 +77,12 @@ pn.pane.Str(prob_data, sizing_mode="stretch_width", align="center",
             styles={"font-size": "20px", "text-align": "center"}).servable()
 pn.Row(item_data, shap_plot, pn.Column(dep_plot, cur_feature)).servable()
 
+# parallel plot
 parallel_plot = pn.bind(parallel_plot, clustered_data, cur_feature, all_selected_cols,
                         item_prediction, item_data, chart_type)
-pn.Row(parallel_plot).servable()
+
+# cluster bar plot
+cluster_plot = pn.bind(cluster_bar_plot, clustered_data, cur_feature, all_selected_cols,
+                       item_prediction, x, chart_type, prob_wo_selected_cols)
+
+pn.Row(parallel_plot, cluster_plot).servable()
