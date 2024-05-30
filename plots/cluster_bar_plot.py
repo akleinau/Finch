@@ -4,7 +4,7 @@ from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 
 
-def cluster_bar_plot(data, col, all_selected_cols, prob, index, chart_type, prob_wo_selected_cols=None):
+def cluster_bar_plot(data, prob, index):
     cluster_data = data[[prob, "scatter_group", "scatter_label"]].groupby("scatter_group")
     clusters = pd.DataFrame()
     clusters['mean'] = cluster_data[prob].mean()

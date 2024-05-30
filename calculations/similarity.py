@@ -161,7 +161,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=Tr
     else:
         columns = all_selected_cols
 
-    if (len(columns) > 0):
+    if len(columns) > 0:
         tree = DecisionTreeRegressor(max_leaf_nodes=4, max_depth=2, min_samples_leaf=0.1)
         tree.fit(data[columns], data[prediction])
 
