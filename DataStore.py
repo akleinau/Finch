@@ -22,13 +22,13 @@ class DataStore(Viewer):
         self.raw_data = pn.bind(data_loader.load_data, self.file_widget, self.nn_widget)
         self.classes = pn.bind(lambda nn: nn.classes_, self.nn)
         self.means = pn.bind(feature.get_means, self.raw_data)
-        
-        #columns
+
+        # columns
         self.columns = pn.bind(lambda data: [col for col in data.columns], self.raw_data)
         self.col = pn.widgets.Select(name='column', options=self.columns)
         self.all_selected_cols = pn.bind(column_functions.return_col, self.col)
 
-        #groups
+        # groups
         self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols, align='center')
         self.column_group = []
         self.combined_columns = pn.widgets.LiteralInput(value=[])
@@ -36,49 +36,43 @@ class DataStore(Viewer):
         self.remaining_options = pn.widgets.LiteralInput(value=self.columns)
         self.row = pn.FlexBox()
 
-
-        #customization widgets
+        # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree'],
-                                         value='Relative Decision Tree')
+                                              value='Relative Decision Tree')
         self.chart_type = pn.widgets.MultiChoice(name='chart_type', options=['scatter', 'line', 'band', 'contour'],
-                                            value=['line'])
+                                                 value=['line'])
         self.graph_type = pn.widgets.Select(name='graph_type', options=['Cluster', 'Dependency', 'Parallel'],
-                                       value='Cluster')
-
+                                            value='Cluster')
 
         # update everything when the data changes
         self.file_widget.param.watch(
             lambda event: data_loader.data_changed(event,
-           [self.col, self.cur_feature, self.all_selected_cols, self.get_widget]),
-                    parameter_names=['value'], onlychanged=False)
+                                                   [self.col, self.cur_feature, self.all_selected_cols,
+                                                    self.get_widget]),
+            parameter_names=['value'], onlychanged=False)
         self.nn_widget.param.watch(lambda event: data_loader.data_changed(event,
-            [self.col, self.cur_feature, self.all_selected_cols, self.get_widget]),
-                    parameter_names=['value'], onlychanged=False)
-
-
+                                                                          [self.col, self.cur_feature,
+                                                                           self.all_selected_cols, self.get_widget]),
+                                   parameter_names=['value'], onlychanged=False)
 
         column_functions.init_groups(self.get_widget())
         self.data_and_probabilities = pn.bind(feature.combine_data_and_results, self.data, self.nn, self.classes)
 
-        #item
+        # item
         self.item_prediction = pn.bind(item_functions.get_item_prediction, self.data_and_probabilities, self.x)
         self.item_shap = pn.bind(item_functions.get_item_shap_values, self.data(), self.x, self.means, self.nn,
-                        self.columns, self.combined_columns)
+                                 self.columns, self.combined_columns)
 
         self.item_data = pn.bind(item_functions.get_item_data, self.data, self.x)
         self.prob_data = pn.bind(item_functions.get_item_probability_string, self.data_and_probabilities, self.x,
-                       self.item_prediction)
+                                 self.item_prediction)
         self.prob_wo_selected_cols = pn.bind(item_functions.get_prob_wo_selected_cols, self.nn, self.all_selected_cols,
-                        self.means, self.item_data, self.item_prediction)
+                                             self.means, self.item_data, self.item_prediction)
 
-        #clustered data
+        # clustered data
         self.clustered_data = pn.bind(similarity.get_clustering, self.cluster_type, self.data_and_probabilities,
-                        self.all_selected_cols, self.cur_feature, self.item_prediction, self.x,
-                        exclude_col=False)
-
-
-
-
+                                      self.all_selected_cols, self.cur_feature, self.item_prediction, self.x,
+                                      exclude_col=False)
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file_widget.value, self.nn_widget.value)
