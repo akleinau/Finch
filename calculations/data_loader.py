@@ -15,14 +15,14 @@ def load_weather_data():
     return nn, testdata
 
 
-def load_data(file_data, file_nn):
+def load_data(file_data=None, file_nn=None):
     if file_data is None or file_nn is None:
         return load_weather_data()[1]
     else:
         return pd.read_csv(io.BytesIO(file_data))
 
 
-def load_nn(file_nn, file_data):
+def load_nn(file_nn=None, file_data=None):
     if file_nn is None or file_data is None:
         return load_weather_data()[0]
     else:
