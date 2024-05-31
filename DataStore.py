@@ -15,6 +15,7 @@ class DataStore(Viewer):
 
     def __init__(self, **params):
         super().__init__(**params)
+        self.active = True
         self.file = pn.widgets.FileInput(accept='.csv', name='Upload data')
         self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network')
         self.calculate = pn.widgets.Button(name='Calculate')
@@ -62,30 +63,18 @@ class DataStore(Viewer):
 
         # clustered data
         self.clustered_data = pn.widgets.LiteralInput(value=self._update_clustered_data())
-        self.clustered_data.param.watch(lambda event: self.render_plot.param.update(value=self.update_render_plot(self.graph_type.value, self.all_selected_cols.value,
-                                        event.new, self.cur_feature.value, self.item.value, self.item_index.value,
-                                        self.chart_type.value)), parameter_names=['value'], onlychanged=False)
-
-        # self.data_and_probabilities.param.watch(self.update_clustered_data, parameter_names=['value'],
-        #                                        onlychanged=False)
-       # self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.clustered_data.param.watch(lambda event: self.render_plot.param.update(value=self.update_render_plot_self()), parameter_names=['value'], onlychanged=False)
+        self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
 
         #render
-        self.render_plot = pn.widgets.LiteralInput(value=self.update_render_plot(self.graph_type.value, self.all_selected_cols.value,
-                                      self.clustered_data.value, self.cur_feature.value, self.item.value, self.item_index.value,
-                                        self.chart_type.value))
-        self.graph_type.param.watch(lambda event: self.render_plot.param.update(value=self.update_render_plot(event.new, self.all_selected_cols.value,
-                                      self.clustered_data.value, self.cur_feature.value, self.item.value, self.item_index.value,
-                                        self.chart_type.value)), parameter_names=['value'], onlychanged=False)
-
+        self.render_plot = pn.widgets.LiteralInput(value=self.update_render_plot_self())
+        self.graph_type.param.watch(lambda event: self.render_plot.param.update(value=self.update_render_plot_self()), parameter_names=['value'], onlychanged=False)
         self.render_plot_view = pn.bind(lambda x: x, self.render_plot)
 
-    def __panel__(self) -> Viewable:
-        return self.render_plot.rx()
-
     def update_data(self, event):
+        self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value)
         data_and_probabilities = feature.combine_data_and_results(loader)
         all_selected_cols = column_functions.return_col(loader.columns[0])
@@ -112,6 +101,8 @@ class DataStore(Viewer):
 
         self.cur_feature.param.update(options=self.all_selected_cols.value, value=cur_feature)
 
+        self.active = True
+
 
 
     def _update_clustered_data(self):
@@ -120,8 +111,9 @@ class DataStore(Viewer):
                        self.cur_feature.value, self.item.value.prediction, self.item_index.value, exclude_col=False)
 
     def update_clustered_data(self, event):
-        self.clustered_data.param.update(
-            value=self._update_clustered_data())
+        if self.active:
+            self.clustered_data.param.update(
+                value=self._update_clustered_data())
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.value.nn)
@@ -153,3 +145,9 @@ class DataStore(Viewer):
         else:
             return parallel_plot(clustered_data, cur_feature, all_selected_cols,
                            item.prediction, item.data, chart_type)
+
+    def update_render_plot_self(self):
+        return self.update_render_plot(self.graph_type.value, self.all_selected_cols.value,
+                                self.clustered_data.value, self.cur_feature.value, self.item.value,
+                                self.item_index.value,
+                                self.chart_type.value)
