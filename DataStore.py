@@ -28,10 +28,15 @@ class DataStore(Viewer):
         # columns
         self.columns = pn.bind(lambda data: [col for col in data.columns], self.raw_data)
         self.col = pn.widgets.Select(name='column', options=self.columns)
-        self.all_selected_cols = pn.bind(column_functions.return_col, self.col)
+        self.all_selected_cols_widget = pn.widgets.LiteralInput(value=pn.bind(column_functions.return_col, self.col))
+        self.all_selected_cols = self.all_selected_cols_widget.value
 
         # groups
-        self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols, align='center')
+        self.cur_feature_widget = pn.widgets.Select(name='', options=self.all_selected_cols, align='center')
+        self.cur_feature = self.cur_feature_widget.value
+        self.all_selected_cols_widget.param.watch(lambda event: self.cur_feature_widget.param.update(
+            options=event.new, value=event.new[0]), parameter_names=['value'], onlychanged=False)
+
         self.column_group = []
         self.combined_columns = pn.widgets.LiteralInput(value=[])
         self.num_groups = pn.widgets.LiteralInput(value=1)
@@ -50,55 +55,57 @@ class DataStore(Viewer):
         self.file_widget.param.watch(
             lambda event: data_loader.data_changed(event,
                                                    [self.col, self.cur_feature, self.all_selected_cols,
-                                                    self.get_widget, self.data_widget, self.nn_widget], self.file_widget.value,
+                                                    self.get_widget, self.data_widget, self.nn_widget],
+                                                   self.file_widget.value,
                                                    self.nn_file_widget.value),
             parameter_names=['value'], onlychanged=False)
         self.nn_file_widget.param.watch(lambda event: data_loader.data_changed(event,
-                                                                          [self.col, self.cur_feature,
-                                                                           self.all_selected_cols, self.get_widget,
-                                                                           self.data_widget, self.nn_widget], self.file_widget.value,
-                                                                          self.nn_file_widget.value),
-                                   parameter_names=['value'], onlychanged=False)
+                                                                               [self.col, self.cur_feature,
+                                                                                self.all_selected_cols, self.get_widget,
+                                                                                self.data_widget, self.nn_widget],
+                                                                               self.file_widget.value,
+                                                                               self.nn_file_widget.value),
+                                        parameter_names=['value'], onlychanged=False)
 
         column_functions.init_groups(self.get_widget())
         self.data_and_probabilities_widget = pn.widgets.LiteralInput(
             value=feature.combine_data_and_results(self.data, self.nn))
         self.data_and_probabilities = self.data_and_probabilities_widget.value
 
-        self.data_widget.param.watch(lambda event: self.data_and_probabilities.param.set_param(
+        self.data_widget.param.watch(lambda event: self.data_and_probabilities.param.update(
             value=feature.combine_data_and_results(self.data, self.nn)), parameter_names=['value'],
                                      onlychanged=False)
 
         # item
         self.item_prediction = pn.bind(item_functions.get_item_prediction, self.data_and_probabilities, self.x)
-        self.item_shap = pn.bind(item_functions.get_item_shap_values, self.data, self.x, self.means, self.nn,
+        self.item_shap = pn.bind(item_functions.get_item_shap_values, self.data_widget, self.x_widget, self.means,
+                                 self.nn,
                                  self.columns, self.combined_columns)
 
-        self.item_data = pn.bind(item_functions.get_item_data, self.data, self.x)
+        self.item_data = pn.bind(item_functions.get_item_data, self.data_widget, self.x_widget)
         self.prob_data = pn.bind(item_functions.get_item_probability_string, self.data_and_probabilities, self.x,
                                  self.item_prediction)
         self.prob_wo_selected_cols = pn.bind(item_functions.get_prob_wo_selected_cols, self.nn, self.all_selected_cols,
                                              self.means, self.item_data, self.item_prediction)
 
         # clustered data
-        self.clustered_data_widget = pn.widgets.LiteralInput(value=pn.bind(similarity.get_clustering,self.cluster_type,
-                                                                                             self.data_and_probabilities,
-                                                                                             self.all_selected_cols,
-                                                                                             self.cur_feature,
-                                                                                             self.item_prediction, self.x,
-                                                                                             exclude_col=False))
+        self.clustered_data_widget = pn.widgets.LiteralInput(value=self._update_clustered_data(None))
         self.clustered_data = self.clustered_data_widget.value
 
         self.data_and_probabilities_widget.param.watch(self.update_clustered_data, parameter_names=['value'],
                                                        onlychanged=False)
-        self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.cur_feature_widget.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.x_widget.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
 
+    def _update_clustered_data(self, event):
+        return pn.bind(similarity.get_clustering, self.cluster_type, self.data_and_probabilities,
+                       self.all_selected_cols_widget.value,
+                       self.cur_feature_widget.value, self.item_prediction, self.x, exclude_col=False)
+
     def update_clustered_data(self, event):
-        self.clustered_data_widget.param.set_param(
-            value=pn.bind(similarity.get_clustering,self.cluster_type, self.data_and_probabilities, self.all_selected_cols,
-                                            self.cur_feature, self.item_prediction, self.x, exclude_col=False))
+        self.clustered_data_widget.param.update(
+            value=self._update_clustered_data(event))
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file_widget.value, self.nn_widget.value)
