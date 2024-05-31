@@ -24,26 +24,17 @@ pn.panel("<br>").servable()
 pn.panel("### Grouped columns:").servable()
 
 # shap plot
-shap_plot = pn.bind(shap_tornado_plot, ds.item_shap, [ds.col])  # col is wrapped to be passed as reference
+shap_plot = pn.bind(shap_tornado_plot, ds.item, [ds.col])  # col is wrapped to be passed as reference
 
 
 # remaining layout
-pn.pane.Str(ds.prob_data, sizing_mode="stretch_width", align="center",
+pn.pane.Str(ds.item.value.prob_data, sizing_mode="stretch_width", align="center",
             styles={"font-size": "20px", "text-align": "center"}).servable()
 
+def get_value(widget):
+    print(widget)
+    return widget.value
 
-def render_plot(graph_type, all_selected_cols):
-    if graph_type == 'Cluster':
-        return pn.bind(cluster_bar_plot, ds.clustered_data, ds.item_prediction, ds.item_index)
-    elif graph_type == 'Dependency':
-        dep_plot = pn.bind(dependency_scatterplot, ds.clustered_data, ds.cur_feature, ds.all_selected_cols,
-                           ds.item_prediction, ds.item_index, ds.chart_type, ds.prob_wo_selected_cols)
-        return pn.Column(dep_plot, all_selected_cols[0])
-    else:
-        return pn.bind(parallel_plot, ds.clustered_data, ds.cur_feature, ds.all_selected_cols,
-                       ds.item_prediction, ds.item_data, ds.chart_type)
-
-rendered_plot = pn.bind(render_plot, ds.graph_type, [ds.cur_feature])
-pn.Row(ds.item_data, shap_plot, rendered_plot).servable()
+pn.Row(ds.item.value.data, shap_plot, ds.render_plot_view).servable()
 ds.cur_feature.servable()
 

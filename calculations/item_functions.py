@@ -1,10 +1,19 @@
 import pandas as pd
 import functions as feature
 
+class Item:
+    def __init__(self, data_loader, data_and_probabilities, index, combined_columns=None):
+        self.prediction = get_item_prediction(data_and_probabilities, index)
+        self.shap = get_item_shap_values(data_loader, index, combined_columns)
+        self.data = get_item_data(data_loader.data, index)
+        self.prob_data =get_item_probability_string(data_and_probabilities, index, self.prediction)
+        self.prob_wo_selected_cols = get_prob_wo_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
 
-def get_item_shap_values(explanation, index, means, nn, COLUMNS, combined_columns=None):
-    item = explanation.iloc[[index]]
-    shap_explanations = feature.calc_shap_values(item, means, nn, COLUMNS, combined_columns)
+
+
+def get_item_shap_values(data_loader, index, combined_columns=None):
+    item = data_loader.data.iloc[[index]]
+    shap_explanations = feature.calc_shap_values(item, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
     shap_values = pd.DataFrame(shap_explanations.values,
                                columns=shap_explanations.feature_names)
     # pivot the data, so that each row contains the feature and the shap value
