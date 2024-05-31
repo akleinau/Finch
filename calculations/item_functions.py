@@ -1,5 +1,8 @@
 import pandas as pd
+
 import functions as feature
+import panel as pn
+
 
 class Item:
     def __init__(self, data_loader, data_and_probabilities, index, combined_columns=None):
@@ -9,6 +12,13 @@ class Item:
         self.prob_data =get_item_probability_string(data_and_probabilities, index, self.prediction)
         self.prob_wo_selected_cols = get_prob_wo_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
 
+
+    def prediction_string(self):
+        return pn.pane.Str(self.prob_data, sizing_mode="stretch_width", align="center",
+                    styles={"font-size": "20px", "text-align": "center"})
+
+    def table(self):
+        return self.data
 
 
 def get_item_shap_values(data_loader, index, combined_columns=None):

@@ -26,15 +26,16 @@ pn.panel("### Grouped columns:").servable()
 # shap plot
 shap_plot = pn.bind(shap_tornado_plot, ds.item, [ds.col])  # col is wrapped to be passed as reference
 
-
 # remaining layout
-pn.pane.Str(ds.item.value.prob_data, sizing_mode="stretch_width", align="center",
-            styles={"font-size": "20px", "text-align": "center"}).servable()
+pn.Row(pn.bind(lambda a: a.prediction_string(), ds.item)).servable()
+
 
 def get_value(widget):
     print(widget)
     return widget.value
 
-pn.Row(ds.item.value.data, shap_plot, ds.render_plot_view).servable()
-ds.cur_feature.servable()
 
+table = pn.bind(lambda a: a.table(), ds.item)
+
+pn.Row(table, shap_plot, ds.render_plot_view).servable()
+ds.cur_feature.servable()

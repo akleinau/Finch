@@ -34,11 +34,7 @@ class DataStore(Viewer):
         self.all_selected_cols.param.watch(lambda event: self.cur_feature.param.update(options=event.new),
                                              parameter_names=['value'], onlychanged=False)
 
-        self.column_group = []
-        self.combined_columns = pn.widgets.LiteralInput(value=[])
-        self.num_groups = pn.widgets.LiteralInput(value=1)
-        self.remaining_options = pn.widgets.LiteralInput(value=self.data_loader.value.columns.copy())
-        self.row = pn.FlexBox()
+        self.column_grouping = column_functions.ColumnGrouping(self.data_loader.value.columns)
 
         # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree'],
@@ -49,17 +45,19 @@ class DataStore(Viewer):
         self.graph_type = pn.widgets.Select(name='graph_type', options=['Cluster', 'Dependency', 'Parallel'],
                                             value='Cluster')
 
-        column_functions.init_groups(self.get_widget())
+        self.column_grouping.init_groups()
         self.data_and_probabilities = pn.widgets.LiteralInput(
             value=feature.combine_data_and_results(self.data_loader.value))
 
         # item
         self.item = pn.widgets.LiteralInput(
             value=item_functions.Item(self.data_loader.value, self.data_and_probabilities.value, self.item_index.value,
-                                      self.combined_columns.value))
-        self.combined_columns.param.watch(lambda event: self.item.param.update(
-            value=item_functions.Item(self.data_loader.value, self.data_and_probabilities.value, self.item_index.value,
-                                        event.new)), parameter_names=['value'], onlychanged=False)
+                                      self.column_grouping.combined_columns))
+        self.item_index.param.watch(lambda event: self.item.param.update(
+            value=item_functions.Item(self.data_loader.value, self.data_and_probabilities.value, event.new,
+                                      self.column_grouping.combined_columns)), parameter_names=['value'], onlychanged=False)
+
+        self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'], onlychanged=False)
 
         # clustered data
         self.clustered_data = pn.widgets.LiteralInput(value=self._update_clustered_data())
@@ -72,6 +70,15 @@ class DataStore(Viewer):
         self.render_plot = pn.widgets.LiteralInput(value=self.update_render_plot_self())
         self.graph_type.param.watch(lambda event: self.render_plot.param.update(value=self.update_render_plot_self()), parameter_names=['value'], onlychanged=False)
         self.render_plot_view = pn.bind(lambda x: x, self.render_plot)
+
+    def prediction_string(self):
+        return pn.bind(lambda x: x.item.value.prediction_string(), self)
+
+    def column_grouping_changed(self, event):
+        if self.active:
+            self.item.param.update(value=item_functions.Item(self.data_loader.value, self.data_and_probabilities.value,
+                                                            self.item_index.value, self.column_grouping.combined_columns))
+
 
     def update_data(self, event):
         self.active = False
@@ -90,7 +97,7 @@ class DataStore(Viewer):
         self.col.param.update(options=loader.columns)
         self.all_selected_cols.param.update(value=all_selected_cols)
 
-        column_functions.init_groups(self.get_widget())
+        self.column_grouping.init_groups(loader.columns)
 
         self.item.param.update(value=item)
 
@@ -124,15 +131,11 @@ class DataStore(Viewer):
     def get_file_widgets(self):
         return pn.Row(self.file, self.nn_file, self.calculate, self.item_index).servable()
 
-    def get_widget(self):
-        return [self.column_group, self.row, self.num_groups, self.remaining_options, self.combined_columns,
-                self.data_loader.value.columns]
-
     def get_customization_widgets(self):
         return pn.Row(self.cluster_type, self.graph_type, self.chart_type).servable()
 
     def get_row_widgets(self):
-        return self.row.servable()
+        return self.column_grouping.row.servable()
 
     def update_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index, chart_type):
         if graph_type == 'Cluster':
