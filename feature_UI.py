@@ -38,4 +38,3 @@ def get_value(widget):
 table = pn.bind(lambda a: a.table(), ds.item)
 
 pn.Row(table, shap_plot, ds.render_plot_view).servable()
-ds.cur_feature.servable()
