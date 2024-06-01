@@ -4,14 +4,18 @@ import pandas as pd
 from panel.viewable import Viewer, Viewable
 import calculations.data_loader as data_loader
 import functions as feature
-import calculations.item_functions as item_functions
+import calculations.item as Item
 from calculations import column_functions, similarity
 from plots.cluster_bar_plot import cluster_bar_plot
 from plots.dependency_plot import dependency_scatterplot
 from plots.parallel_plot import parallel_plot
 
 
-class DataStore(Viewer):
+class DataStore(param.Parameterized):
+    item = param.ClassSelector(class_=Item.Item)
+    columnGrouping = param.ClassSelector(class_=column_functions.ColumnGrouping)
+    data_loader = param.ClassSelector(class_=data_loader.DataLoader)
+    all_selected_cols = param.List()
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -20,23 +24,23 @@ class DataStore(Viewer):
         self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network')
         self.calculate = pn.widgets.Button(name='Calculate')
         self.calculate.on_click(self.update_data)
-        self.data_loader = pn.widgets.LiteralInput(value=data_loader.DataLoader())
+        self.data_loader = data_loader.DataLoader()
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
 
         # columns
-        self.col = pn.widgets.Select(name='column', options=self.data_loader.value.columns)
-        self.all_selected_cols = pn.widgets.LiteralInput(value=column_functions.return_col(self.col.value))
+        self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
+        self.all_selected_cols = column_functions.return_col(self.col.value)
         self.col.param.watch(
-            lambda event: self.all_selected_cols.param.update(value=column_functions.return_col(event.new)),
+            lambda event: self.param.update(all_selected_cols=column_functions.return_col(event.new)),
             parameter_names=['value'], onlychanged=False)
 
         # groups
-        self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols.value,
-                                             value=self.all_selected_cols.value[0], align='center')
-        self.all_selected_cols.param.watch(lambda event: self.cur_feature.param.update(options=event.new),
-                                           parameter_names=['value'], onlychanged=False)
+        self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols,
+                                             value=self.all_selected_cols[0], align='center')
+        self.param.watch(lambda event: self.cur_feature.param.update(options=event.new),
+                                           parameter_names=['all_selected_cols'], onlychanged=False)
 
-        self.column_grouping = column_functions.ColumnGrouping(self.data_loader.value.columns)
+        self.column_grouping = column_functions.ColumnGrouping(self.data_loader.columns)
 
         # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree'],
@@ -49,15 +53,14 @@ class DataStore(Viewer):
 
         self.column_grouping.init_groups()
         self.data_and_probabilities = pn.widgets.LiteralInput(
-            value=feature.combine_data_and_results(self.data_loader.value))
+            value=feature.combine_data_and_results(self.data_loader))
 
         # item
-        self.item = pn.widgets.LiteralInput(
-            value=item_functions.Item(self.data_loader.value, self.data_and_probabilities.value, self.item_index.value,
-                                      self.column_grouping.combined_columns))
-        self.item_index.param.watch(lambda event: self.item.param.update(
-            value=item_functions.Item(self.data_loader.value, self.data_and_probabilities.value, event.new,
-                                      self.column_grouping.combined_columns)), parameter_names=['value'],
+        self.item = Item.Item(self.data_loader, self.data_and_probabilities.value, self.item_index.value,
+                              self.column_grouping.combined_columns)
+        self.item_index.param.watch(lambda event: self.param.update(
+            item=Item.Item(self.data_loader, self.data_and_probabilities.value, event.new,
+                           self.column_grouping.combined_columns)), parameter_names=['value'],
                                     onlychanged=False)
 
         self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'],
@@ -79,13 +82,13 @@ class DataStore(Viewer):
         self.render_plot_view = pn.bind(lambda x: x, self.render_plot)
 
     def prediction_string(self):
-        return pn.bind(lambda x: x.item.value.prediction_string(), self)
+        return pn.bind(lambda x: x.item.prediction_string(), self)
 
     def column_grouping_changed(self, event):
         if self.active:
-            self.item.param.update(value=item_functions.Item(self.data_loader.value, self.data_and_probabilities.value,
-                                                             self.item_index.value,
-                                                             self.column_grouping.combined_columns))
+            self.param.update(item=Item.Item(self.data_loader, self.data_and_probabilities.value,
+                                             self.item_index.value,
+                                             self.column_grouping.combined_columns))
 
     def update_data(self, event):
         self.active = False
@@ -93,12 +96,12 @@ class DataStore(Viewer):
         data_and_probabilities = feature.combine_data_and_results(loader)
         all_selected_cols = column_functions.return_col(loader.columns[0])
         cur_feature = all_selected_cols[0]
-        item = item_functions.Item(loader, data_and_probabilities, self.item_index.value, [])
+        item = Item.Item(loader, data_and_probabilities, self.item_index.value, [])
         clustered_data = similarity.get_clustering(self.cluster_type.value, data_and_probabilities, all_selected_cols,
                                                    cur_feature, item.prediction, self.item_index.value,
                                                    exclude_col=False)
 
-        self.data_loader.param.update(value=loader)
+        self.param.update(data_loader=loader)
         self.data_and_probabilities.param.update(
             value=data_and_probabilities)
 
@@ -107,7 +110,7 @@ class DataStore(Viewer):
 
         self.column_grouping.init_groups(loader.columns)
 
-        self.item.param.update(value=item)
+        self.param.update(item=item)
 
         self.clustered_data.param.update(value=clustered_data)
 
@@ -115,14 +118,14 @@ class DataStore(Viewer):
                                                                     clustered_data, cur_feature, item,
                                                                     self.item_index.value, self.chart_type.value))
 
-        self.cur_feature.param.update(options=self.all_selected_cols.value, value=cur_feature)
+        self.cur_feature.param.update(options=self.all_selected_cols, value=cur_feature)
 
         self.active = True
 
     def _update_clustered_data(self):
         return similarity.get_clustering(self.cluster_type.value, self.data_and_probabilities.value,
-                                         self.all_selected_cols.value,
-                                         self.cur_feature.value, self.item.value.prediction, self.item_index.value,
+                                         self.all_selected_cols,
+                                         self.cur_feature.value, self.item.prediction, self.item_index.value,
                                          exclude_col=False)
 
     def update_clustered_data(self, event):
@@ -131,7 +134,7 @@ class DataStore(Viewer):
                 value=self._update_clustered_data())
 
     def get_all_data(self):
-        return pn.bind(data_loader.load_data, self.file.value, self.data_loader.value.nn)
+        return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
 
     def get_data(self):
         return pn.bind(lambda data: data[0:200], self.get_all_data())
@@ -159,7 +162,7 @@ class DataStore(Viewer):
                                  item.prediction, item.data, chart_type)
 
     def update_render_plot_self(self):
-        return self.update_render_plot(self.graph_type.value, self.all_selected_cols.value,
-                                       self.clustered_data.value, self.cur_feature, self.item.value,
+        return self.update_render_plot(self.graph_type.value, self.all_selected_cols,
+                                       self.clustered_data.value, self.cur_feature, self.item,
                                        self.item_index.value,
                                        self.chart_type.value)

@@ -1,6 +1,6 @@
 import panel as pn
 import functions as feature
-import calculations.item_functions as item_functions
+import calculations.item as item_functions
 import calculations.column_functions as column_functions
 import calculations.data_loader as data_loader
 import calculations.similarity as similarity
@@ -24,17 +24,11 @@ pn.panel("<br>").servable()
 pn.panel("### Grouped columns:").servable()
 
 # shap plot
-shap_plot = pn.bind(shap_tornado_plot, ds.item, [ds.col])  # col is wrapped to be passed as reference
+shap_plot = pn.bind(shap_tornado_plot, ds.param.item, [ds.col])  # col is wrapped to be passed as reference
 
 # remaining layout
-pn.Row(pn.bind(lambda a: a.prediction_string(), ds.item)).servable()
+pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)).servable()
 
-
-def get_value(widget):
-    print(widget)
-    return widget.value
-
-
-table = pn.bind(lambda a: a.table(), ds.item)
+table = pn.bind(lambda a: a.table(), ds.param.item)
 
 pn.Row(table, shap_plot, ds.render_plot_view).servable()
