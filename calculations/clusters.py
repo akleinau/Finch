@@ -116,7 +116,7 @@ def shorten_rules(x):
     grouped_axioms = grouped_axioms.groupby(['feature', 'operator'])
     grouped_axioms = grouped_axioms['value'].agg(['max', 'min'])
     grouped_axioms = grouped_axioms.reset_index()
-    grouped_axioms['value'] = grouped_axioms.apply(lambda x: x['max'] if x['operator'] == '>' else x['min'], axis=1)
+    grouped_axioms['value'] = grouped_axioms.apply(lambda x: x['max'] if '>' in x['operator'] else x['min'], axis=1)
 
     # now create the new label
     grouped_axioms = grouped_axioms['feature'] + ' ' + grouped_axioms['operator'] + ' ' + grouped_axioms['value']
@@ -131,7 +131,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=Tr
         columns = all_selected_cols
 
     if len(columns) > 0:
-        tree = DecisionTreeRegressor(max_leaf_nodes=4, max_depth=2, min_samples_leaf=0.1)
+        tree = DecisionTreeRegressor(max_leaf_nodes=6, max_depth=3, min_samples_leaf=0.1, min_impurity_decrease=0.001)
         tree.fit(data[columns], data[prediction])
 
         data["group"] = tree.apply(data[columns])
@@ -178,7 +178,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
 
             relative_data[col] = data[col].apply(lambda x: get_relative(x, item_val, range / 20))
 
-        tree = DecisionTreeRegressor(max_leaf_nodes=4, max_depth=2, min_samples_leaf=0.1)
+        tree = DecisionTreeRegressor(max_leaf_nodes=6, max_depth=3, min_samples_leaf=0.1)
         tree.fit(relative_data, data[prediction])
 
         data["group"] = tree.apply(relative_data)
