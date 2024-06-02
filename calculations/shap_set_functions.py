@@ -84,16 +84,3 @@ def get_shap(data, means, model, columns, classes):
     # merge X_test, shap, predictions
     all_data = pd.concat([data, all_shap_values, all_predictions], axis=1)
     return all_data
-
-
-def combine_data_and_results(data, model, classes):
-    all_predictions = model.predict_proba(data)
-    all_predictions = pd.DataFrame(all_predictions, columns=['prob_' + str(name) for name in classes])
-    all_predictions['prediction'] = all_predictions.idxmax(axis=1)
-    # merge X_test, shap, predictions
-    all_data = pd.concat([data, all_predictions], axis=1)
-    return all_data
-
-
-def get_means(data):
-    return data.mean().to_frame().T
