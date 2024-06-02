@@ -79,6 +79,10 @@ def make_readable(x):
     if len(axioms[0]) < 3:
         return x
 
+    # the feature names may contain spaces, so we need to merge it back together
+    axioms = [[' '.join(axiom[:-2]), *axiom[-2:]] for axiom in axioms]
+
+
     axioms = pd.DataFrame(axioms, columns=['feature', 'operator', 'value'])
     new_rules = []
     axioms['new_rule'] = axioms.apply(_make_readable_axiom, axis=1)
@@ -102,6 +106,9 @@ def shorten_rules(x):
     axioms = [axiom.split() for axiom in axioms]
     if len(axioms[0]) < 3:
         return x
+
+    # the feature names may contain spaces, so we need to merge it back together
+    axioms = [[' '.join(axiom[:-2]), *axiom[-2:]] for axiom in axioms]
 
     grouped_axioms = pd.DataFrame(axioms, columns=['feature', 'operator', 'value'])
 
