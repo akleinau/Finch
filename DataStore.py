@@ -1,10 +1,6 @@
-import panel
 import param
 import panel as pn
-import pandas as pd
-from panel.viewable import Viewer, Viewable
 import calculations.data_loader as data_loader
-import functions as feature
 import calculations.item as Item
 from calculations import column_functions, similarity
 from plots import render_plot
@@ -120,9 +116,6 @@ class DataStore(param.Parameterized):
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
-
-    def get_data(self):
-        return pn.bind(lambda data: data[0:200], self.get_all_data())
 
     def get_file_widgets(self):
         return pn.Row(self.file, self.nn_file, self.calculate, self.item_index).servable()

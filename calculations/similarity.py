@@ -13,54 +13,6 @@ class Clustering:
                                    item_index, exclude_col)
 
 
-def pred_diff(x1, x2, prediction):
-    y1 = x1[prediction].values[0]
-    y2 = x2[prediction].values[0]
-    diff = y1 - y2
-    return diff
-
-
-def l2_loss(data, prediction):
-    # calculate mean prediction across group
-    mean_prediction = data[prediction].mean()
-    # calculate difference between each prediction and the mean
-    diff = data[prediction] - mean_prediction
-    # square the differences
-    squared_diff = diff ** 2
-    # return the sum of the squared differences
-    return squared_diff.sum()
-
-
-def get_color(x, item_val, range):
-    # lambda x: 'saddlebrown' if x >= item_val else 'midnightblue'
-    if (x < item_val - range):
-        return '#8B4513'
-    elif (x > item_val + range):
-        return '#191970'
-    else:
-        return '#800080'
-
-
-def get_relative_groups(data, col, index):
-    item = data.iloc[index]
-    labels = {'#228b22': 'All'}
-
-    if len(col) > 1:
-        item_val = item[col[1]]
-        range = data[col[1]].max() - data[col[1]].min()
-
-        data["scatter_group"] = data[col[1]].apply(lambda x: get_color(x, item_val, range / 20))
-        labels['#191970'] = 'higher ' + str(col[1])
-        labels['#8B4513'] = 'lower ' + str(col[1])
-        labels['#800080'] = 'Similar ' + str(col[1])
-    else:
-        data["scatter_group"] = '#228b22'
-
-    data["scatter_label"] = data["scatter_group"].apply(lambda x: labels[x])
-
-    return data
-
-
 def get_tree_rules(tree, feature_names):
     tree_ = tree.tree_
     feature_name = [

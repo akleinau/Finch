@@ -1,13 +1,5 @@
 import panel as pn
-import functions as feature
-import calculations.item as item_functions
-import calculations.column_functions as column_functions
-import calculations.data_loader as data_loader
-import calculations.similarity as similarity
-from plots.dependency_plot import dependency_scatterplot
 from plots.tornado_plot import shap_tornado_plot
-from plots.parallel_plot import parallel_plot
-from plots.cluster_bar_plot import cluster_bar_plot
 from DataStore import DataStore
 
 pn.extension()

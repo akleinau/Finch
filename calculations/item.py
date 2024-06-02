@@ -1,6 +1,6 @@
 import pandas as pd
 
-import functions as feature
+from calculations import shap_set_functions
 import panel as pn
 
 
@@ -23,7 +23,7 @@ class Item:
 
 def get_item_shap_values(data_loader, index, combined_columns=None):
     item = data_loader.data.iloc[[index]]
-    shap_explanations = feature.calc_shap_values(item, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
+    shap_explanations = shap_set_functions.calc_shap_values(item, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
     shap_values = pd.DataFrame(shap_explanations.values,
                                columns=shap_explanations.feature_names)
     # pivot the data, so that each row contains the feature and the shap value
