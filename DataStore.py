@@ -1,17 +1,18 @@
 import param
 import panel as pn
 import calculations.data_loader as data_loader
-import calculations.item as Item
-from calculations import column_functions, similarity
+import calculations.item_functions as item_functions
+from calculations import column_functions
+from calculations import clusters
 from plots import render_plot
 
 
 class DataStore(param.Parameterized):
-    item = param.ClassSelector(class_=Item.Item)
+    item = param.ClassSelector(class_=item_functions.Item)
     columnGrouping = param.ClassSelector(class_=column_functions.ColumnGrouping)
     data_loader = param.ClassSelector(class_=data_loader.DataLoader)
     all_selected_cols = param.List()
-    clustering = param.ClassSelector(class_=similarity.Clustering)
+    clustering = param.ClassSelector(class_=clusters.Clustering)
     render_plot = param.ClassSelector(class_=render_plot.RenderPlot)
 
     def __init__(self, **params):
@@ -50,10 +51,10 @@ class DataStore(param.Parameterized):
                                             value='Cluster')
 
         # item
-        self.item = Item.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_index.value,
+        self.item = item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_index.value,
                               self.column_grouping.combined_columns)
         self.item_index.param.watch(lambda event: self.param.update(
-            item=Item.Item(self.data_loader, self.data_loader.data_and_probabilities, event.new,
+            item=item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, event.new,
                            self.column_grouping.combined_columns)), parameter_names=['value'],
                                     onlychanged=False)
 
@@ -76,7 +77,7 @@ class DataStore(param.Parameterized):
 
     def column_grouping_changed(self, event):
         if self.active:
-            self.param.update(item=Item.Item(self.data_loader, self.data_loader.data_and_probabilities,
+            self.param.update(item=item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities,
                                              self.item_index.value,
                                              self.column_grouping.combined_columns))
 
@@ -85,8 +86,8 @@ class DataStore(param.Parameterized):
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value)
         all_selected_cols = column_functions.return_col(loader.columns[0])
         cur_feature = all_selected_cols[0]
-        item = Item.Item(loader, loader.data_and_probabilities, self.item_index.value, [])
-        clustering = similarity.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
+        item = item_functions.Item(loader, loader.data_and_probabilities, self.item_index.value, [])
+        clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
                                            cur_feature, item.prediction, self.item_index.value,
                                            exclude_col=False)
 
@@ -104,7 +105,7 @@ class DataStore(param.Parameterized):
         self.active = True
 
     def _update_clustered_data(self):
-        return similarity.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
+        return clusters.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
                                      self.all_selected_cols,
                                      self.cur_feature.value, self.item.prediction, self.item_index.value,
                                      exclude_col=False)
