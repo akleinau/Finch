@@ -6,11 +6,19 @@ import numpy as np
 from sklearn.tree import _tree
 
 
+class Clustering:
+    def __init__(self, cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction, item_index,
+                 exclude_col=True):
+        self.data = get_clustering(cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction,
+                                   item_index, exclude_col)
+
+
 def pred_diff(x1, x2, prediction):
     y1 = x1[prediction].values[0]
     y2 = x2[prediction].values[0]
     diff = y1 - y2
     return diff
+
 
 def l2_loss(data, prediction):
     # calculate mean prediction across group
@@ -99,6 +107,7 @@ def get_tree_rules(tree, feature_names):
 
     return rules
 
+
 def _make_readable_axiom(axiom):
     if (axiom['operator'] == '>' and axiom['value'] == '0.5'):
         return 'higher '
@@ -111,6 +120,7 @@ def _make_readable_axiom(axiom):
     else:
         return 'similar '
 
+
 def make_readable(x):
     axioms = x.split(' and ')
     axioms = [axiom.split() for axiom in axioms]
@@ -121,17 +131,18 @@ def make_readable(x):
     new_rules = []
     axioms['new_rule'] = axioms.apply(_make_readable_axiom, axis=1)
 
-    #if both'similar/ higher' and 'similar/ lower' exist for a feature, merge them together into 'similar'
+    # if both'similar/ higher' and 'similar/ lower' exist for a feature, merge them together into 'similar'
     rule_groups = axioms.groupby('feature')
     rule_list = []
     for name, group in rule_groups:
         if 'similar or higher ' in group['new_rule'].values and 'similar or lower ' in group['new_rule'].values:
-                rule_list.append('similar ' + group['feature'].values[0])
+            rule_list.append('similar ' + group['feature'].values[0])
         else:
             rule_list.extend(group['new_rule'].values + group['feature'].values)
 
-    #now merge the rules together
+    # now merge the rules together
     return ' and '.join(rule_list)
+
 
 def shorten_rules(x):
     axioms = x.split(' and ')
@@ -140,16 +151,15 @@ def shorten_rules(x):
     if len(axioms[0]) < 3:
         return x
 
-
     grouped_axioms = pd.DataFrame(axioms, columns=['feature', 'operator', 'value'])
 
-    #now group
-    grouped_axioms= grouped_axioms.groupby(['feature', 'operator'])
+    # now group
+    grouped_axioms = grouped_axioms.groupby(['feature', 'operator'])
     grouped_axioms = grouped_axioms['value'].agg(['max', 'min'])
     grouped_axioms = grouped_axioms.reset_index()
     grouped_axioms['value'] = grouped_axioms.apply(lambda x: x['max'] if x['operator'] == '>' else x['min'], axis=1)
 
-    #now create the new label
+    # now create the new label
     grouped_axioms = grouped_axioms['feature'] + ' ' + grouped_axioms['operator'] + ' ' + grouped_axioms['value']
     return grouped_axioms.str.cat(sep=' and ')
 
@@ -181,6 +191,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=Tr
 
     return data
 
+
 def get_relative(x, item_val, range):
     # lambda x: 'saddlebrown' if x >= item_val else 'midnightblue'
     if (x < item_val - range):
@@ -190,6 +201,7 @@ def get_relative(x, item_val, range):
     else:
         return 0
 
+
 def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col=True):
     # remove the current column from the list of all selected columns
     if exclude_col:
@@ -198,7 +210,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
         columns = all_selected_cols
 
     if (len(columns) > 0):
-        #make new relative columns
+        # make new relative columns
         item = data.iloc[index]
         relative_data = pd.DataFrame()
         for col in columns:
@@ -206,8 +218,6 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
             range = data[col].max() - data[col].min()
 
             relative_data[col] = data[col].apply(lambda x: get_relative(x, item_val, range / 20))
-
-
 
         tree = DecisionTreeRegressor(max_leaf_nodes=4, max_depth=2, min_samples_leaf=0.1)
         tree.fit(relative_data, data[prediction])

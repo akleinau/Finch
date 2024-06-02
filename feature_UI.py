@@ -31,4 +31,6 @@ pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)).servable()
 
 table = pn.bind(lambda a: a.table(), ds.param.item)
 
-pn.Row(table, shap_plot, ds.render_plot_view).servable()
+render_plot = pn.bind(lambda e: e.plot, ds.param.render_plot)
+
+pn.Row(table, shap_plot, render_plot).servable()

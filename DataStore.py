@@ -1,3 +1,4 @@
+import panel
 import param
 import panel as pn
 import pandas as pd
@@ -6,9 +7,7 @@ import calculations.data_loader as data_loader
 import functions as feature
 import calculations.item as Item
 from calculations import column_functions, similarity
-from plots.cluster_bar_plot import cluster_bar_plot
-from plots.dependency_plot import dependency_scatterplot
-from plots.parallel_plot import parallel_plot
+from plots import render_plot
 
 
 class DataStore(param.Parameterized):
@@ -16,6 +15,8 @@ class DataStore(param.Parameterized):
     columnGrouping = param.ClassSelector(class_=column_functions.ColumnGrouping)
     data_loader = param.ClassSelector(class_=data_loader.DataLoader)
     all_selected_cols = param.List()
+    clustering = param.ClassSelector(class_=similarity.Clustering)
+    render_plot = param.ClassSelector(class_=render_plot.RenderPlot)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -38,9 +39,10 @@ class DataStore(param.Parameterized):
         self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols,
                                              value=self.all_selected_cols[0], align='center')
         self.param.watch(lambda event: self.cur_feature.param.update(options=event.new),
-                                           parameter_names=['all_selected_cols'], onlychanged=False)
-
+                         parameter_names=['all_selected_cols'], onlychanged=False)
         self.column_grouping = column_functions.ColumnGrouping(self.data_loader.columns)
+        self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'],
+                                         onlychanged=False)
 
         # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree'],
@@ -51,87 +53,70 @@ class DataStore(param.Parameterized):
         self.graph_type = pn.widgets.Select(name='graph_type', options=['Cluster', 'Dependency', 'Parallel'],
                                             value='Cluster')
 
-        self.column_grouping.init_groups()
-        self.data_and_probabilities = pn.widgets.LiteralInput(
-            value=feature.combine_data_and_results(self.data_loader))
-
         # item
-        self.item = Item.Item(self.data_loader, self.data_and_probabilities.value, self.item_index.value,
+        self.item = Item.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_index.value,
                               self.column_grouping.combined_columns)
         self.item_index.param.watch(lambda event: self.param.update(
-            item=Item.Item(self.data_loader, self.data_and_probabilities.value, event.new,
+            item=Item.Item(self.data_loader, self.data_loader.data_and_probabilities, event.new,
                            self.column_grouping.combined_columns)), parameter_names=['value'],
                                     onlychanged=False)
 
-        self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'],
-                                         onlychanged=False)
-
         # clustered data
-        self.clustered_data = pn.widgets.LiteralInput(value=self._update_clustered_data())
-        self.clustered_data.param.watch(
-            lambda event: self.render_plot.param.update(value=self.update_render_plot_self()),
-            parameter_names=['value'], onlychanged=False)
+        self.clustering = self._update_clustered_data()
         self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
 
         # render
-        self.render_plot = pn.widgets.LiteralInput(value=self.update_render_plot_self())
-        self.graph_type.param.watch(lambda event: self.render_plot.param.update(value=self.update_render_plot_self()),
+        self.render_plot = self.update_render_plot()
+        self.param.watch(
+            lambda event: self.param.update(render_plot=self.update_render_plot()),
+            parameter_names=['clustering'], onlychanged=False)
+        self.graph_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()),
                                     parameter_names=['value'], onlychanged=False)
-        self.render_plot_view = pn.bind(lambda x: x, self.render_plot)
 
     def prediction_string(self):
         return pn.bind(lambda x: x.item.prediction_string(), self)
 
     def column_grouping_changed(self, event):
         if self.active:
-            self.param.update(item=Item.Item(self.data_loader, self.data_and_probabilities.value,
+            self.param.update(item=Item.Item(self.data_loader, self.data_loader.data_and_probabilities,
                                              self.item_index.value,
                                              self.column_grouping.combined_columns))
 
     def update_data(self, event):
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value)
-        data_and_probabilities = feature.combine_data_and_results(loader)
         all_selected_cols = column_functions.return_col(loader.columns[0])
         cur_feature = all_selected_cols[0]
-        item = Item.Item(loader, data_and_probabilities, self.item_index.value, [])
-        clustered_data = similarity.get_clustering(self.cluster_type.value, data_and_probabilities, all_selected_cols,
-                                                   cur_feature, item.prediction, self.item_index.value,
-                                                   exclude_col=False)
+        item = Item.Item(loader, loader.data_and_probabilities, self.item_index.value, [])
+        clustering = similarity.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
+                                           cur_feature, item.prediction, self.item_index.value,
+                                           exclude_col=False)
 
-        self.param.update(data_loader=loader)
-        self.data_and_probabilities.param.update(
-            value=data_and_probabilities)
+        self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
+                          render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
+                                                             clustering.data, cur_feature, item,
+                                                             self.item_index.value, self.chart_type.value))
 
         self.col.param.update(options=loader.columns)
-        self.all_selected_cols.param.update(value=all_selected_cols)
 
         self.column_grouping.init_groups(loader.columns)
-
-        self.param.update(item=item)
-
-        self.clustered_data.param.update(value=clustered_data)
-
-        self.render_plot.param.update(value=self.update_render_plot(self.graph_type.value, all_selected_cols,
-                                                                    clustered_data, cur_feature, item,
-                                                                    self.item_index.value, self.chart_type.value))
 
         self.cur_feature.param.update(options=self.all_selected_cols, value=cur_feature)
 
         self.active = True
 
     def _update_clustered_data(self):
-        return similarity.get_clustering(self.cluster_type.value, self.data_and_probabilities.value,
-                                         self.all_selected_cols,
-                                         self.cur_feature.value, self.item.prediction, self.item_index.value,
-                                         exclude_col=False)
+        return similarity.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
+                                     self.all_selected_cols,
+                                     self.cur_feature.value, self.item.prediction, self.item_index.value,
+                                     exclude_col=False)
 
     def update_clustered_data(self, event):
         if self.active:
-            self.clustered_data.param.update(
-                value=self._update_clustered_data())
+            self.param.update(
+                clustering=self._update_clustered_data())
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
@@ -148,21 +133,8 @@ class DataStore(param.Parameterized):
     def get_row_widgets(self):
         return self.column_grouping.row.servable()
 
-    def update_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
-                           chart_type):
-        if graph_type == 'Cluster':
-            return cluster_bar_plot(clustered_data, item, item_index)
-        elif graph_type == 'Dependency':
-            dep_plot = dependency_scatterplot(clustered_data, cur_feature.value, all_selected_cols,
-                                              item.prediction, item_index, chart_type,
-                                              item.prob_wo_selected_cols)
-            return pn.Column(dep_plot, cur_feature)
-        else:
-            return parallel_plot(clustered_data, cur_feature.value, all_selected_cols,
-                                 item.prediction, item.data, chart_type)
-
-    def update_render_plot_self(self):
-        return self.update_render_plot(self.graph_type.value, self.all_selected_cols,
-                                       self.clustered_data.value, self.cur_feature, self.item,
-                                       self.item_index.value,
-                                       self.chart_type.value)
+    def update_render_plot(self):
+        return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
+                                      self.clustering.data, self.cur_feature, self.item,
+                                      self.item_index.value,
+                                      self.chart_type.value)

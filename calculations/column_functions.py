@@ -12,6 +12,7 @@ class ColumnGrouping(param.Parameterized):
         self.num_groups = 1
         self.remaining_options = columns.copy()
         self.all_options = columns.copy()
+        self.init_groups()
 
 
     def clean_column_groups(self, group):

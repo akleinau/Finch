@@ -19,6 +19,7 @@ class DataLoader(Viewer):
         self.means = feature.get_means(self.data)
         self.classes = self.nn.classes_
         self.columns = [col for col in self.data.columns]
+        self.data_and_probabilities = feature.combine_data_and_results(self)
 
 
 def load_weather_data():
