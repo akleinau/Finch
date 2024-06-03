@@ -13,7 +13,7 @@ class RenderPlot:
     def get_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
                         chart_type):
         if graph_type == 'Cluster':
-            plot = cluster_bar_plot(clustered_data, item, item_index)
+            plot = cluster_bar_plot(clustered_data, item, item_index, all_selected_cols)
             plot = add_style(plot)
             return plot
         elif graph_type == 'Dependency':
@@ -33,6 +33,11 @@ def add_style(plot):
     plot.title.align = 'center'
     plot.xaxis.major_label_text_font_size = '14px'
     plot.yaxis.major_label_text_font_size = '14px'
-    plot.legend.label_text_font_size = '14px'
+    plot.xaxis.axis_label_text_font_size = '14px'
+    if len(plot.legend) >0:
+        plot.legend.label_text_font_size = '14px'
+
+    plot.grid.grid_line_color = "black"
+    plot.grid.grid_line_alpha = 0.0
 
     return plot

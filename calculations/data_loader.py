@@ -9,10 +9,10 @@ class DataLoader(Viewer):
     def __init__(self, file=None, nn_file=None):
         super().__init__()
         if file is None or nn_file is None:
-            self.data = load_weather_data()[0:200]
+            self.data = load_weather_data()[0:1000]
             self.nn = load_weather_nn()
         else:
-            self.data = load_data(file)[0:200]
+            self.data = load_data(file)[0:1000]
             self.nn = load_nn(nn_file)
 
         self.means = get_means(self.data)

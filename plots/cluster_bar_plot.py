@@ -4,7 +4,7 @@ from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 
 
-def cluster_bar_plot(data, item, index):
+def cluster_bar_plot(data, item, index, all_selected_cols):
     prob = item.prediction
     cluster_data = data[[prob, "scatter_group", "scatter_label"]].groupby("scatter_group")
     clusters = pd.DataFrame()
@@ -18,8 +18,10 @@ def cluster_bar_plot(data, item, index):
 
     y_range = clusters['scatter_label'].values
 
-    chart2 = figure(title="cluster means", y_range=y_range, x_range=[0,1], width=800)
-    chart2.hbar(
+    title = "Clusters for " + ", ".join(all_selected_cols)
+
+    plot = figure(title=title, y_range=y_range, x_range=[0,1], width=800)
+    plot.hbar(
         y='scatter_label',
         right='mean',
         fill_color="scatter_group",
@@ -29,16 +31,17 @@ def cluster_bar_plot(data, item, index):
         nonselection_fill_alpha=0.7,
     )
 
+    plot.xaxis.axis_label = "Probability"
+
     # add item
     item = data.iloc[index]
 
-    item_scatter = chart2.scatter(y=[item['scatter_label']], x=[item[prob]], color='purple', size=7, name="selected item",
+    item_scatter = plot.scatter(y=[item['scatter_label']], x=[item[prob]], color='purple', size=7, name="selected item",
                                   legend_label="selected item")
 
     scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
-    chart2.add_tools(scatter_hover)
+    plot.add_tools(scatter_hover)
 
-    chart2.grid.grid_line_color = "black"
-    chart2.grid.grid_line_alpha = 0.05
 
-    return chart2
+
+    return plot

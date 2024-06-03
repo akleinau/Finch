@@ -16,8 +16,8 @@ def set_col(data, item_source, col):
 def shap_tornado_plot(data, col):
     shap = data.shap
     item_source = ColumnDataSource(data=shap)
-    chart2 = figure(title="relevance", y_range=shap['feature_label'], x_range=(-1, 1), tools='tap')
-    chart2.hbar(
+    plot = figure(title="Feature Set Relevance", y_range=shap['feature_label'], x_range=(-1, 1), tools='tap')
+    plot.hbar(
         y='feature_label',
         right='shap_value',
         fill_color=factor_cmap("positive", palette=["steelblue", "crimson"], factors=["pos", "neg"]),
@@ -29,9 +29,10 @@ def shap_tornado_plot(data, col):
         selection_hatch_weight=1.5,
         selection_hatch_color='purple'
     )
-    chart2.grid.grid_line_color = "black"
-    chart2.grid.grid_line_alpha = 0.05
-    chart2 = add_style(chart2)
 
-    chart2.on_event('tap', lambda event: set_col(shap, item_source, col))
-    return chart2
+    plot.xaxis.axis_label = "shap value"
+
+    plot = add_style(plot)
+
+    plot.on_event('tap', lambda event: set_col(shap, item_source, col))
+    return plot

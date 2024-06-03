@@ -71,6 +71,8 @@ class DataStore(param.Parameterized):
             parameter_names=['clustering'], onlychanged=False)
         self.graph_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()),
                                     parameter_names=['value'], onlychanged=False)
+        self.chart_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()),
+                                    parameter_names=['value'], onlychanged=False)
 
     def prediction_string(self):
         return pn.bind(lambda x: x.item.prediction_string(), self)
