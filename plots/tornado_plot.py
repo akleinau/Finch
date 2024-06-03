@@ -1,6 +1,7 @@
 from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 from bokeh.models import ColumnDataSource
+from plots.render_plot import add_style
 
 
 def set_col(data, item_source, col):
@@ -15,9 +16,9 @@ def set_col(data, item_source, col):
 def shap_tornado_plot(data, col):
     shap = data.shap
     item_source = ColumnDataSource(data=shap)
-    chart2 = figure(title="relevance", y_range=shap['feature'], x_range=(-1, 1), tools='tap')
+    chart2 = figure(title="relevance", y_range=shap['feature_label'], x_range=(-1, 1), tools='tap')
     chart2.hbar(
-        y='feature',
+        y='feature_label',
         right='shap_value',
         fill_color=factor_cmap("positive", palette=["steelblue", "crimson"], factors=["pos", "neg"]),
         line_width=0,
@@ -30,6 +31,7 @@ def shap_tornado_plot(data, col):
     )
     chart2.grid.grid_line_color = "black"
     chart2.grid.grid_line_alpha = 0.05
+    chart2 = add_style(chart2)
 
     chart2.on_event('tap', lambda event: set_col(shap, item_source, col))
     return chart2

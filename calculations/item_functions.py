@@ -23,11 +23,14 @@ class Item:
 
 def get_item_shap_values(data_loader, index, combined_columns=None):
     item = data_loader.data.iloc[[index]]
+    item = item.reset_index(drop=True)
     shap_explanations = shap_set_functions.calc_shap_values(item, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
     shap_values = pd.DataFrame(shap_explanations.values,
                                columns=shap_explanations.feature_names)
     # pivot the data, so that each row contains the feature and the shap value
     shap_values = shap_values.melt(var_name='feature', value_name='shap_value')
+    #add with feature values
+    shap_values['feature_label'] = shap_values['feature'].map(lambda x: get_feature_label(x, item))
 
     # add column containing the absolute value of the shap value
     shap_values['abs_shap_value'] = shap_values['shap_value'].abs()
@@ -36,6 +39,13 @@ def get_item_shap_values(data_loader, index, combined_columns=None):
     combined_item = shap_values.sort_values(by='abs_shap_value', ascending=True)
 
     return combined_item
+
+def get_feature_label(feature, item):
+    feature_split = feature.split(', ')
+    if len(feature_split) > 1:
+        return ', '.join([get_feature_label(f, item) for f in feature_split])
+    else:
+        return feature + " = " + str(item[feature].values[0])
 
 
 def get_item_data(explanation, index):

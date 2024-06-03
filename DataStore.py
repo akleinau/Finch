@@ -2,9 +2,9 @@ import param
 import panel as pn
 import calculations.data_loader as data_loader
 import calculations.item_functions as item_functions
-from calculations import column_functions
-from calculations import clusters
-from plots import render_plot
+import calculations.column_functions as column_functions
+import calculations.clusters as clusters
+import plots.render_plot as render_plot
 
 
 class DataStore(param.Parameterized):
