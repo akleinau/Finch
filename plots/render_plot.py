@@ -6,14 +6,14 @@ import panel as pn
 
 class RenderPlot:
 
-    def __init__(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index, chart_type):
+    def __init__(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index, chart_type, predict_class):
         self.plot = self.get_render_plot(graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
-                                         chart_type)
+                                         chart_type, predict_class)
 
     def get_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
-                        chart_type):
+                        chart_type, predict_class):
         if graph_type == 'Cluster':
-            plot = cluster_bar_plot(clustered_data, item, item_index, all_selected_cols)
+            plot = cluster_bar_plot(clustered_data, item, item_index, all_selected_cols, predict_class)
             plot = add_style(plot)
             return plot
         elif graph_type == 'Dependency':

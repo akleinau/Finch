@@ -5,23 +5,25 @@ import panel as pn
 
 
 class Item:
-    def __init__(self, data_loader, data_and_probabilities, index, combined_columns=None):
+    def __init__(self, data_loader, data_and_probabilities, index, predict_class, predict_class_label, combined_columns=None):
         self.prediction = get_item_prediction(data_and_probabilities, index)
-        self.shap = get_item_shap_values(data_loader, index, combined_columns)
+        self.shap = get_item_shap_values(data_loader, index, predict_class, self.prediction, combined_columns)
         self.data = get_item_data(data_loader.data, index)
         self.prob_data =get_item_probability_string(data_and_probabilities, index, self.prediction)
+        self.pred_class_label = predict_class_label
+        self.pred_class_str = get_item_class_probability_string(data_and_probabilities, index, predict_class, predict_class_label)
         self.prob_wo_selected_cols = get_prob_wo_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
 
 
     def prediction_string(self):
-        return pn.pane.Str(self.prob_data, sizing_mode="stretch_width", align="center",
+        return pn.pane.Str(self.pred_class_str, sizing_mode="stretch_width", align="center",
                     styles={"font-size": "20px", "text-align": "center"})
 
     def table(self):
         return self.data
 
 
-def get_item_shap_values(data_loader, index, combined_columns=None):
+def get_item_shap_values(data_loader, index, predict_class, item_prediction, combined_columns=None):
     item = data_loader.data.iloc[[index]]
     item = item.reset_index(drop=True)
     shap_explanations = shap_set_functions.calc_shap_values(item, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
@@ -31,6 +33,10 @@ def get_item_shap_values(data_loader, index, combined_columns=None):
     shap_values = shap_values.melt(var_name='feature', value_name='shap_value')
     #add with feature values
     shap_values['feature_label'] = shap_values['feature'].map(lambda x: get_feature_label(x, item))
+
+    # depending on predict_class, we may have to invert
+    if item_prediction != predict_class:
+        shap_values['shap_value'] = shap_values['shap_value'] * -1
 
     # add column containing the absolute value of the shap value
     shap_values['abs_shap_value'] = shap_values['shap_value'].abs()
@@ -56,6 +62,9 @@ def get_item_data(explanation, index):
 
 def get_item_probability_string(data, index, prob):
     return "Prediction: " + prob[5:] + "  " + "{:10.0f}".format(data.iloc[index][prob] * 100) + "% certainty"
+
+def get_item_class_probability_string(data, index, predict_class, label):
+    return "Probability of " + label + ": " + "{:10.0f}".format(data.iloc[index][predict_class] * 100) + "%"
 
 
 def get_item_prediction(data, index):

@@ -4,14 +4,13 @@ from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 
 
-def cluster_bar_plot(data, item, index, all_selected_cols):
-    prob = item.prediction
-    cluster_data = data[[prob, "scatter_group", "scatter_label"]].groupby("scatter_group")
+def cluster_bar_plot(data, item, index, all_selected_cols, predict_class):
+    cluster_data = data[[predict_class, "scatter_group", "scatter_label"]].groupby("scatter_group")
     clusters = pd.DataFrame()
-    clusters['mean'] = cluster_data[prob].mean()
-    clusters['std'] = cluster_data[prob].std()
-    clusters['count'] = cluster_data[prob].count()
-    clusters['median'] = cluster_data[prob].median()
+    clusters['mean'] = cluster_data[predict_class].mean()
+    clusters['std'] = cluster_data[predict_class].std()
+    clusters['count'] = cluster_data[predict_class].count()
+    clusters['median'] = cluster_data[predict_class].median()
     clusters['scatter_label'] = cluster_data['scatter_label'].first()
     clusters.reset_index(level=0, inplace=True)
     clusters.sort_values(by='mean', inplace=True)
@@ -36,7 +35,7 @@ def cluster_bar_plot(data, item, index, all_selected_cols):
     # add item
     item = data.iloc[index]
 
-    item_scatter = plot.scatter(y=[item['scatter_label']], x=[item[prob]], color='purple', size=7, name="selected item",
+    item_scatter = plot.scatter(y=[item['scatter_label']], x=[item[predict_class]], color='purple', size=7, name="selected item",
                                   legend_label="selected item")
 
     scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])

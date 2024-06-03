@@ -24,6 +24,10 @@ class DataStore(param.Parameterized):
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
+        self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes))
+        self.predict_class_label = pn.widgets.TextInput(name='prediction', value=self.predict_class.value)
+        self.predict_class.param.watch(lambda event: self.predict_class_label.param.update(value=event.new),
+                                        parameter_names=['value'], onlychanged=False)
 
         # columns
         self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
@@ -52,12 +56,11 @@ class DataStore(param.Parameterized):
         self.num_leafs = pn.widgets.EditableIntSlider(name='num_leafs', start=1, end=15, value=3)
 
         # item
-        self.item = item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_index.value,
-                              self.column_grouping.combined_columns)
-        self.item_index.param.watch(lambda event: self.param.update(
-            item=item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, event.new,
-                           self.column_grouping.combined_columns)), parameter_names=['value'],
+        self.item = self._update_item_self()
+        self.item_index.param.watch(self.update_item_self, parameter_names=['value'],
                                     onlychanged=False)
+        self.predict_class_label.param.watch(self.update_item_self, parameter_names=['value'],
+                                       onlychanged=False)
 
         # clustered data
         self.clustering = self._update_clustered_data()
@@ -65,6 +68,7 @@ class DataStore(param.Parameterized):
         self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.num_leafs.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.predict_class.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
 
         # render
         self.render_plot = self.update_render_plot()
@@ -81,24 +85,24 @@ class DataStore(param.Parameterized):
 
     def column_grouping_changed(self, event):
         if self.active:
-            self.param.update(item=item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities,
-                                             self.item_index.value,
-                                             self.column_grouping.combined_columns))
+            self.param.update(item=self.update_item_self())
 
     def update_data(self, event):
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value)
+        predict_class = loader.classes[0]
         all_selected_cols = column_functions.return_col(loader.columns[0])
         cur_feature = all_selected_cols[0]
-        item = item_functions.Item(loader, loader.data_and_probabilities, self.item_index.value, [])
+        item = item_functions.Item(loader, loader.data_and_probabilities, self.item_index.value, predict_class, predict_class, [])
         clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
                                            cur_feature, item.prediction, self.item_index.value,
                                            exclude_col=False)
+        self.predict_class.param.update(options=loader.classes, value=predict_class)
 
         self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
                           render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
                                                              clustering.data, cur_feature, item,
-                                                             self.item_index.value, self.chart_type.value))
+                                                             self.item_index.value, self.chart_type.value, self.predict_class.value))
 
         self.col.param.update(options=loader.columns)
 
@@ -111,7 +115,7 @@ class DataStore(param.Parameterized):
     def _update_clustered_data(self):
         return clusters.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
                                      self.all_selected_cols,
-                                     self.cur_feature.value, self.item.prediction, self.item_index.value,
+                                     self.cur_feature.value, self.predict_class.value, self.item_index.value,
                                      exclude_col=False, num_leafs=self.num_leafs.value)
 
     def update_clustered_data(self, event):
@@ -123,7 +127,7 @@ class DataStore(param.Parameterized):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
 
     def get_file_widgets(self):
-        return pn.Row(self.file, self.nn_file, self.calculate, self.item_index).servable()
+        return pn.Row(self.file, self.nn_file, self.calculate, self.item_index, self.predict_class, self.predict_class_label).servable()
 
     def get_customization_widgets(self):
         return pn.Row(self.cluster_type, self.graph_type, self.chart_type, self.cur_feature, self.num_leafs).servable()
@@ -135,4 +139,13 @@ class DataStore(param.Parameterized):
         return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
                                       self.clustering.data, self.cur_feature, self.item,
                                       self.item_index.value,
-                                      self.chart_type.value)
+                                      self.chart_type.value, self.predict_class.value)
+
+    def _update_item_self(self):
+            return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities,
+                                         self.item_index.value, self.predict_class.value, self.predict_class_label.value,
+                                         self.column_grouping.combined_columns)
+
+    def update_item_self(self, event):
+        if self.active:
+            self.param.update(item=self._update_item_self())

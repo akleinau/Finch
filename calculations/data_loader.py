@@ -16,14 +16,13 @@ class DataLoader(Viewer):
             self.nn = load_nn(nn_file)
 
         self.means = get_means(self.data)
-        self.classes = self.nn.classes_
+        self.classes = ['prob_' + str(name) for name in self.nn.classes_]
         self.columns = [col for col in self.data.columns]
         self.data_and_probabilities = self.combine_data_and_results()
 
     def combine_data_and_results(self):
-        classes = self.nn.classes_
         all_predictions = self.nn.predict_proba(self.data)
-        all_predictions = pd.DataFrame(all_predictions, columns=['prob_' + str(name) for name in classes])
+        all_predictions = pd.DataFrame(all_predictions, columns=self.classes)
         all_predictions['prediction'] = all_predictions.idxmax(axis=1)
         # merge X_test, shap, predictions
         all_data = pd.concat([self.data, all_predictions], axis=1)
