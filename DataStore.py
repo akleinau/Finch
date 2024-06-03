@@ -20,7 +20,7 @@ class DataStore(param.Parameterized):
         self.active = True
         self.file = pn.widgets.FileInput(accept='.csv', name='Upload data')
         self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network')
-        self.calculate = pn.widgets.Button(name='Calculate')
+        self.calculate = pn.widgets.Button(name='Calculate', button_type='primary')
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
@@ -49,6 +49,7 @@ class DataStore(param.Parameterized):
 
         self.graph_type = pn.widgets.Select(name='graph_type', options=['Cluster', 'Dependency', 'Parallel'],
                                             value='Cluster')
+        self.num_leafs = pn.widgets.EditableIntSlider(name='num_leafs', start=1, end=15, value=3)
 
         # item
         self.item = item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_index.value,
@@ -63,6 +64,7 @@ class DataStore(param.Parameterized):
         self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.num_leafs.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
 
         # render
         self.render_plot = self.update_render_plot()
@@ -110,7 +112,7 @@ class DataStore(param.Parameterized):
         return clusters.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
                                      self.all_selected_cols,
                                      self.cur_feature.value, self.item.prediction, self.item_index.value,
-                                     exclude_col=False)
+                                     exclude_col=False, num_leafs=self.num_leafs.value)
 
     def update_clustered_data(self, event):
         if self.active:
@@ -124,7 +126,7 @@ class DataStore(param.Parameterized):
         return pn.Row(self.file, self.nn_file, self.calculate, self.item_index).servable()
 
     def get_customization_widgets(self):
-        return pn.Row(self.cluster_type, self.graph_type, self.chart_type, self.cur_feature).servable()
+        return pn.Row(self.cluster_type, self.graph_type, self.chart_type, self.cur_feature, self.num_leafs).servable()
 
     def get_row_widgets(self):
         return self.column_grouping.row.servable()

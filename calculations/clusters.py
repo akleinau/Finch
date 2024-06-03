@@ -8,9 +8,9 @@ from sklearn.tree import _tree
 
 class Clustering:
     def __init__(self, cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction, item_index,
-                 exclude_col=True):
+                 exclude_col=True, num_leafs=6):
         self.data = get_clustering(cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction,
-                                   item_index, exclude_col)
+                                   item_index, exclude_col, num_leafs)
 
 
 def get_tree_rules(tree, feature_names):
@@ -123,7 +123,7 @@ def shorten_rules(x):
     return grouped_axioms.str.cat(sep=' and ')
 
 
-def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=True):
+def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=True, num_leafs=6):
     # remove the current column from the list of all selected columns
     if exclude_col:
         columns = [col for col in all_selected_cols if col != cur_col]
@@ -131,7 +131,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=Tr
         columns = all_selected_cols
 
     if len(columns) > 0:
-        tree = DecisionTreeRegressor(max_leaf_nodes=6, max_depth=3, min_samples_leaf=0.1, min_impurity_decrease=0.005)
+        tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=0.05)
         tree.fit(data[columns], data[prediction])
 
         data["group"] = tree.apply(data[columns])
@@ -161,7 +161,7 @@ def get_relative(x, item_val, range):
         return 0
 
 
-def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col=True):
+def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col=True, num_leafs=6):
     # remove the current column from the list of all selected columns
     if exclude_col:
         columns = [col for col in all_selected_cols if col != cur_col]
@@ -178,7 +178,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
 
             relative_data[col] = data[col].apply(lambda x: get_relative(x, item_val, range / 20))
 
-        tree = DecisionTreeRegressor(max_leaf_nodes=6, max_depth=3, min_samples_leaf=0.1, min_impurity_decrease=0.005)
+        tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=0.05)
         tree.fit(relative_data, data[prediction])
 
         data["group"] = tree.apply(relative_data)
@@ -199,8 +199,8 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
     return data
 
 
-def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index, exclude_col=True):
+def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index, exclude_col=True, num_leafs=6):
     if cluster_type == 'Relative Decision Tree':
-        return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col)
+        return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col, num_leafs)
     else:
-        return get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col)
+        return get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col, num_leafs)
