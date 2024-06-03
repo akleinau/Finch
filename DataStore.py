@@ -84,8 +84,7 @@ class DataStore(param.Parameterized):
         return pn.bind(lambda x: x.item.prediction_string(), self)
 
     def column_grouping_changed(self, event):
-        if self.active:
-            self.param.update(item=self.update_item_self())
+        self.update_item_self()
 
     def update_data(self, event):
         self.active = False
@@ -146,6 +145,6 @@ class DataStore(param.Parameterized):
                                          self.item_index.value, self.predict_class.value, self.predict_class_label.value,
                                          self.column_grouping.combined_columns)
 
-    def update_item_self(self, event):
+    def update_item_self(self, *params):
         if self.active:
             self.param.update(item=self._update_item_self())

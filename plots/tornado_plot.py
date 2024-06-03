@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
-from bokeh.models import ColumnDataSource
+from bokeh.models import ColumnDataSource, HoverTool
 from plots.render_plot import add_style
 
 
@@ -17,9 +17,9 @@ def shap_tornado_plot(data, col):
     shap = data.shap
     item_source = ColumnDataSource(data=shap)
 
-    plot = figure(title="Feature Set Relevance", y_range=shap['feature_label'], x_range=(-1, 1), tools='tap')
-    plot.hbar(
-        y='feature_label',
+    plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=(-1, 1), tools='tap')
+    bars = plot.hbar(
+        y='feature_label_short',
         right='shap_value',
         fill_color=factor_cmap("positive", palette=["steelblue", "crimson"], factors=["pos", "neg"]),
         line_width=0,
@@ -36,4 +36,8 @@ def shap_tornado_plot(data, col):
     plot = add_style(plot)
 
     plot.on_event('tap', lambda event: set_col(shap, item_source, col))
+
+    hover = HoverTool( tooltips=[('', '@feature_label')])
+    plot.add_tools(hover)
+
     return plot

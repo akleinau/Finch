@@ -33,6 +33,7 @@ def get_item_shap_values(data_loader, index, predict_class, item_prediction, com
     shap_values = shap_values.melt(var_name='feature', value_name='shap_value')
     #add with feature values
     shap_values['feature_label'] = shap_values['feature'].map(lambda x: get_feature_label(x, item))
+    shap_values['feature_label_short'] = shap_values['feature_label'].map(lambda x: x[:22] + '...' if len(x) > 25 else x)
 
     # depending on predict_class, we may have to invert
     if item_prediction != predict_class:
