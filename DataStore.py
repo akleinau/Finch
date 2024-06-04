@@ -77,7 +77,7 @@ class DataStore(param.Parameterized):
             parameter_names=['clustering'], onlychanged=False)
         self.graph_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()),
                                     parameter_names=['value'], onlychanged=False)
-        self.chart_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()),
+        self.chart_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot(caused_by_chart=True)),
                                     parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()), parameter_names=['value'],
                                        onlychanged=False)
@@ -103,7 +103,7 @@ class DataStore(param.Parameterized):
         self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
                           render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
                                                              clustering.data, cur_feature, item,
-                                                             self.item_index.value, self.chart_type.value, self.predict_class.value, self.predict_class_label.value))
+                                                             self.item_index.value, self.chart_type, self.predict_class.value, self.predict_class_label.value))
 
         self.col.param.update(options=loader.columns)
 
@@ -131,16 +131,18 @@ class DataStore(param.Parameterized):
         return pn.Row(self.file, self.nn_file, self.calculate, self.item_index, self.predict_class, self.predict_class_label).servable()
 
     def get_customization_widgets(self):
-        return pn.Row(self.cluster_type, self.graph_type, self.chart_type, self.cur_feature, self.num_leafs).servable()
+        return pn.Row(self.cluster_type, self.num_leafs).servable()
 
     def get_row_widgets(self):
         return self.column_grouping.row.servable()
 
-    def update_render_plot(self):
+    def update_render_plot(self, caused_by_chart=False):
+        active_tab = 1 if caused_by_chart else 0
         return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
                                       self.clustering.data, self.cur_feature, self.item,
                                       self.item_index.value,
-                                      self.chart_type.value, self.predict_class.value, self.predict_class_label.value)
+                                      self.chart_type, self.predict_class.value, self.predict_class_label.value,
+                                      active_tab)
 
     def _update_item_self(self):
             return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities,

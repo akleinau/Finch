@@ -2,13 +2,17 @@ from plots.cluster_bar_plot import cluster_bar_plot
 from plots.dependency_plot import dependency_scatterplot
 from plots.parallel_plot import parallel_plot
 import panel as pn
+import param
 
 
-class RenderPlot:
+class RenderPlot(param.Parameterized):
+    active_tab = param.Integer(default=0)
 
-    def __init__(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index, chart_type, predict_class, predict_label):
-        self.plot = self.get_render_plot(graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
-                                         chart_type, predict_class, predict_label)
+    def __init__(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index, chart_type,
+                 predict_class, predict_label, active_tab=0, **params):
+        super().__init__(**params)
+        self.plot = self.render_plot_tabs(all_selected_cols, clustered_data, cur_feature, item, item_index,
+                                         chart_type, predict_class, predict_label, active_tab)
 
     def get_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
                         chart_type, predict_class, predict_label):
@@ -18,14 +22,24 @@ class RenderPlot:
             return plot
         elif graph_type == 'Dependency':
             dep_plot = dependency_scatterplot(clustered_data, cur_feature.value, all_selected_cols,
-                                              item, chart_type)
+                                              item, chart_type.value)
             dep_plot = add_style(dep_plot)
-            return pn.Column(dep_plot, cur_feature)
+            return pn.Column(dep_plot, cur_feature, chart_type)
         else:
             plot = parallel_plot(clustered_data, cur_feature.value, all_selected_cols,
                                  item.prediction, item.data, chart_type)
             plot = add_style(plot)
             return plot
+
+    def render_plot_tabs(self, all_selected_cols, clustered_data, cur_feature, item, item_index,
+                        chart_type, predict_class, predict_label, active_tab):
+        p1 = self.get_render_plot('Cluster', all_selected_cols, clustered_data, cur_feature, item, item_index,
+                                         chart_type, predict_class, predict_label)
+        p2 = self.get_render_plot('Dependency', all_selected_cols, clustered_data, cur_feature, item, item_index,
+                                            chart_type, predict_class, predict_label)
+        p3 = self.get_render_plot('Parallel', all_selected_cols, clustered_data, cur_feature, item, item_index,
+                                            chart_type, predict_class, predict_label)
+        return pn.Tabs(('Cluster', p1), ('Dependency', p2), ('Parallel', p3), dynamic=True, active=active_tab)
 
 def add_style(plot):
     plot.title.text_font_size = '20px'

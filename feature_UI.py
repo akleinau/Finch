@@ -24,3 +24,5 @@ pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)).servable()
 render_plot = pn.bind(lambda e: e.plot, ds.param.render_plot)
 
 pn.Row(shap_plot, render_plot, styles=dict(margin='5px 20px 5px 20px')).servable()
+
+pn.Row(ds.cur_feature, styles=dict(visibility='hidden')).servable() # necessary for the column selection to work
