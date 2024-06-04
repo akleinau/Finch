@@ -141,9 +141,9 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=Tr
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)
+        rules = {k: shorten_rules(v) for k, v in rules.items()}
 
         data["scatter_label"] = data["group"].apply(lambda x: rules[x])
-        data["scatter_label"] = data["scatter_label"].apply(shorten_rules)
     else:
         data["scatter_group"] = '#228b22'
         data["scatter_label"] = 'All'
@@ -188,10 +188,10 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)
+        rules = {k: shorten_rules(v) for k, v in rules.items()}
+        rules = {k: make_readable(v) for k, v in rules.items()}
 
         data["scatter_label"] = data["group"].apply(lambda x: rules[x])
-        data["scatter_label"] = data["scatter_label"].apply(shorten_rules)
-        data["scatter_label"] = data["scatter_label"].apply(make_readable)
     else:
         data["scatter_group"] = '#228b22'
         data["scatter_label"] = 'All'
