@@ -1,7 +1,7 @@
 import pandas
 import pandas as pd
 from sklearn.tree import DecisionTreeRegressor
-from bokeh.palettes import Category20
+import bokeh.palettes as palettes
 import numpy as np
 from sklearn.tree import _tree
 
@@ -135,11 +135,12 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_
         tree.fit(data[columns], data[prediction])
 
         data["group"] = tree.apply(data[columns])
-        item.group = tree.apply(pd.DataFrame([{col: item.data_raw[col]} for col in columns]))[0]
+        sorted_groups = data.groupby("group")[prediction].mean().sort_values().index
+        group_to_index = {group: i for i, group in enumerate(sorted_groups)}
 
         # create a color for each group
-        data["scatter_group"] = data["group"].apply(lambda x: Category20[20][x])
-        item.scatter_group = Category20[20][item.group]
+        data["scatter_group"] = data["group"].apply(lambda x: palettes.Set2[8][group_to_index[x]])
+        item.scatter_group = palettes.Set2[8][item.group]
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)
@@ -185,10 +186,13 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item,
 
         data["group"] = tree.apply(relative_data)
         item.group = tree.apply(pd.DataFrame([{col: 0} for col in columns]))[0]
+        # sort by group mean probability
+        sorted_groups = data.groupby("group")[prediction].mean().sort_values().index
+        group_to_index = {group: i for i, group in enumerate(sorted_groups)}
 
         # create a color for each group
-        data["scatter_group"] = data["group"].apply(lambda x: Category20[20][x])
-        item.scatter_group = Category20[20][item.group]
+        data["scatter_group"] = data["group"].apply(lambda x: palettes.Set2[8][group_to_index[x]])
+        item.scatter_group = palettes.Set2[8][item.group]
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)

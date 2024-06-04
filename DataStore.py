@@ -25,7 +25,7 @@ class DataStore(param.Parameterized):
         self.data_loader = data_loader.DataLoader()
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
         self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes))
-        self.predict_class_label = pn.widgets.TextInput(name='prediction', value=self.predict_class.value)
+        self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value)
         self.predict_class.param.watch(lambda event: self.predict_class_label.param.update(value=event.new),
                                         parameter_names=['value'], onlychanged=False)
 
@@ -79,6 +79,8 @@ class DataStore(param.Parameterized):
                                     parameter_names=['value'], onlychanged=False)
         self.chart_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()),
                                     parameter_names=['value'], onlychanged=False)
+        self.predict_class_label.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()), parameter_names=['value'],
+                                       onlychanged=False)
 
     def prediction_string(self):
         return pn.bind(lambda x: x.item.prediction_string(), self)
@@ -101,7 +103,7 @@ class DataStore(param.Parameterized):
         self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
                           render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
                                                              clustering.data, cur_feature, item,
-                                                             self.item_index.value, self.chart_type.value, self.predict_class.value))
+                                                             self.item_index.value, self.chart_type.value, self.predict_class.value, self.predict_class_label.value))
 
         self.col.param.update(options=loader.columns)
 
@@ -138,7 +140,7 @@ class DataStore(param.Parameterized):
         return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
                                       self.clustering.data, self.cur_feature, self.item,
                                       self.item_index.value,
-                                      self.chart_type.value, self.predict_class.value)
+                                      self.chart_type.value, self.predict_class.value, self.predict_class_label.value)
 
     def _update_item_self(self):
             return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities,
