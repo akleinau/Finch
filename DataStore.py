@@ -71,15 +71,14 @@ class DataStore(param.Parameterized):
         self.predict_class.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
 
         # render
-        self.render_plot = self.update_render_plot()
-        self.param.watch(
-            lambda event: self.param.update(render_plot=self.update_render_plot()),
+        self.render_plot = self._update_render_plot()
+        self.param.watch(self.update_render_plot,
             parameter_names=['clustering'], onlychanged=False)
-        self.graph_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()),
+        self.graph_type.param.watch(self.update_render_plot,
                                     parameter_names=['value'], onlychanged=False)
-        self.chart_type.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot(caused_by_chart=True)),
+        self.chart_type.param.watch(lambda event: self.update_render_plot(caused_by_chart=True),
                                     parameter_names=['value'], onlychanged=False)
-        self.predict_class_label.param.watch(lambda event: self.param.update(render_plot=self.update_render_plot()), parameter_names=['value'],
+        self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
                                        onlychanged=False)
 
     def prediction_string(self):
@@ -94,16 +93,18 @@ class DataStore(param.Parameterized):
         predict_class = loader.classes[0]
         all_selected_cols = column_functions.return_col(loader.columns[0])
         cur_feature = all_selected_cols[0]
+        cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
+                                             value=cur_feature, align='center')
         item = item_functions.Item(loader, loader.data_and_probabilities, self.item_index.value, predict_class, predict_class, [])
         clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
-                                           cur_feature, item.prediction, self.item_index.value,
+                                           cur_feature, predict_class, item,
                                            exclude_col=False)
         self.predict_class.param.update(options=loader.classes, value=predict_class)
 
         self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
                           render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
-                                                             clustering.data, cur_feature, item,
-                                                             self.item_index.value, self.chart_type, self.predict_class.value, self.predict_class_label.value))
+                                                             clustering.data, cur_feature_widget, item,
+                                                             self.item_index.value, self.chart_type, predict_class, predict_class, active_tab=0))
 
         self.col.param.update(options=loader.columns)
 
@@ -136,13 +137,16 @@ class DataStore(param.Parameterized):
     def get_row_widgets(self):
         return self.column_grouping.row.servable()
 
-    def update_render_plot(self, caused_by_chart=False):
+    def _update_render_plot(self, caused_by_chart=False):
         active_tab = 1 if caused_by_chart else 0
         return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
                                       self.clustering.data, self.cur_feature, self.item,
                                       self.item_index.value,
                                       self.chart_type, self.predict_class.value, self.predict_class_label.value,
                                       active_tab)
+    def update_render_plot(self, caused_by_chart=False):
+        if self.active:
+            self.param.update(render_plot=self._update_render_plot(caused_by_chart))
 
     def _update_item_self(self):
             return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities,
