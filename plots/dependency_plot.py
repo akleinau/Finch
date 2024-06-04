@@ -118,7 +118,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     chart3.legend.location = "right"
 
     # add the "standard probability" line
-    mean = data[item.pred_class_label].mean()
+    mean = data[item.predict_class].mean()
     chart3.line(x=[x_range[0], x_range[1]], y=[mean, mean], line_width=2, color='black', alpha=0.5,
                 legend_label='mean probability')
 
