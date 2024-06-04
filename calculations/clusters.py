@@ -135,6 +135,8 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_
         tree.fit(data[columns], data[prediction])
 
         data["group"] = tree.apply(data[columns])
+        item.group = tree.apply(pd.DataFrame([{col: item.data_raw[col] for col in columns}]))[0]
+
         sorted_groups = data.groupby("group")[prediction].mean().sort_values().index
         group_to_index = {group: i for i, group in enumerate(sorted_groups)}
 
