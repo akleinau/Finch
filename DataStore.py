@@ -114,7 +114,7 @@ class DataStore(param.Parameterized):
     def _update_clustered_data(self):
         return clusters.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
                                      self.all_selected_cols,
-                                     self.cur_feature.value, self.predict_class.value, self.item_index.value,
+                                     self.cur_feature.value, self.predict_class.value, self.item,
                                      exclude_col=False, num_leafs=self.num_leafs.value)
 
     def update_clustered_data(self, event):

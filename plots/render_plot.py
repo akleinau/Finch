@@ -13,13 +13,12 @@ class RenderPlot:
     def get_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
                         chart_type, predict_class):
         if graph_type == 'Cluster':
-            plot = cluster_bar_plot(clustered_data, item, item_index, all_selected_cols, predict_class)
+            plot = cluster_bar_plot(clustered_data, item, all_selected_cols, predict_class)
             plot = add_style(plot)
             return plot
         elif graph_type == 'Dependency':
             dep_plot = dependency_scatterplot(clustered_data, cur_feature.value, all_selected_cols,
-                                              item.prediction, item_index, chart_type,
-                                              item.prob_wo_selected_cols)
+                                              item, chart_type)
             dep_plot = add_style(dep_plot)
             return pn.Column(dep_plot, cur_feature)
         else:

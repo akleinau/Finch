@@ -4,7 +4,7 @@ from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 
 
-def cluster_bar_plot(data, item, index, all_selected_cols, predict_class):
+def cluster_bar_plot(data, item, all_selected_cols, predict_class):
     cluster_data = data[[predict_class, "scatter_group", "scatter_label"]].groupby("scatter_group")
     clusters = pd.DataFrame()
     clusters['mean'] = cluster_data[predict_class].mean()
@@ -33,9 +33,8 @@ def cluster_bar_plot(data, item, index, all_selected_cols, predict_class):
     plot.xaxis.axis_label = "Probability"
 
     # add item
-    item = data.iloc[index]
 
-    item_scatter = plot.scatter(y=[item['scatter_label']], x=[item[predict_class]], color='purple', size=7, name="selected item",
+    item_scatter = plot.scatter(y=[item.scatter_label], x=[item.data_prob_raw[predict_class]], color='purple', size=7, name="selected item",
                                   legend_label="selected item")
 
     scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])

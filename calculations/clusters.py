@@ -123,7 +123,7 @@ def shorten_rules(x):
     return grouped_axioms.str.cat(sep=' and ')
 
 
-def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=True, num_leafs=6):
+def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
     # remove the current column from the list of all selected columns
     if exclude_col:
         columns = [col for col in all_selected_cols if col != cur_col]
@@ -135,15 +135,18 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col=Tr
         tree.fit(data[columns], data[prediction])
 
         data["group"] = tree.apply(data[columns])
+        item.group = tree.apply(pd.DataFrame([{col: item.data_raw[col]} for col in columns]))[0]
 
         # create a color for each group
         data["scatter_group"] = data["group"].apply(lambda x: Category20[20][x])
+        item.scatter_group = Category20[20][item.group]
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)
         rules = {k: shorten_rules(v) for k, v in rules.items()}
 
         data["scatter_label"] = data["group"].apply(lambda x: rules[x])
+        item.scatter_label = rules[item.group]
     else:
         data["scatter_group"] = '#228b22'
         data["scatter_label"] = 'All'
@@ -161,7 +164,7 @@ def get_relative(x, item_val, range):
         return 0
 
 
-def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col=True, num_leafs=6):
+def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
     # remove the current column from the list of all selected columns
     if exclude_col:
         columns = [col for col in all_selected_cols if col != cur_col]
@@ -170,10 +173,9 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
 
     if (len(columns) > 0):
         # make new relative columns
-        item = data.iloc[index]
         relative_data = pd.DataFrame()
         for col in columns:
-            item_val = item[col]
+            item_val = item.data_raw[col]
             range = data[col].max() - data[col].min()
 
             relative_data[col] = data[col].apply(lambda x: get_relative(x, item_val, range / 20))
@@ -182,9 +184,11 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
         tree.fit(relative_data, data[prediction])
 
         data["group"] = tree.apply(relative_data)
+        item.group = tree.apply(pd.DataFrame([{col: 0} for col in columns]))[0]
 
         # create a color for each group
         data["scatter_group"] = data["group"].apply(lambda x: Category20[20][x])
+        item.scatter_group = Category20[20][item.group]
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)
@@ -192,15 +196,18 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index
         rules = {k: make_readable(v) for k, v in rules.items()}
 
         data["scatter_label"] = data["group"].apply(lambda x: rules[x])
+        item.scatter_label = rules[item.group]
     else:
         data["scatter_group"] = '#228b22'
         data["scatter_label"] = 'All'
+        item.scatter_group = '#228b22'
+        item.scatter_label = 'All'
 
     return data
 
 
-def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, index, exclude_col=True, num_leafs=6):
+def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
     if cluster_type == 'Relative Decision Tree':
-        return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, index, exclude_col, num_leafs)
+        return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)
     else:
-        return get_tree_groups(data, all_selected_cols, cur_col, prediction, exclude_col, num_leafs)
+        return get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)

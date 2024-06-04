@@ -1,18 +1,23 @@
 import pandas as pd
-
-from calculations import shap_set_functions
 import panel as pn
+import calculations.shap_set_functions as shap_set_functions
+
 
 
 class Item:
     def __init__(self, data_loader, data_and_probabilities, index, predict_class, predict_class_label, combined_columns=None):
         self.prediction = get_item_prediction(data_and_probabilities, index)
         self.shap = get_item_shap_values(data_loader, index, predict_class, self.prediction, combined_columns)
-        self.data = get_item_data(data_loader.data, index)
+        self.data_raw = data_loader.data.iloc[index]
+        self.data_prob_raw = data_and_probabilities.iloc[index]
+        self.data = get_item_data(self.data_raw)
         self.prob_data =get_item_probability_string(data_and_probabilities, index, self.prediction)
         self.pred_class_label = predict_class_label
         self.pred_class_str = get_item_class_probability_string(data_and_probabilities, index, predict_class, predict_class_label)
         self.prob_wo_selected_cols = get_prob_wo_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
+        self.group = 0
+        self.scatter_group = 0
+        self.scatter_label = 'All'
 
 
     def prediction_string(self):
@@ -55,8 +60,7 @@ def get_feature_label(feature, item):
         return feature + " = " + str(item[feature].values[0])
 
 
-def get_item_data(explanation, index):
-    item = explanation.iloc[index]
+def get_item_data(item):
     item = pd.DataFrame({'feature': item.index, 'value': item.values})
     return item
 

@@ -1,10 +1,10 @@
 import panel as pn
 from plots.tornado_plot import shap_tornado_plot
-from DataStore import DataStore
+import DataStore as DataStore
 
 pn.extension()
 
-ds = DataStore()
+ds = DataStore.DataStore()
 
 # create widgets
 ds.get_file_widgets()
