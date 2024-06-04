@@ -41,7 +41,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
         if len(filtered_data) > 0:
             cluster_label = filtered_data["scatter_label"].iloc[0]
             window = max(len(filtered_data) // 10, 10)
-            rolling = filtered_data[item.pred_class_label].rolling(window=window, center=True, min_periods=1).agg(
+            rolling = filtered_data[item.predict_class].rolling(window=window, center=True, min_periods=1).agg(
                 {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
                  'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
                  'median': 'median',
@@ -61,7 +61,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 else:
                     data_subset = filtered_data
 
-                x, y, z = kde(data_subset[col], data_subset[item.pred_class_label], 100)
+                x, y, z = kde(data_subset[col], data_subset[item.predict_class], 100)
 
                 # use the color to create a palette
                 rgb = color = tuple(int(color[1:][i:i + 2], 16) for i in (0, 2, 4))  # convert hex to rgb
@@ -101,13 +101,13 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     if "scatter" in chart_type:
         alpha = 0.3
-        chart3.scatter(col, item.pred_class_label, color="scatter_group", source=sorted_data,
+        chart3.scatter(col, item.predict_class, color="scatter_group", source=sorted_data,
                        alpha=alpha, marker='circle', size=3, name="scatter_label",
                        # legend_group="scatter_label"
                        )
 
     # add the selected item
-    item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.pred_class_label], color='purple', size=7, name="selected item",
+    item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple', size=7, name="selected item",
                                   legend_label="selected item")
 
     scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])

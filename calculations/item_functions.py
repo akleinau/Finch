@@ -12,6 +12,7 @@ class Item:
         self.data_prob_raw = data_and_probabilities.iloc[index]
         self.data = get_item_data(self.data_raw)
         self.prob_data =get_item_probability_string(data_and_probabilities, index, self.prediction)
+        self.predict_class = predict_class
         self.pred_class_label = predict_class_label
         self.pred_class_str = get_item_class_probability_string(data_and_probabilities, index, predict_class, predict_class_label)
         self.prob_wo_selected_cols = get_prob_wo_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
