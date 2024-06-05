@@ -16,6 +16,8 @@ def set_col(data, item_source, col):
 def shap_tornado_plot(data, col):
     shap = data.shap
     item_source = ColumnDataSource(data=shap)
+    #get last item
+    col[0].value = shap['feature'].values[-1]
 
     plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=(-1, 1), tools='tap')
     bars = plot.hbar(
