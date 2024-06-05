@@ -89,7 +89,7 @@ class DataStore(param.Parameterized):
             parameter_names=['clustering'], onlychanged=False)
         self.graph_type.param.watch(self.update_render_plot,
                                     parameter_names=['value'], onlychanged=False)
-        self.chart_type.param.watch(lambda event: self.update_render_plot(caused_by_chart=True),
+        self.chart_type.param.watch(lambda event: self.update_render_plot(event, caused_by_chart=True),
                                     parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
                                        onlychanged=False)
@@ -177,7 +177,7 @@ class DataStore(param.Parameterized):
                                       self.item_index.value,
                                       self.chart_type, self.predict_class.value, self.predict_class_label.value,
                                       active_tab)
-    def update_render_plot(self, caused_by_chart=False):
+    def update_render_plot(self, event, caused_by_chart=False):
         if self.active:
             self.param.update(render_plot=self._update_render_plot(caused_by_chart))
 
