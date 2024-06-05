@@ -23,7 +23,19 @@ class DataStore(param.Parameterized):
         self.calculate = pn.widgets.Button(name='Calculate', button_type='primary')
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
+
+        # item
+        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'], value='predefined')
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
+        self.item_custom_button = pn.widgets.Button(name='Customize', button_type='primary')
+        self.item_custom_content = pn.widgets.Button(name='placeholder', button_type='primary')
+        self.item_custom = pn.layout.FloatPanel(self.item_custom_content, name="Free Floating FloatPanel", contained=False, position='center')
+        self.item_placeholder = pn.Row()
+        self.item_custom_button.on_click(self.show_item_custom)
+        self.item_type.param.watch(lambda event: self.show_item_custom(event) if event.new == 'custom' else None,
+                                      parameter_names=['value'], onlychanged=False)
+
+        # predict class
         self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes))
         self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value)
         self.predict_class.param.watch(lambda event: self.predict_class_label.param.update(value=event.new),
@@ -129,7 +141,18 @@ class DataStore(param.Parameterized):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
 
     def get_file_widgets(self):
-        return pn.Row(self.file, self.nn_file, self.calculate, self.item_index, self.predict_class, self.predict_class_label).servable()
+        return pn.Row(self.file, self.nn_file, self.calculate, styles=dict(margin="auto")).servable()
+
+    def get_title_widgets(self):
+        return pn.Row(self.predict_class, self.predict_class_label, styles=dict(margin="auto")).servable()
+
+    def get_item_widgets(self):
+        second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_button, self.item_type)
+        return pn.Row(self.item_type, second_item, self.item_placeholder, styles=dict(margin="auto")).servable()
+
+    def show_item_custom(self, event):
+        floatpanel = pn.layout.FloatPanel(self.item_custom_content, name="Free Floating FloatPanel", contained=False, position='center')
+        self.item_placeholder.append(floatpanel)
 
     def get_customization_widgets(self):
         return pn.Row(self.cluster_type, self.num_leafs).servable()
