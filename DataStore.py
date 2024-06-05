@@ -28,9 +28,9 @@ class DataStore(param.Parameterized):
         self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'], value='predefined')
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
         self.item_custom_button = pn.widgets.Button(name='Customize', button_type='primary')
-        self.item_custom_content = pn.widgets.Button(name='placeholder', button_type='primary')
-        self.item_custom = pn.layout.FloatPanel(self.item_custom_content, name="Free Floating FloatPanel", contained=False, position='center')
-        self.item_placeholder = pn.Row()
+        self.item_custom_content = pn.Column()
+        self.item_custom = pn.layout.FloatPanel(self.item_custom_content, name="Add Info", contained=False, position='center')
+        self.item_floatpanel_placeholder = pn.Row()
         self.item_custom_button.on_click(self.show_item_custom)
         self.item_type.param.watch(lambda event: self.show_item_custom(event) if event.new == 'custom' else None,
                                       parameter_names=['value'], onlychanged=False)
@@ -73,6 +73,7 @@ class DataStore(param.Parameterized):
                                     onlychanged=False)
         self.predict_class_label.param.watch(self.update_item_self, parameter_names=['value'],
                                        onlychanged=False)
+        self.init_item_custom_content()
 
         # clustered data
         self.clustering = self._update_clustered_data()
@@ -126,6 +127,15 @@ class DataStore(param.Parameterized):
 
         self.active = True
 
+    def init_item_custom_content(self):
+        self.item_custom_content.clear()
+        self.item_custom_content.append("(missing values will be imputed)")
+        for col in self.data_loader.columns:
+            self.item_custom_content.append(pn.widgets.LiteralInput(name=col, value=None))
+        button = pn.widgets.Button(name="Calculate", button_type="primary", align="center", width=300)
+        self.item_custom_content.append(button)
+        button.on_click(self.update_item_self)
+
     def _update_clustered_data(self):
         return clusters.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
                                      self.all_selected_cols,
@@ -148,11 +158,11 @@ class DataStore(param.Parameterized):
 
     def get_item_widgets(self):
         second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_button, self.item_type)
-        return pn.Row(self.item_type, second_item, self.item_placeholder, styles=dict(margin="auto")).servable()
+        return pn.Row(self.item_type, second_item, self.item_floatpanel_placeholder, styles=dict(margin="auto")).servable()
 
     def show_item_custom(self, event):
         floatpanel = pn.layout.FloatPanel(self.item_custom_content, name="Free Floating FloatPanel", contained=False, position='center')
-        self.item_placeholder.append(floatpanel)
+        self.item_floatpanel_placeholder.append(floatpanel)
 
     def get_customization_widgets(self):
         return pn.Row(self.cluster_type, self.num_leafs).servable()
@@ -172,8 +182,9 @@ class DataStore(param.Parameterized):
             self.param.update(render_plot=self._update_render_plot(caused_by_chart))
 
     def _update_item_self(self):
-            return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities,
-                                         self.item_index.value, self.predict_class.value, self.predict_class_label.value,
+            return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
+                                         self.item_index.value, self.item_custom_content,
+                                         self.predict_class.value, self.predict_class_label.value,
                                          self.column_grouping.combined_columns)
 
     def update_item_self(self, *params):

@@ -18,16 +18,15 @@ class DataLoader(Viewer):
         self.means = get_means(self.data)
         self.classes = ['prob_' + str(name) for name in self.nn.classes_]
         self.columns = [col for col in self.data.columns]
-        self.data_and_probabilities = self.combine_data_and_results()
+        self.data_and_probabilities = self.combine_data_and_results(self.data)
 
-    def combine_data_and_results(self):
-        all_predictions = self.nn.predict_proba(self.data)
+    def combine_data_and_results(self, data):
+        all_predictions = self.nn.predict_proba(data)
         all_predictions = pd.DataFrame(all_predictions, columns=self.classes)
         all_predictions['prediction'] = all_predictions.idxmax(axis=1)
         # merge X_test, shap, predictions
         all_data = pd.concat([self.data, all_predictions], axis=1)
         return all_data
-
 
 def load_weather_data():
     # load weather files

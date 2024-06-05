@@ -135,7 +135,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_
         tree.fit(data[columns], data[prediction])
 
         data["group"] = tree.apply(data[columns])
-        item.group = tree.apply(pd.DataFrame([{col: item.data_raw[col] for col in columns}]))[0]
+        item.group = tree.apply(pd.DataFrame([{col: item.data_series[col] for col in columns}]))[0]
 
         sorted_groups = data.groupby("group")[prediction].mean().sort_values().index
         group_to_index = {group: i for i, group in enumerate(sorted_groups)}
@@ -178,7 +178,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item,
         # make new relative columns
         relative_data = pd.DataFrame()
         for col in columns:
-            item_val = item.data_raw[col]
+            item_val = item.data_series[col]
             range = data[col].max() - data[col].min()
 
             relative_data[col] = data[col].apply(lambda x: get_relative(x, item_val, range / 20))

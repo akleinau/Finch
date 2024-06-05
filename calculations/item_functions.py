@@ -5,16 +5,23 @@ import calculations.shap_set_functions as shap_set_functions
 
 
 class Item:
-    def __init__(self, data_loader, data_and_probabilities, index, predict_class, predict_class_label, combined_columns=None):
+    def __init__(self, data_loader, data_and_probabilities, type, index, custom_content, predict_class, predict_class_label, combined_columns=None):
         self.prediction = get_item_prediction(data_and_probabilities, index)
-        self.shap = get_item_shap_values(data_loader, index, predict_class, self.prediction, combined_columns)
-        self.data_raw = data_loader.data.iloc[index]
-        self.data_prob_raw = data_and_probabilities.iloc[index]
+        if (type == 'predefined'):
+            self.data_raw = data_loader.data.iloc[[index]]
+            self.data_raw = self.data_raw.reset_index(drop=True)
+            self.data_prob_raw = data_and_probabilities.iloc[index]
+        else:
+            self.data_raw = extract_data_from_custom_content(custom_content, data_loader)
+            self.data_prob_raw = data_loader.combine_data_and_results(self.data_raw).iloc[0]
+
         self.data = get_item_data(self.data_raw)
-        self.prob_data =get_item_probability_string(data_and_probabilities, index, self.prediction)
+        self.data_series = get_item_Series(self.data_raw)
+        self.shap = get_item_shap_values(data_loader, self.data_raw, predict_class, self.prediction, combined_columns)
         self.predict_class = predict_class
         self.pred_class_label = predict_class_label
-        self.pred_class_str = get_item_class_probability_string(data_and_probabilities, index, predict_class, predict_class_label)
+        self.prob_class = self.data_prob_raw[predict_class]
+        self.pred_class_str = self.get_item_class_probability_string()
         self.prob_wo_selected_cols = get_prob_wo_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
         self.group = 0
         self.scatter_group = 0
@@ -28,10 +35,23 @@ class Item:
     def table(self):
         return self.data
 
+    def get_item_class_probability_string(self):
+        return "Probability of " + self.pred_class_label + ": " + "{:10.0f}".format(self.prob_class * 100) + "%"
 
-def get_item_shap_values(data_loader, index, predict_class, item_prediction, combined_columns=None):
-    item = data_loader.data.iloc[[index]]
-    item = item.reset_index(drop=True)
+def extract_data_from_custom_content(custom_content, data_loader):
+    data = {}
+    for item in custom_content:
+        #check if it is an input widget and not a button
+        if hasattr(item, 'value') and not hasattr(item, 'clicks'):
+            if (item.value is not None) and (item.value != ''):
+                data[item.name] = item.value
+            else:
+                data[item.name] = data_loader.means[item.name]
+    data = pd.DataFrame(data, index=[0])
+    return data
+
+def get_item_shap_values(data_loader, item, predict_class, item_prediction, combined_columns=None):
+    #print(item)
     shap_explanations = shap_set_functions.calc_shap_values(item, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
     shap_values = pd.DataFrame(shap_explanations.values,
                                columns=shap_explanations.feature_names)
@@ -58,19 +78,15 @@ def get_feature_label(feature, item):
     if len(feature_split) > 1:
         return ', '.join([get_feature_label(f, item) for f in feature_split])
     else:
-        return feature + " = " + str(item[feature].values[0])
+        return feature + " = " + "{:.2f}".format(item[feature].values[0])
 
+def get_item_Series(item):
+    return item.iloc[0]
 
 def get_item_data(item):
+    item = item.iloc[0]
     item = pd.DataFrame({'feature': item.index, 'value': item.values})
     return item
-
-
-def get_item_probability_string(data, index, prob):
-    return "Prediction: " + prob[5:] + "  " + "{:10.0f}".format(data.iloc[index][prob] * 100) + "% certainty"
-
-def get_item_class_probability_string(data, index, predict_class, label):
-    return "Probability of " + label + ": " + "{:10.0f}".format(data.iloc[index][predict_class] * 100) + "%"
 
 
 def get_item_prediction(data, index):
