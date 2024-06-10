@@ -20,17 +20,35 @@ def shap_tornado_plot(data, col):
     col[0].value = shap['feature'].values[-1]
 
     plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=(-1, 1), tools='tap')
+
+    back_bars_left = plot.hbar(
+        y='feature_label_short',
+        right=-1,
+        fill_color="lavender",
+        line_width=0,
+        source=item_source,
+        nonselection_fill_alpha=0.0,
+        selection_fill_alpha=1,
+    )
+
+    back_bars_right = plot.hbar(
+        y='feature_label_short',
+        right=1,
+        fill_color="lavender",
+        line_width=0,
+        source=item_source,
+        nonselection_fill_alpha=0.0,
+        selection_fill_alpha=1,
+    )
+
     bars = plot.hbar(
         y='feature_label_short',
         right='shap_value',
         fill_color=factor_cmap("positive", palette=["steelblue", "crimson"], factors=["pos", "neg"]),
+        fill_alpha=1,
+        nonselection_fill_alpha=1,
         line_width=0,
         source=item_source,
-        nonselection_fill_alpha=0.7,
-        selection_hatch_pattern='horizontal_wave',
-        selection_hatch_scale=7,
-        selection_hatch_weight=1.5,
-        selection_hatch_color='purple'
     )
 
     plot.xaxis.axis_label = "shap value"
@@ -39,7 +57,7 @@ def shap_tornado_plot(data, col):
 
     plot.on_event('tap', lambda event: set_col(shap, item_source, col))
 
-    hover = HoverTool( tooltips=[('', '@feature_label')])
+    hover = HoverTool(renderers=[back_bars_left, back_bars_right], tooltips=[('', '@feature_label')])
     plot.add_tools(hover)
 
     return plot
