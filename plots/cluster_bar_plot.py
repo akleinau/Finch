@@ -37,13 +37,14 @@ def cluster_bar_plot(data, item, all_selected_cols, predict_class, predict_label
     plot.xaxis.axis_label = "Probability of " + predict_label
 
     # add item
+    if item.type is not 'global':
 
-    prob_item_label = "selected item (" + "{:.2f}".format(item.data_prob_raw[predict_class]) + ")"
-    item_scatter = plot.scatter(y=[item.scatter_label], x=[item.data_prob_raw[predict_class]], color='purple', size=7, name=prob_item_label,
-                                  legend_label="selected item")
+        prob_item_label = "selected item (" + "{:.2f}".format(item.data_prob_raw[predict_class]) + ")"
+        item_scatter = plot.scatter(y=[item.scatter_label], x=[item.data_prob_raw[predict_class]], color='purple', size=7, name=prob_item_label,
+                                      legend_label="selected item")
 
-    scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
-    plot.add_tools(scatter_hover)
+        scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
+        plot.add_tools(scatter_hover)
 
 
 

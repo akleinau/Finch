@@ -14,12 +14,16 @@ def set_col(data, item_source, col):
 
 
 def shap_tornado_plot(data, col):
+    type = data.type
     shap = data.shap
     item_source = ColumnDataSource(data=shap)
     #get last item
     col[0].value = shap['feature'].values[-1]
+    max_shap = shap['shap_value'].max()
 
-    plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=(-1, 1), tools='tap')
+    x_range = (-1, 1) if type != 'global' else (0, 1.1*max_shap)
+
+    plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=x_range, tools='tap')
 
     back_bars_left = plot.hbar(
         y='feature_label_short',

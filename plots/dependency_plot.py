@@ -107,11 +107,17 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                        )
 
     # add the selected item
-    item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple', size=7, name="selected item",
-                                  legend_label="selected item")
+    if item.type is not 'global':
+        item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple', size=7, name="selected item",
+                                      legend_label="selected item")
 
-    scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
-    chart3.add_tools(scatter_hover)
+        scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
+        chart3.add_tools(scatter_hover)
+
+        # add the point when only selected cols are used
+        if item.prob_wo_selected_cols is not None:
+            chart3.scatter(x=item.data_prob_raw[col], y=item.prob_wo_selected_cols, color='grey',
+                           legend_label='selection probability')
 
     # add legend
     chart3.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
@@ -122,8 +128,6 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     chart3.line(x=[x_range[0], x_range[1]], y=[mean, mean], line_width=2, color='black', alpha=0.5,
                 legend_label='mean probability')
 
-    # add the point when only selected cols are used
-    if item.prob_wo_selected_cols is not None:
-        chart3.scatter(x=item.data_prob_raw[col], y=item.prob_wo_selected_cols, color='grey', legend_label='selection probability')
+
 
     return chart3

@@ -213,7 +213,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item,
 
 
 def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
-    if cluster_type == 'Relative Decision Tree':
+    if cluster_type == 'Relative Decision Tree' and item.type != 'global':
         return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)
     else:
         return get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)

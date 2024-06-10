@@ -25,7 +25,7 @@ class DataStore(param.Parameterized):
         self.data_loader = data_loader.DataLoader()
 
         # item
-        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'], value='predefined')
+        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom', 'global'], value='predefined')
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
         self.item_custom_button = pn.widgets.Button(name='Customize', button_type='primary')
         self.item_custom_content = pn.Column()
@@ -73,12 +73,15 @@ class DataStore(param.Parameterized):
                                     onlychanged=False)
         self.predict_class_label.param.watch(self.update_item_self, parameter_names=['value'],
                                        onlychanged=False)
+        self.item_type.param.watch(self.update_item_self, parameter_names=['value'],
+                                    onlychanged=False)
         self.init_item_custom_content()
 
         # clustered data
         self.clustering = self._update_clustered_data()
         self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.item_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.num_leafs.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.predict_class.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
@@ -157,11 +160,11 @@ class DataStore(param.Parameterized):
         return pn.Row(self.predict_class, self.predict_class_label, styles=dict(margin="auto")).servable()
 
     def get_item_widgets(self):
-        second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_button, self.item_type)
+        second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_button if t == 'custom' else None, self.item_type)
         return pn.Row(self.item_type, second_item, self.item_floatpanel_placeholder, styles=dict(margin="auto")).servable()
 
     def show_item_custom(self, event):
-        floatpanel = pn.layout.FloatPanel(self.item_custom_content, name="Free Floating FloatPanel", contained=False, position='center')
+        floatpanel = pn.layout.FloatPanel(self.item_custom_content, name="custom item input", contained=False, position='center')
         self.item_floatpanel_placeholder.append(floatpanel)
 
     def get_customization_widgets(self):
