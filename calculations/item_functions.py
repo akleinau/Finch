@@ -8,7 +8,7 @@ class Item:
     def __init__(self, data_loader, data_and_probabilities, type, index, custom_content, predict_class, predict_class_label, combined_columns=None):
         self.prediction = get_item_prediction(data_and_probabilities, index)
         self.type = type
-        if type == 'predefined':
+        if type == 'predefined' or type == 'global':
             self.data_raw = data_loader.data.iloc[[index]]
             self.data_raw = self.data_raw.reset_index(drop=True)
             self.data_prob_raw = data_and_probabilities.iloc[index]
@@ -79,7 +79,8 @@ def get_item_shap_values(data_loader, item, predict_class, item_prediction, comb
 
 def get_global_shap_values(data_loader, item, predict_class, item_prediction, combined_columns=None):
     #print(item)
-    data = data_loader.data[25:30]
+    #random subset for efficiency reasons
+    data = data_loader.data.sample(n=50, random_state=1)
     shap_explanations = shap_set_functions.calc_shap_values(data, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
     shap_values = pd.DataFrame(shap_explanations.values,
                                columns=shap_explanations.feature_names)

@@ -25,7 +25,7 @@ class DataStore(param.Parameterized):
         self.data_loader = data_loader.DataLoader()
 
         # item
-        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom', 'global'], value='predefined')
+        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom', 'global'], value='global')
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
         self.item_custom_button = pn.widgets.Button(name='Customize', button_type='primary')
         self.item_custom_content = pn.Column()
