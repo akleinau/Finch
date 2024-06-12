@@ -141,8 +141,8 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_
         group_to_index = {group: i for i, group in enumerate(sorted_groups)}
 
         # create a color for each group
-        data["scatter_group"] = data["group"].apply(lambda x: palettes.Set2[8][group_to_index[x]])
-        item.scatter_group = palettes.Set2[8][item.group]
+        data["scatter_group"] = data["group"].apply(lambda x: palettes.Set2[8][group_to_index[x] % 8])
+        item.scatter_group = palettes.Set2[8][group_to_index[item.group] % 8]
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)
@@ -193,8 +193,8 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item,
         group_to_index = {group: i for i, group in enumerate(sorted_groups)}
 
         # create a color for each group
-        data["scatter_group"] = data["group"].apply(lambda x: palettes.Set2[8][group_to_index[x]])
-        item.scatter_group = palettes.Set2[8][item.group]
+        data["scatter_group"] = data["group"].apply(lambda x: palettes.Set2[8][group_to_index[x] % 8])
+        item.scatter_group = palettes.Set2[8][group_to_index[item.group] % 8]
 
         # create human-readable labels for each group containing the path to the group
         rules = get_tree_rules(tree, columns)

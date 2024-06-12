@@ -1,8 +1,9 @@
+import panel as pn
+import param
 from plots.cluster_bar_plot import cluster_bar_plot
 from plots.dependency_plot import dependency_scatterplot
 from plots.parallel_plot import parallel_plot
-import panel as pn
-import param
+from plots.similar_bar_plot import similar_bar_plot
 
 
 class RenderPlot(param.Parameterized):
@@ -18,6 +19,10 @@ class RenderPlot(param.Parameterized):
                         chart_type, predict_class, predict_label):
         if graph_type == 'Cluster':
             plot = cluster_bar_plot(clustered_data, item, all_selected_cols, predict_class, predict_label)
+            plot = add_style(plot)
+            return plot
+        if graph_type == 'Similar':
+            plot = similar_bar_plot(clustered_data, item, all_selected_cols, predict_class, predict_label)
             plot = add_style(plot)
             return plot
         elif graph_type == 'Dependency':
@@ -39,7 +44,10 @@ class RenderPlot(param.Parameterized):
                                             chart_type, predict_class, predict_label)
         p3 = self.get_render_plot('Parallel', all_selected_cols, clustered_data, cur_feature, item, item_index,
                                             chart_type, predict_class, predict_label)
-        return pn.Tabs(('Cluster', p1), ('Dependency', p2), ('Parallel', p3), dynamic=True, active=active_tab)
+        p4 = self.get_render_plot('Similar', all_selected_cols, clustered_data, cur_feature, item, item_index,
+                                            chart_type, predict_class, predict_label)
+        return pn.Tabs(('Cluster', p1), ('Dependency', p2), ('Parallel', p3), ('Similar', p4), dynamic=True,
+                       active=active_tab)
 
 def add_style(plot):
     plot.title.text_font_size = '20px'

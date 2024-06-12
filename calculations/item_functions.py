@@ -80,7 +80,7 @@ def get_item_shap_values(data_loader, item, predict_class, item_prediction, comb
 def get_global_shap_values(data_loader, item, predict_class, item_prediction, combined_columns=None):
     #print(item)
     #random subset for efficiency reasons
-    data = data_loader.data.sample(n=50, random_state=1)
+    data = data_loader.data.sample(n=10, random_state=1)
     shap_explanations = shap_set_functions.calc_shap_values(data, data_loader.means, data_loader.nn, data_loader.columns, combined_columns)
     shap_values = pd.DataFrame(shap_explanations.values,
                                columns=shap_explanations.feature_names)

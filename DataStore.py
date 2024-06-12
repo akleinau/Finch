@@ -111,7 +111,7 @@ class DataStore(param.Parameterized):
         cur_feature = all_selected_cols[0]
         cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
                                              value=cur_feature, align='center')
-        item = item_functions.Item(loader, loader.data_and_probabilities, self.item_index.value, predict_class, predict_class, [])
+        item = item_functions.Item(loader, loader.data_and_probabilities,'global', self.item_index.value, predict_class, predict_class, [])
         clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
                                            cur_feature, predict_class, item,
                                            exclude_col=False)
