@@ -4,6 +4,7 @@ from sklearn.tree import DecisionTreeRegressor
 import bokeh.palettes as palettes
 import numpy as np
 from sklearn.tree import _tree
+from calculations.similarity import get_similar_items
 
 
 class Clustering:
@@ -66,9 +67,9 @@ def _make_readable_axiom(axiom):
     elif (axiom['operator'] == '<=' and axiom['value'] == '-0.5'):
         return 'lower '
     elif (axiom['operator'] == '>' and axiom['value'] == '-0.5'):
-        return 'similar or higher '
+        return 'similar/ higher '
     elif (axiom['operator'] == '<=' and axiom['value'] == '0.5'):
-        return 'similar or lower '
+        return 'similar/ lower '
     else:
         return 'similar '
 
@@ -91,7 +92,7 @@ def make_readable(x):
     rule_groups = axioms.groupby('feature')
     rule_list = []
     for name, group in rule_groups:
-        if 'similar or higher ' in group['new_rule'].values and 'similar or lower ' in group['new_rule'].values:
+        if 'similar/ higher ' in group['new_rule'].values and 'similar/ lower ' in group['new_rule'].values:
             rule_list.append('similar ' + group['feature'].values[0])
         else:
             rule_list.extend(group['new_rule'].values + group['feature'].values)
@@ -111,19 +112,21 @@ def shorten_rules(x):
     axioms = [[' '.join(axiom[:-2]), *axiom[-2:]] for axiom in axioms]
 
     grouped_axioms = pd.DataFrame(axioms, columns=['feature', 'operator', 'value'])
+    #make value numeric
+    grouped_axioms['value'] = pd.to_numeric(grouped_axioms['value'])
 
     # now group
     grouped_axioms = grouped_axioms.groupby(['feature', 'operator'])
-    grouped_axioms = grouped_axioms['value'].agg(['max', 'min'])
+    grouped_axioms = grouped_axioms['value'].aggregate(['max', 'min'])
     grouped_axioms = grouped_axioms.reset_index()
     grouped_axioms['value'] = grouped_axioms.apply(lambda x: x['max'] if '>' in x['operator'] else x['min'], axis=1)
 
     # now create the new label
-    grouped_axioms = grouped_axioms['feature'] + ' ' + grouped_axioms['operator'] + ' ' + grouped_axioms['value']
+    grouped_axioms = grouped_axioms['feature'] + ' ' + grouped_axioms['operator'] + ' ' + grouped_axioms['value'].map(lambda a : str(a))
     return grouped_axioms.str.cat(sep=' and ')
 
 
-def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
+def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6, similarity=False):
     # remove the current column from the list of all selected columns
     if exclude_col:
         columns = [col for col in all_selected_cols if col != cur_col]
@@ -132,7 +135,11 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_
 
     if len(columns) > 0:
         tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=0.05)
-        tree.fit(data[columns], data[prediction])
+        if similarity:
+            similar_data = get_similar_items(data, item, [])
+            tree.fit(similar_data[columns], similar_data[prediction])
+        else:
+            tree.fit(data[columns], data[prediction])
 
         data["group"] = tree.apply(data[columns])
         item.group = tree.apply(pd.DataFrame([{col: item.data_series[col] for col in columns}]))[0]
@@ -215,5 +222,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item,
 def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
     if cluster_type == 'Relative Decision Tree' and item.type != 'global':
         return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)
+    elif cluster_type == 'Similarity Decision Tree' and item.type != 'global':
+        return get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs, similarity=True)
     else:
         return get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)

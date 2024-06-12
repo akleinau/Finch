@@ -25,7 +25,7 @@ class DataStore(param.Parameterized):
         self.data_loader = data_loader.DataLoader()
 
         # item
-        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom', 'global'], value='global')
+        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom', 'global'], value='predefined')
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
         self.item_custom_button = pn.widgets.Button(name='Customize', button_type='primary')
         self.item_custom_content = pn.Column()
@@ -58,8 +58,8 @@ class DataStore(param.Parameterized):
                                          onlychanged=False)
 
         # customization widgets
-        self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree'],
-                                              value='Relative Decision Tree')
+        self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree', 'Similarity Decision Tree'],
+                                              value='Decision Tree')
         self.chart_type = pn.widgets.MultiChoice(name='chart_type', options=['scatter', 'line', 'band', 'contour'],
                                                  value=['line'])
 
@@ -113,7 +113,7 @@ class DataStore(param.Parameterized):
                                              value=cur_feature, align='center')
         item = item_functions.Item(loader, loader.data_and_probabilities,'global', self.item_index.value, predict_class, predict_class, [])
         clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
-                                           cur_feature, predict_class, item,
+                                           cur_feature, predict_class, item, num_leafs=self.num_leafs.value,
                                            exclude_col=False)
         self.predict_class.param.update(options=loader.classes, value=predict_class)
 
@@ -174,7 +174,7 @@ class DataStore(param.Parameterized):
         return self.column_grouping.row.servable()
 
     def _update_render_plot(self, caused_by_chart=False):
-        active_tab = 1 if caused_by_chart else 0
+        active_tab = 1 if caused_by_chart else 4
         return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
                                       self.clustering.data, self.cur_feature, self.item,
                                       self.item_index.value,

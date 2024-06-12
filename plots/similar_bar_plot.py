@@ -9,17 +9,18 @@ def similar_bar_plot(data, item, all_selected_cols, predict_class, predict_label
     groups = []
     #standard group
     groups.append({'group_name': 'standard', 'group_label': 'standard', 'probability': data[predict_class].mean(),
-                   'color': 'grey'})
+                   'color': 'grey', 'alpha': 1})
 
     #group of item
     item_group = data[data['scatter_label'] == item.scatter_label]
     groups.append({'group_name': 'cluster', 'group_label': item.scatter_label, 'probability': item_group[predict_class].mean(),
-                   'color': item.scatter_group})
+                   'color': item.scatter_group, 'alpha': 0.5})
 
     #group of similar items in same cluster
     similar_item_group = get_similar_items(item_group, item, all_selected_cols)
+    #similar_item_group = similar_item_group[similar_item_group['scatter_label'] == item.scatter_label] #necessary if I group first, then filter
     groups.append({'group_name': 'similar', 'group_label': 'similar items with ' + item.scatter_label,
-                   'probability': similar_item_group[predict_class].mean(), 'color': 'purple'})
+                   'probability': similar_item_group[predict_class].mean(), 'color': item.scatter_group, 'alpha': 1.0})
 
 
 
@@ -45,6 +46,7 @@ def similar_bar_plot(data, item, all_selected_cols, predict_class, predict_label
         y='group_label',
         right='probability',
         fill_color="color",
+        fill_alpha="alpha",
         line_width=0,
         height=0.5,
         source=groups,
