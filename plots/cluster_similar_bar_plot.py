@@ -5,11 +5,12 @@ from calculations.similarity import get_similar_items
 
 
 def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predict_label):
-    cluster_data = data[[predict_class, "scatter_group", "scatter_label"]].groupby("scatter_group")
+    cluster_data = data[[predict_class, "scatter_group", "scatter_label", "group"]].groupby("group")
     clusters = pd.DataFrame()
     clusters['mean'] = cluster_data[predict_class].mean()
     clusters['mean_short'] = clusters['mean'].apply(lambda x: "{:.2f}".format(x) + " ")
     clusters['scatter_label'] = cluster_data['scatter_label'].first()
+    clusters['scatter_group'] = cluster_data['scatter_group'].first()
     clusters.sort_values(by='mean', inplace=True)
     clusters.reset_index(level=0, inplace=True)
     # I can't directly use the labels for positioning, but will instead use the index
@@ -19,19 +20,23 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
     scatter_label_to_index = dict(zip(clusters['scatter_label'], clusters['scatter_label_index']))
 
     similar_item_group = get_similar_items(data, item, all_selected_cols)
-    similar_cluster_data = similar_item_group[[predict_class, "scatter_group", "scatter_label"]].groupby("scatter_group")
+    similar_cluster_data = similar_item_group[[predict_class, "scatter_group", "scatter_label", "group"]].groupby("group")
     similar_clusters = pd.DataFrame()
     similar_clusters['mean'] = similar_cluster_data[predict_class].mean()
     similar_clusters['mean_short'] = similar_clusters['mean'].apply(lambda x: "{:.2f}".format(x) + " ")
     similar_clusters['count'] = similar_cluster_data[predict_class].count()
     #similar_clusters = similar_clusters[similar_clusters['count'] > 10] #filters out small sample sizes
     similar_clusters['scatter_label'] = similar_cluster_data['scatter_label'].first()
+    similar_clusters['scatter_group'] = similar_cluster_data['scatter_group'].first()
     similar_clusters.reset_index(level=0, inplace=True)
     # scatter_label_index should be the same as in clusters
     similar_clusters['scatter_label_index'] = similar_clusters['scatter_label'].map(scatter_label_to_index) - 0.2
     similar_clusters['label'] = "similar items"
 
-    title = "Clusters for " + ", ".join(all_selected_cols)
+    if (len(all_selected_cols) != len(item.data_raw.columns)):
+        title = "Clusters for " + ", ".join(all_selected_cols)
+    else:
+        title = "Clusters for all columns"
 
     plot = figure(title=title, x_range=[0,1], width=800)
     plot.add_layout(Legend(), "above")
@@ -64,7 +69,7 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
             right='mean',
             fill_color="scatter_group",
             line_width=0,
-            height=0.5,
+            height=0.35,
             source=similar_clusters,
             nonselection_fill_alpha=1,
             alpha=1,
@@ -83,6 +88,23 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
 
         scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
         plot.add_tools(scatter_hover)
+
+        # create explaining labels on the bin with smallest probability, which is the first one
+        if (len(similar_clusters) > 0):
+            # get the first element (smallest probability
+            min_prob = clusters['mean'].values[0]
+            min_prob_index = clusters['scatter_label_index'].values[0]
+
+            prob_cluster_values = similar_clusters[round(similar_clusters['scatter_label_index']) == round(min_prob_index - 0.2)]['mean'].values
+            if len(prob_cluster_values) == 0:
+                prob_cluster = 0
+            else:
+                prob_cluster = prob_cluster_values[0]
+            #prob_cluster = similar_clusters[round(similar_clusters['scatter_label_index']) == round(min_prob_index - 0.2)]['mean'].values[0]
+            plot.text(x=prob_cluster + 0.01, y=[min_prob_index - 0.1], text=["similar items"], text_align='left', text_baseline='middle',
+                        text_font_size='11pt', text_color="black")
+            plot.text(x=min_prob + 0.01, y=[min_prob_index + 0.15], text=["all items"], text_align='left', text_baseline='middle',
+                        text_font_size='11pt', text_color="grey")
 
 
 

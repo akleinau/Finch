@@ -51,7 +51,7 @@ class DataStore(param.Parameterized):
         # groups
         self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols,
                                              value=self.all_selected_cols[0], align='center')
-        self.param.watch(lambda event: self.cur_feature.param.update(options=event.new),
+        self.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value=event.new[0]),
                          parameter_names=['all_selected_cols'], onlychanged=False)
         self.column_grouping = column_functions.ColumnGrouping(self.data_loader.columns)
         self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'],
@@ -80,7 +80,7 @@ class DataStore(param.Parameterized):
         # clustered data
         self.clustering = self._update_clustered_data()
         self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
-        self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        #self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.item_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.num_leafs.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
@@ -145,7 +145,7 @@ class DataStore(param.Parameterized):
                                      self.cur_feature.value, self.predict_class.value, self.item,
                                      exclude_col=False, num_leafs=self.num_leafs.value)
 
-    def update_clustered_data(self, event):
+    def update_clustered_data(self, *params):
         if self.active:
             self.param.update(
                 clustering=self._update_clustered_data())

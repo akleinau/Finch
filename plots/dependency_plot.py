@@ -25,7 +25,12 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
 
-    chart3 = figure(title="dependency plot", y_axis_label="probability", tools="tap", y_range=(0, 1), x_range=x_range,
+    if (len(all_selected_cols) != len(item.data_raw.columns)):
+        title = "Clusters for " + ", ".join(all_selected_cols)
+    else:
+        title = "Clusters for all columns"
+
+    chart3 = figure(title=title, y_axis_label="probability", tools="tap", y_range=(0, 1), x_range=x_range,
                     width=800)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"

@@ -5,7 +5,7 @@ from bokeh.transform import factor_cmap
 
 
 def cluster_bar_plot(data, item, all_selected_cols, predict_class, predict_label):
-    cluster_data = data[[predict_class, "scatter_group", "scatter_label"]].groupby("scatter_group")
+    cluster_data = data[[predict_class, "scatter_group", "scatter_label", "group"]].groupby("group")
     clusters = pd.DataFrame()
     clusters['mean'] = cluster_data[predict_class].mean()
     clusters['mean_short'] = clusters['mean'].apply(lambda x: "{:.2f}".format(x) + " ")
@@ -13,12 +13,16 @@ def cluster_bar_plot(data, item, all_selected_cols, predict_class, predict_label
     clusters['count'] = cluster_data[predict_class].count()
     clusters['median'] = cluster_data[predict_class].median()
     clusters['scatter_label'] = cluster_data['scatter_label'].first()
+    clusters['scatter_group'] = cluster_data['scatter_group'].first()
     clusters.reset_index(level=0, inplace=True)
     clusters.sort_values(by='mean', inplace=True)
 
     y_range = clusters['scatter_label'].values
 
-    title = "Clusters for " + ", ".join(all_selected_cols)
+    if (len(all_selected_cols) != len(item.data_raw.columns)):
+        title = "Clusters for " + ", ".join(all_selected_cols)
+    else:
+        title = "Clusters for all columns"
 
     plot = figure(title=title, y_range=y_range, x_range=[0,1], width=800)
     plot.hbar(

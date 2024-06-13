@@ -11,6 +11,8 @@ def set_col(data, item_source, col):
         select = data.iloc[item_source.selected.indices]
         select = select['feature'].values[0]
         col[0].value = select  # col[0], bc the widget had to be wrapped in a list to be changed
+    else:
+        col[0].value = ", ".join(data['feature'])
 
 
 def shap_tornado_plot(data, col):
@@ -18,7 +20,7 @@ def shap_tornado_plot(data, col):
     shap = data.shap
     item_source = ColumnDataSource(data=shap)
     #get last item
-    col[0].value = shap['feature'].values[-1]
+    #col[0].value = shap['feature'].values[-1]
     max_shap = shap['shap_value'].max()
 
     x_range = (-1, 1) if type != 'global' else (0, 1.1*max_shap)
@@ -60,6 +62,7 @@ def shap_tornado_plot(data, col):
     plot = add_style(plot)
 
     plot.on_event('tap', lambda event: set_col(shap, item_source, col))
+    set_col(shap, item_source, col)
 
     hover = HoverTool(renderers=[back_bars_left, back_bars_right], tooltips=[('', '@feature_label')])
     plot.add_tools(hover)

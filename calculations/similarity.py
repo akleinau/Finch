@@ -2,13 +2,13 @@ import pandas as pd
 
 
 def get_similar_items(data, item, exclude_cols):
+    use_shap = False
     # standardize the data
     data_std = data.copy()
     item_data = item.data_raw.copy()
     columns = list(data.columns)
     excluded_columns = ['prob_', 'scatter', 'prediction', 'group']
-    if len(exclude_cols) > 0:
-        excluded_columns.extend(exclude_cols)
+
     columns = [col for col in columns if not any([excluded in col for excluded in excluded_columns])]
 
     for col in columns:
@@ -19,16 +19,26 @@ def get_similar_items(data, item, exclude_cols):
 
     # calculate distance to item, using shap as weights
 
-    shap_widened = pd.DataFrame()
-    for row in item.shap.iterrows():
-        splits = row[1]['feature'].split(', ')
-        for split in splits:
-            shap_widened[split] = row[1]['shap_value']
-    data_std['distance'] = (shap_widened[columns]*(data[columns] - item_data[columns])**2).sum(axis=1)
+    if use_shap:
+        shap_widened = {}
+        for row in item.shap.iterrows():
+            splits = row[1]['feature'].split(', ')
+            for split in splits:
+                shap_widened[split] = 0.1 + row[1]['abs_shap_value']
+        shap_widened = pd.DataFrame(shap_widened, index=[0])
+
+        data_std['distance'] = 0
+        for col in columns:
+            data_std['distance'] += shap_widened[col][0]*(data_std[col] - item_data[col][0])**2
+    else:
+        data_std['distance'] = 0
+        for col in columns:
+            data_std['distance'] += (data_std[col] - item_data[col][0])**2
 
     # get the 10% closest items
     data_std = data_std.sort_values(by='distance')
-    data_std = data_std.head(int(len(data) * 0.1))
+    num_items = min(max(int(len(data) * 0.05), 20), len(data_std))
+    data_std = data_std.head(num_items)
 
     #map back to original data
     data = data[data.index.isin(data_std.index)]
