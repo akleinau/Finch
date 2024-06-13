@@ -1,10 +1,12 @@
 import pandas as pd
-from bokeh.models import HoverTool, FactorRange, Legend
+from bokeh.models import HoverTool, FactorRange, Legend, BoxAnnotation
 from bokeh.plotting import figure
 from calculations.similarity import get_similar_items
 
 
 def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predict_label):
+    relative_coloring = False
+
     cluster_data = data[[predict_class, "scatter_group", "scatter_label", "group"]].groupby("group")
     clusters = pd.DataFrame()
     clusters['mean'] = cluster_data[predict_class].mean()
@@ -15,6 +17,8 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
     clusters.reset_index(level=0, inplace=True)
     # I can't directly use the labels for positioning, but will instead use the index
     clusters['scatter_label_index'] = clusters.index + 0.2
+    clusters['focus_color'] = clusters['group'].map(lambda x: 'purple' if x == item.group else 'grey')
+    clusters['color'] = clusters['focus_color'] if relative_coloring else clusters['scatter_group']
 
     #extract mapping of scatter_label to scatter_label_index
     scatter_label_to_index = dict(zip(clusters['scatter_label'], clusters['scatter_label_index']))
@@ -32,6 +36,8 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
     # scatter_label_index should be the same as in clusters
     similar_clusters['scatter_label_index'] = similar_clusters['scatter_label'].map(scatter_label_to_index) - 0.2
     similar_clusters['label'] = "similar items"
+    similar_clusters['focus_color'] = similar_clusters['group'].map(lambda x: 'purple' if x == item.group else 'grey')
+    similar_clusters['color'] = similar_clusters['focus_color'] if relative_coloring else similar_clusters['scatter_group']
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
         title = "Clusters for " + ", ".join(all_selected_cols)
@@ -41,10 +47,18 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
     plot = figure(title=title, x_range=[0,1], width=800)
     plot.add_layout(Legend(), "above")
     plot.legend.orientation = "horizontal"
+
+    #color background left and right of item probability
+    item_prob = item.data_prob_raw[predict_class]
+    if relative_coloring:
+        plot.add_layout(BoxAnnotation(left=0, right=item_prob, fill_alpha=0.1, fill_color='crimson', level='underlay'))
+        plot.add_layout(BoxAnnotation(left=item_prob, right=1, fill_alpha=0.1, fill_color='steelblue', level='underlay'))
+
+
     old_bars = plot.hbar(
         y='scatter_label_index',
         right='mean',
-        fill_color="scatter_group",
+        fill_color="color",
         line_width=0,
         height=0.5,
         source=clusters,
@@ -67,7 +81,7 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
         plot.hbar(
             y='scatter_label_index',
             right='mean',
-            fill_color="scatter_group",
+            fill_color="color",
             line_width=0,
             height=0.35,
             source=similar_clusters,
