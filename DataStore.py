@@ -58,7 +58,9 @@ class DataStore(param.Parameterized):
                                          onlychanged=False)
 
         # customization widgets
-        self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree', 'Similarity Decision Tree'],
+        self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree',
+                                                                            'Similarity Decision Tree',
+                                                                            'SimGroup Decision Tree'],
                                               value='Decision Tree')
         self.chart_type = pn.widgets.MultiChoice(name='chart_type', options=['scatter', 'line', 'band', 'contour'],
                                                  value=['line'])

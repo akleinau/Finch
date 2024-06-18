@@ -134,7 +134,7 @@ def get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_
         columns = all_selected_cols
 
     if len(columns) > 0:
-        tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=0.05)
+        tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=10)
         if similarity:
             similar_data = get_similar_items(data, item, [])
             tree.fit(similar_data[columns], similar_data[prediction])
@@ -190,7 +190,7 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item,
 
             relative_data[col] = data[col].apply(lambda x: get_relative(x, item_val, range / 20))
 
-        tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=0.05)
+        tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=10)
         tree.fit(relative_data, data[prediction])
 
         data["group"] = tree.apply(relative_data)
@@ -218,10 +218,52 @@ def get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item,
 
     return data
 
+#this should, theoretically, group items that have a similar prediction to the current item. However, it doesnt work well.
+def get_similarity_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
+    # remove the current column from the list of all selected columns
+    if exclude_col:
+        columns = [col for col in all_selected_cols if col != cur_col]
+    else:
+        columns = all_selected_cols
+
+    if (len(columns) > 0):
+        # make new relative columns
+        item_y = item.data_prob_raw[prediction]
+        similarity_prediction = data[prediction].apply(lambda x: 0 if np.abs(x - item_y) < 0.1 else 1)
+
+        tree = DecisionTreeRegressor(max_leaf_nodes=num_leafs, min_samples_leaf=10)
+        tree.fit(data[columns], similarity_prediction)
+
+        data["group"] = tree.apply(data[columns])
+        item.group = tree.apply(pd.DataFrame([{col: 0} for col in columns]))[0]
+        # sort by group mean probability
+        sorted_groups = data.groupby("group")[prediction].mean().sort_values().index
+        group_to_index = {group: i for i, group in enumerate(sorted_groups)}
+
+        # create a color for each group
+        data["scatter_group"] = data["group"].apply(lambda x: palettes.Set2[8][group_to_index[x] % 8])
+        item.scatter_group = palettes.Set2[8][group_to_index[item.group] % 8]
+
+        # create human-readable labels for each group containing the path to the group
+        rules = get_tree_rules(tree, columns)
+        rules = {k: shorten_rules(v) for k, v in rules.items()}
+
+        data["scatter_label"] = data["group"].apply(lambda x: rules[x])
+        item.scatter_label = rules[item.group]
+    else:
+        data["scatter_group"] = '#228b22'
+        data["scatter_label"] = 'All'
+        item.scatter_group = '#228b22'
+        item.scatter_label = 'All'
+
+    return data
+
 
 def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
     if cluster_type == 'Relative Decision Tree' and item.type != 'global':
         return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)
+    elif cluster_type == 'SimGroup Decision Tree' and item.type != 'global':
+        return get_similarity_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)
     elif cluster_type == 'Similarity Decision Tree' and item.type != 'global':
         return get_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs, similarity=True)
     else:

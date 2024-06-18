@@ -37,7 +37,7 @@ def get_similar_items(data, item, exclude_cols):
 
     # get the 10% closest items
     data_std = data_std.sort_values(by='distance')
-    num_items = min(max(int(len(data) * 0.05), 20), len(data_std))
+    num_items = min(max(int(len(data) * 0.05), 30), len(data_std))
     data_std = data_std.head(num_items)
 
     #map back to original data
