@@ -28,7 +28,7 @@ def shap_tornado_plot(data, col):
     if (max_shap > 1 or min_shap < -1):
         x_range = (-1.1*min_shap, 1.1*max_shap)
 
-    plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=x_range, tools='tap')
+    plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=x_range, tools='tap', width=400)
 
     back_bars_left = plot.hbar(
         y='feature_label_short',
