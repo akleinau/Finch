@@ -24,19 +24,20 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     sorted_data = data.sort_values(by=col)
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
+    y_range = [np.floor(sorted_data[item.predict_class].min()), np.ceil(sorted_data[item.predict_class].max())]
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
         title = "Clusters for " + ", ".join(all_selected_cols)
     else:
         title = "Clusters for all columns"
 
-    chart3 = figure(title=title, y_axis_label="probability", tools="tap", y_range=(0, 1), x_range=x_range,
+    chart3 = figure(title=title, y_axis_label="probability", tools="tap", y_range=y_range, x_range=x_range,
                     width=800)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
     chart3.add_layout(Legend(), 'right')
-    chart3.y_range.bounds = (-0.1, 1.1)  # add a little padding around y axis
+    #chart3.y_range.bounds = (-0.1, 1.1)  # add a little padding around y axis
 
     # create bands and contours for each group
     legend_items = []

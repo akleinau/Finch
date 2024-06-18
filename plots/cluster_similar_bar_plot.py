@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool, FactorRange, Legend, BoxAnnotation
 from bokeh.plotting import figure
@@ -44,11 +45,14 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
     else:
         title = "Clusters for all columns"
 
-    plot = figure(title=title, x_range=[0,1], width=800)
+    x_range = [np.floor(min(clusters['mean'].min(), similar_clusters['mean'].min(), item.data_prob_raw[predict_class])),
+               np.ceil(max(clusters['mean'].max(), similar_clusters['mean'].max(), item.data_prob_raw[predict_class]))]
+
+    plot = figure(title=title, x_range=x_range, width=800)
     plot.add_layout(Legend(), "above")
     plot.legend.orientation = "horizontal"
 
-    #color background left and right of item probability
+    #color background left and right of item y
     item_prob = item.data_prob_raw[predict_class]
     if relative_coloring:
         plot.add_layout(BoxAnnotation(left=0, right=item_prob, fill_alpha=0.1, fill_color='crimson', level='underlay'))
@@ -69,7 +73,7 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
     )
 
 
-    plot.xaxis.axis_label = "Probability of " + predict_label
+    plot.xaxis.axis_label = predict_label
 
     # now replace the index with the scatter_label
     plot.yaxis.ticker = similar_clusters['scatter_label_index']
@@ -103,9 +107,9 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
         scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
         plot.add_tools(scatter_hover)
 
-        # create explaining labels on the bin with smallest probability, which is the first one
+        # create explaining labels on the bin with smallest y, which is the first one
         if (len(similar_clusters) > 0):
-            # get the first element (smallest probability
+            # get the first element (smallest y
             min_prob = clusters['mean'].values[0]
             min_prob_index = clusters['scatter_label_index'].values[0]
 

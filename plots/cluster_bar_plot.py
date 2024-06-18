@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool, FactorRange
 from bokeh.plotting import figure
@@ -18,13 +19,15 @@ def cluster_bar_plot(data, item, all_selected_cols, predict_class, predict_label
     clusters.sort_values(by='mean', inplace=True)
 
     y_range = clusters['scatter_label'].values
+    x_range = [np.floor(min(clusters['mean'].min(), item.data_prob_raw[predict_class])),
+               np.ceil(max(clusters['mean'].max(), item.data_prob_raw[predict_class]))]
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
         title = "Clusters for " + ", ".join(all_selected_cols)
     else:
         title = "Clusters for all columns"
 
-    plot = figure(title=title, y_range=y_range, x_range=[0,1], width=800)
+    plot = figure(title=title, y_range=y_range, x_range=x_range, width=800)
     plot.hbar(
         y='scatter_label',
         right='mean',
@@ -39,7 +42,7 @@ def cluster_bar_plot(data, item, all_selected_cols, predict_class, predict_label
     #format to two decimal places
     plot.text(x='mean', y='scatter_label', text="mean_short", text_align='right', text_baseline='middle', text_font_size='10pt', text_color="white", source=clusters)
 
-    plot.xaxis.axis_label = "Probability of " + predict_label
+    plot.xaxis.axis_label = predict_label
 
     # add item
     if item.type != 'global':

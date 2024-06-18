@@ -78,7 +78,8 @@ def get_shap(data, means, model, columns, classes):
     all_shap_explanations = calc_shap_values(data, means, model, columns)
     all_shap_values = pd.DataFrame(all_shap_explanations.values,
                                    columns=['shap_' + name for name in all_shap_explanations.feature_names])
-    all_predictions = model.predict_proba(data)
+    predict = model.predict_proba if hasattr(model, 'classes_') else model.predict
+    all_predictions = predict(data)
     all_predictions = pd.DataFrame(all_predictions, columns=['prob_' + str(name) for name in classes])
     all_predictions['prediction'] = all_predictions.idxmax(axis=1)
     # merge X_test, shap, predictions

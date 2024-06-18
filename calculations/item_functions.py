@@ -6,7 +6,11 @@ import calculations.shap_set_functions as shap_set_functions
 
 class Item:
     def __init__(self, data_loader, data_and_probabilities, type, index, custom_content, predict_class, predict_class_label, combined_columns=None):
-        self.prediction = get_item_prediction(data_and_probabilities, index)
+        self.data_loader = data_loader
+        if data_loader.type == 'classification':
+            self.prediction = get_item_prediction(data_and_probabilities, index)
+        else:
+            self.prediction = "prob_Y"
         self.type = type
         if type == 'predefined' or type == 'global':
             self.data_raw = data_loader.data.iloc[[index]]
@@ -39,6 +43,8 @@ class Item:
     def get_item_class_probability_string(self):
         if self.type == 'global':
             return ""
+        if self.data_loader.type == 'regression':
+            return "Prediction: " + "{:.2f}".format(self.prob_class)
         return "Probability of " + self.pred_class_label + ": " + "{:10.0f}".format(self.prob_class * 100) + "%"
 
 def extract_data_from_custom_content(custom_content, data_loader):
@@ -143,8 +149,11 @@ def get_prob_wo_selected_cols(nn, all_selected_cols, means, item, pred_label):
         new_item[col] = item_df[col].iloc[0]
 
     # calculate the prediction without the selected columns
-    prediction = nn.predict_proba(new_item)
-    prediction = pd.DataFrame(prediction, columns=[str(a) for a in nn.classes_])
+    predict = nn.predict_proba if hasattr(nn, 'predict_proba') else nn.predict
+
+    prediction = predict(new_item)
+    classes = nn.classes_ if hasattr(nn, 'classes_') else ['Y']
+    prediction = pd.DataFrame(prediction, columns=[str(a) for a in classes])
     #print(prediction)
     index = str(pred_label[5:])
 

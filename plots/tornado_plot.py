@@ -22,8 +22,11 @@ def shap_tornado_plot(data, col):
     #get last item
     #col[0].value = shap['feature'].values[-1]
     max_shap = shap['shap_value'].max()
+    min_shap = shap['shap_value'].min()
 
     x_range = (-1, 1) if type != 'global' else (0, 1.1*max_shap)
+    if (max_shap > 1 or min_shap < -1):
+        x_range = (-1.1*min_shap, 1.1*max_shap)
 
     plot = figure(title="Feature Set Relevance", y_range=shap['feature_label_short'], x_range=x_range, tools='tap')
 

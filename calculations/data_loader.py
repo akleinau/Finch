@@ -16,12 +16,22 @@ class DataLoader(Viewer):
             self.nn = load_nn(nn_file)
 
         self.means = get_means(self.data)
-        self.classes = ['prob_' + str(name) for name in self.nn.classes_]
+
+        self.type = 'classification' if hasattr(self.nn, 'classes_') else 'regression'
+
+        self.predict = self.nn.predict_proba if self.type == 'classification' else self.nn.predict
+
+        #in case of MLPClassifier
+        if self.type == 'classification':
+            self.classes = ['prob_' + str(name) for name in self.nn.classes_]
+        else:
+            self.classes = ['prob_Y']
+
         self.columns = [col for col in self.data.columns]
         self.data_and_probabilities = self.combine_data_and_results(self.data)
 
     def combine_data_and_results(self, data):
-        all_predictions = self.nn.predict_proba(data)
+        all_predictions = self.predict(data)
         all_predictions = pd.DataFrame(all_predictions, columns=self.classes)
         all_predictions['prediction'] = all_predictions.idxmax(axis=1)
         # merge X_test, shap, predictions

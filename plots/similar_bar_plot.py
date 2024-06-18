@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool, FactorRange, Span
 from bokeh.plotting import figure
@@ -8,19 +9,19 @@ from calculations.similarity import get_similar_items
 def similar_bar_plot(data, item, all_selected_cols, predict_class, predict_label):
     groups = []
     #standard group
-    groups.append({'group_name': 'standard', 'group_label': 'all items', 'probability': data[predict_class].mean(),
+    groups.append({'group_name': 'standard', 'group_label': 'all items', 'y': data[predict_class].mean(),
                    'color': 'grey', 'alpha': 1})
 
     #group of item
     item_group = data[data['scatter_label'] == item.scatter_label]
-    groups.append({'group_name': 'cluster', 'group_label': item.scatter_label, 'probability': item_group[predict_class].mean(),
+    groups.append({'group_name': 'cluster', 'group_label': item.scatter_label, 'y': item_group[predict_class].mean(),
                    'color': item.scatter_group, 'alpha': 0.5})
 
     #group of similar items in same cluster
     similar_item_group = get_similar_items(item_group, item, all_selected_cols)
     #similar_item_group = similar_item_group[similar_item_group['scatter_label'] == item.scatter_label] #necessary if I group first, then filter
     groups.append({'group_name': 'similar', 'group_label': 'similar items with ' + item.scatter_label,
-                   'probability': similar_item_group[predict_class].mean(), 'color': item.scatter_group, 'alpha': 1.0})
+                   'y': similar_item_group[predict_class].mean(), 'color': item.scatter_group, 'alpha': 1.0})
 
 
 
@@ -39,16 +40,18 @@ def similar_bar_plot(data, item, all_selected_cols, predict_class, predict_label
     groups = pd.DataFrame(groups)
 
     y_range = groups['group_label'].values
+    x_range = [np.floor(min(groups['y'].min(), item.data_prob_raw[predict_class])),
+               np.ceil(max(groups['y'].max(), item.data_prob_raw[predict_class]))]
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
         title = "Clusters for " + ", ".join(all_selected_cols)
     else:
         title = "Clusters for all columns"
 
-    plot = figure(title=title, y_range=y_range, x_range=[0,1], width=800)
+    plot = figure(title=title, y_range=y_range, x_range=x_range, width=800)
     plot.hbar(
         y='group_label',
-        right='probability',
+        right='y',
         fill_color="color",
         fill_alpha="alpha",
         line_width=0,
@@ -65,6 +68,6 @@ def similar_bar_plot(data, item, all_selected_cols, predict_class, predict_label
     plot.add_layout(item_line)
 
 
-    plot.xaxis.axis_label = "Probability of " + predict_label
+    plot.xaxis.axis_label = predict_label
 
     return plot
