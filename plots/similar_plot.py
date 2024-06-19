@@ -1,22 +1,79 @@
 from bokeh.plotting import figure
 from bokeh.transform import jitter
+from bokeh.layouts import column, layout
+from calculations.similarity import get_similar_items
+import param
 
+class SimilarPlot(param.Parameterized):
+
+    def __init__(self, data_loader, item, **params):
+        super().__init__(**params)
+        self.plot = similar_plot(data_loader, item)
 
 def similar_plot(data_loader, item):
-    data = data_loader.data[0:200]
+    data = data_loader.data.copy()
+    similar_item_group = get_similar_items(data, item, [])
+    data['fixed'] = 1
+    similar_item_group['fixed'] = 1
+
+    # normalize the data
+    normalized_data = data.copy()
+    normalized_similar_item_group = similar_item_group.copy()
+    for col in data.columns.drop('fixed'):
+        mean = data[col].mean()
+        std = data[col].std()
+        normalized_data[col] = (data[col] - mean) / std
+        normalized_similar_item_group[col] = (similar_item_group[col] - mean) / std
+
+    # calculate the difference per column
+    data_mean = normalized_data.mean()
+    similar_item_group_mean = normalized_similar_item_group.mean()
+    diff = data_mean - similar_item_group_mean
+    diff = diff.drop('fixed')
+    diff = diff.abs()
+    diff = diff.sort_values(ascending=False)
+    print('again')
 
     # for each column, create a bokeh plot with the distribution of the data
+    plot_list = []
 
-    y_range = list(data.columns)
+    for col in diff.index:
 
-    #first, pivot all columns to long format
-    data = data.melt()
+        # create a figure
+        x_range = [data[col].min(), data[col].max()]
+        plot = figure(title="Similar items", x_range=x_range, width=400, toolbar_location=None)
 
-    # create a figure
-    plot = figure(title="Similar items", y_range=y_range, width=400)
-    plot.scatter(x='value', y=jitter('variable', width=0.6, range=plot.y_range), alpha=0.1, source=data)
+        # add points
+        #plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.05, source=data, size=2, color='blue')
+        plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.3, source=similar_item_group, size=5, color='green')
 
-    return plot
+        # add item as a red dot
+        plot.scatter(x=item.data_raw[col], y=1, size=7, color='red')
+
+        # add the mean of the data and of similar_item_group as lines
+        data_mean = data[col].mean()
+        similar_item_group_mean = similar_item_group[col].mean()
+        plot.line([data_mean, data_mean], [0, 2], color='blue', line_width=2)
+        plot.line([similar_item_group_mean, similar_item_group_mean], [0, 2], color='green', line_width=2)
+
+        plot.yaxis.axis_label = col
+        plot.yaxis.axis_label_orientation = "horizontal"
+        #hide ticks of the yaxis but not the label
+        plot.yaxis.major_tick_line_color = None
+        plot.yaxis.minor_tick_line_color = None
+        plot.yaxis.major_label_text_font_size = '0pt'
+        #hide grid
+        plot.ygrid.grid_line_color = None
+        plot.xgrid.grid_line_color = None
+
+
+        plot.title.visible = False
+        plot_list.append(plot)
+
+    # create a layout with all the plots
+
+
+    return layout(plot_list, sizing_mode='scale_height', height=400)
 
 
 

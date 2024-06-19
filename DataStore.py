@@ -5,6 +5,7 @@ import calculations.item_functions as item_functions
 import calculations.column_functions as column_functions
 import calculations.clusters as clusters
 import plots.render_plot as render_plot
+import plots.similar_plot as similar_plot
 
 
 class DataStore(param.Parameterized):
@@ -14,6 +15,7 @@ class DataStore(param.Parameterized):
     all_selected_cols = param.List()
     clustering = param.ClassSelector(class_=clusters.Clustering)
     render_plot = param.ClassSelector(class_=render_plot.RenderPlot)
+    similar_plot = param.ClassSelector(class_=similar_plot.SimilarPlot)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -98,6 +100,11 @@ class DataStore(param.Parameterized):
                                     parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
                                        onlychanged=False)
+
+        # render similar plot
+        self.similar_plot = similar_plot.SimilarPlot(self.data_loader, self.item)
+        self.item_index.param.watch(lambda event: self.param.update(similar_plot=similar_plot.SimilarPlot(self.data_loader, self.item)),
+                                parameter_names=['value'], onlychanged=False)
 
     def prediction_string(self):
         return pn.bind(lambda x: x.item.prediction_string(), self)

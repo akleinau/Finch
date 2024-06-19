@@ -19,12 +19,12 @@ ds.get_row_widgets()
 
 # shap plot
 shap_plot = pn.bind(shap_tornado_plot, ds.param.item, [ds.col])  # col is wrapped to be passed as reference
-sim_plot = pn.bind(similar_plot, ds.param.data_loader, ds.param.item)
 
 # remaining layout
 pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)).servable()
 
 render_plot = pn.bind(lambda e: e.plot, ds.param.render_plot)
+sim_plot = pn.bind(lambda e: e.plot, ds.param.similar_plot)
 
 pn.Row(shap_plot, sim_plot, render_plot, styles=dict(margin='5px 20px 5px 20px')).servable()
 
