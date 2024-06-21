@@ -102,8 +102,11 @@ class DataStore(param.Parameterized):
                                        onlychanged=False)
 
         # render similar plot
-        self.similar_plot = similar_plot.SimilarPlot(self.data_loader, self.item)
-        self.item_index.param.watch(lambda event: self.param.update(similar_plot=similar_plot.SimilarPlot(self.data_loader, self.item)),
+        self.similar_plot = similar_plot.SimilarPlot(self.data_loader, self.item, self.all_selected_cols, self.cur_feature.value)
+        self.cur_feature.param.watch(lambda event: self.param.update(similar_plot=
+                                                                    similar_plot.SimilarPlot(self.data_loader, self.item,
+                                                                                             self.all_selected_cols,
+                                                                                             self.cur_feature.value)),
                                 parameter_names=['value'], onlychanged=False)
 
     def prediction_string(self):

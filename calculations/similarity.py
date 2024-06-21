@@ -1,15 +1,21 @@
 import pandas as pd
 
 
-def get_similar_items(data, item, exclude_cols):
+def get_similar_items(data, item, col_white_list):
     use_shap = False
     # standardize the data
     data_std = data.copy()
     item_data = item.data_raw.copy()
-    columns = list(data.columns)
-    excluded_columns = ['prob_', 'scatter', 'prediction', 'group']
 
-    columns = [col for col in columns if not any([excluded in col for excluded in excluded_columns])]
+    if len(col_white_list) == 0:
+        columns = list(data.columns)
+        excluded_columns = ['prob_', 'scatter', 'prediction', 'group']
+
+        columns = [col for col in columns if not any([excluded in col for excluded in excluded_columns])]
+        item_columns = [col for col in item_data.columns if not any([excluded in col for excluded in excluded_columns])]
+        columns = [col for col in columns if col in item_columns]
+    else:
+        columns = col_white_list
 
     for col in columns:
         mean = data_std[col].mean()
@@ -38,9 +44,12 @@ def get_similar_items(data, item, exclude_cols):
     # get the 10% closest items
     data_std = data_std.sort_values(by='distance')
     num_items = min(max(int(len(data) * 0.05), 30), len(data_std))
-    data_std = data_std.head(num_items)
+    closest_density = data_std.head(num_items)
+    min_distance = len(columns) * 0.1
+    closest_distance = data_std[data_std['distance'] <= min_distance]
+    combined_indexes = closest_density.index.union(closest_distance.index)
 
     #map back to original data
-    data = data[data.index.isin(data_std.index)]
+    data = data[data.index.isin(combined_indexes)]
 
     return data

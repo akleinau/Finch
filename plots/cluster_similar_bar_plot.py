@@ -24,7 +24,7 @@ def cluster_similar_bar_plot(data, item, all_selected_cols, predict_class, predi
     #extract mapping of scatter_label to scatter_label_index
     scatter_label_to_index = dict(zip(clusters['scatter_label'], clusters['scatter_label_index']))
 
-    similar_item_group = get_similar_items(data, item, all_selected_cols)
+    similar_item_group = get_similar_items(data, item, [])
     similar_cluster_data = similar_item_group[[predict_class, "scatter_group", "scatter_label", "group"]].groupby("group")
     similar_clusters = pd.DataFrame()
     similar_clusters['mean'] = similar_cluster_data[predict_class].mean()

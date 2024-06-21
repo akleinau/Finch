@@ -6,15 +6,23 @@ import param
 
 class SimilarPlot(param.Parameterized):
 
-    def __init__(self, data_loader, item, **params):
+    def __init__(self, data_loader, item, all_selected_cols, cur_feature=None, **params):
         super().__init__(**params)
-        self.plot = similar_plot(data_loader, item)
+        self.plot = similar_plot(data_loader, item, all_selected_cols, cur_feature)
 
-def similar_plot(data_loader, item):
+def similar_plot(data_loader, item, all_selected_cols, cur_feature):
+    column_criteria = "curr"
+
+    include_cols = []
+    if column_criteria == "selected":
+        include_cols = all_selected_cols
+    elif column_criteria == "curr":
+        include_cols = [col for col in all_selected_cols if col != cur_feature]
+
+    all_selected_cols = []
     data = data_loader.data.copy()
-    similar_item_group = get_similar_items(data, item, [])
     data['fixed'] = 1
-    similar_item_group['fixed'] = 1
+    similar_item_group = get_similar_items(data, item, include_cols)
 
     # normalize the data
     normalized_data = data.copy()
@@ -32,7 +40,6 @@ def similar_plot(data_loader, item):
     diff = diff.drop('fixed')
     diff = diff.abs()
     diff = diff.sort_values(ascending=False)
-    print('again')
 
     # for each column, create a bokeh plot with the distribution of the data
     plot_list = []
@@ -41,11 +48,11 @@ def similar_plot(data_loader, item):
 
         # create a figure
         x_range = [data[col].min(), data[col].max()]
-        plot = figure(title="Similar items", x_range=x_range, width=400, toolbar_location=None)
+        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None)
 
         # add points
         #plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.05, source=data, size=2, color='blue')
-        plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.3, source=similar_item_group, size=5, color='green')
+        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=0.3, source=similar_item_group, size=5, color='green')
 
         # add item as a red dot
         plot.scatter(x=item.data_raw[col], y=1, size=7, color='red')
@@ -73,7 +80,7 @@ def similar_plot(data_loader, item):
     # create a layout with all the plots
 
 
-    return layout(plot_list, sizing_mode='scale_height', height=400)
+    return layout(plot_list, sizing_mode='scale_height', height=400, width=200)
 
 
 
