@@ -52,20 +52,20 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     colors = []
     if add_clusters:
         colors.append([c for c in sorted_data["scatter_group"].unique()]) # add all colors for the different groups
-    colors.append("grey") # add grey for the standard group
-    colors.append("violet") # add purple for the similar ones
+    colors.append('#808080') # add grey for the standard group
+    colors.append('#ee82ee') # add purple for the similar ones
     include_cols = [c for c in all_selected_cols if c != col]
     for i, color in enumerate(colors):
-        if (color == 'grey'):
+        if (color == '#808080'):
             filtered_data = sorted_data
-        elif (color == 'violet'):
+        elif (color == '#ee82ee'):
             filtered_data = get_similar_items(sorted_data, item, include_cols)
         else:
             filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
         if len(filtered_data) > 0:
-            if color == 'grey':
+            if color == '#808080':
                 cluster_label = 'standard'
-            elif color == 'violet':
+            elif color == '#ee82ee':
                 cluster_label = 'similar ' + ", ".join(include_cols[:3]) # only show the first 3 columns to save space TODO improve
             else:
                 cluster_label = filtered_data["scatter_label"].iloc[0]
@@ -128,12 +128,12 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
                 chart3.add_tools(line_hover)
 
-    if "scatter" in chart_type:
-        alpha = 0.3
-        chart3.scatter(col, item.predict_class, color="scatter_group", source=sorted_data,
-                       alpha=alpha, marker='circle', size=3, name="scatter_label",
-                       # legend_group="scatter_label"
-                       )
+            if "scatter" in chart_type:
+                alpha = 0.3
+                chart3.scatter(col, item.predict_class, color=color, source=filtered_data,
+                               alpha=alpha, marker='circle', size=3, name="scatter_label",
+                               # legend_group="scatter_label"
+                               )
 
     # add the selected item
     if item.type != 'global':

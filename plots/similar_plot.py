@@ -19,7 +19,6 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
     elif column_criteria == "curr":
         include_cols = [col for col in all_selected_cols if col != cur_feature]
 
-    all_selected_cols = []
     data = data_loader.data.copy()
     data['fixed'] = 1
     similar_item_group = get_similar_items(data, item, include_cols)
@@ -44,11 +43,15 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
     # for each column, create a bokeh plot with the distribution of the data
     plot_list = []
 
-    for col in diff.index:
+    display_cols = diff.index.tolist()
+    include_cols_for_display = all_selected_cols if len(all_selected_cols) > 0 else data_loader.data.columns
+    display_cols = [col for col in display_cols if col in include_cols_for_display]
+
+    for col in display_cols:
 
         # create a figure
         x_range = [data[col].min(), data[col].max()]
-        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None)
+        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=80, width=400, sizing_mode='fixed')
 
         # add points
         #plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.05, source=data, size=2, color='blue')
@@ -77,10 +80,8 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
         plot.title.visible = False
         plot_list.append(plot)
 
-    # create a layout with all the plots
 
-
-    return layout(plot_list, sizing_mode='scale_height', height=400, width=200)
+    return layout(plot_list)
 
 
 
