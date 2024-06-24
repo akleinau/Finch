@@ -1,5 +1,5 @@
 from bokeh.plotting import figure
-from bokeh.models import Band, ColumnDataSource, HoverTool, Legend, LegendItem
+from bokeh.models import Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation
 import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
@@ -22,6 +22,12 @@ def kde(x, y, N):
 
 
 def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
+    #colors
+    grey = '#808080'
+    purple = '#9932CC'
+    light_grey = '#c0c0c0'
+    light_purple = '#cc98e6'
+
     truth = "truth" in data.columns
     relative = True
     item_style = "line"
@@ -44,7 +50,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
         title = "Clusters for all columns"
 
     chart3 = figure(title=title, y_axis_label="probability", tools="tap", y_range=y_range, x_range=x_range,
-                    width=800)
+                    width=800, toolbar_location=None)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
@@ -56,44 +62,44 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     colors = []
     if add_clusters:
         colors.append([c for c in sorted_data["scatter_group"].unique()]) # add all colors for the different groups
-    colors.append('#808080') # add grey for the standard group
-    colors.append('#ee82ee') # add purple for the similar ones
+    colors.append(grey) # add grey for the standard group
+    colors.append(purple) # add purple for the similar ones
     if truth is not None:
-        colors.append('#c0c0c0') # lighter grey
-        colors.append('#dda0dd') # lighter purple
+        colors.append(light_grey) # lighter grey
+        colors.append(light_purple) # lighter purple
     include_cols = [c for c in all_selected_cols if c != col]
     for i, color in enumerate(colors):
         # choose right data
-        if (color == '#808080') or (color == '#c0c0c0'):
+        if (color == grey) or (color == light_grey):
             filtered_data = sorted_data
-        elif (color == '#ee82ee') or (color == '#dda0dd'):
+        elif (color == purple) or (color == light_purple):
             filtered_data = get_similar_items(sorted_data, item, include_cols)
         else:
             filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
 
         # choose right column
-        if (color == '#c0c0c0'):
+        if (color == light_grey):
             y_col = truth_class
-        elif (color == '#dda0dd'):
+        elif (color == light_purple):
             y_col = truth_class
         else:
             y_col = item.predict_class
 
         # choose right line
-        if (color == "#c0c0c0") or (color == "#dda0dd"):
-            line_type = "dashed"
+        if (color == light_grey) or (color == light_purple):
+            line_type = "dotted"
         else:
             line_type = "solid"
 
         if len(filtered_data) > 0:
             # choose right label
-            if color == '#808080':
+            if color == grey:
                 cluster_label = 'standard'
-            elif color == '#ee82ee':
+            elif color == purple:
                 cluster_label = 'similar ' + ", ".join(include_cols[:3]) # only show the first 3 columns to save space TODO improve
-            elif color == '#c0c0c0':
+            elif color == light_grey:
                 cluster_label = 'standard truth'
-            elif color == '#dda0dd':
+            elif color == light_purple:
                 cluster_label = 'similar truth'
             else:
                 cluster_label = filtered_data["scatter_label"].iloc[0]
@@ -159,7 +165,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 chart3.add_tools(line_hover)
 
             if "scatter" in chart_type:
-                if color != '#808080':
+                if color != grey:
                     alpha = 0.3
                     chart3.scatter(col, y_col, color=color, source=filtered_data,
                                    alpha=alpha, marker='circle', size=3, name="scatter_label",
@@ -181,8 +187,19 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                                legend_label='selection probability')
 
         elif (item_style == "line"):
-            item_line = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=2, color='purple', alpha=0.5,
-                                    legend_label="selected item")
+            #chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=2, color='purple', alpha=0.5,
+            #                        legend_label="selected item")
+            chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]], line_width=2,
+                        color='darkred', alpha=0.5, legend_label="selected item")
+
+            chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0], line_width=2,
+                        color='mediumblue', alpha=0.5, legend_label="selected item")
+
+            center_x = (x_range[1] + x_range[0]) / 2
+            chart3.text(x=[center_x], y=[y_range[1]], text=["positive influence"], text_align='center', text_baseline='top',
+                        text_font_size='11pt', text_color="darkred")
+            chart3.text(x=[center_x], y=[y_range[0]], text=["negative influence"], text_align='center', text_baseline='bottom',
+                        text_font_size='11pt', text_color="mediumblue")
 
 
 
@@ -191,8 +208,12 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     chart3.legend.location = "right"
 
     # add the "standard probability" line
-    chart3.line(x=[x_range[0], x_range[1]], y=[0, 0], line_width=2, color='black', alpha=0.5,
+    chart3.line(x=[x_range[0], x_range[1]], y=[0, 0], line_width=2, color='black', alpha=0.2,
                 legend_label='mean probability')
+
+    # color the background, blue below 0, red above 0
+    #chart3.add_layout(BoxAnnotation(bottom=y_range[0], top=0, fill_color='lightblue', fill_alpha=0.1))
+    #chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color='lightcoral', fill_alpha=0.1))
 
 
     return chart3
