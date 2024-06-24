@@ -13,12 +13,12 @@ ds.get_title_widgets()
 ds.get_item_widgets()
 
 # create all the widgets and variables needed for the column group selection
-pn.panel("<br>").servable()
-pn.panel("### Grouped columns:").servable()
+#pn.panel("<br>").servable()
+#pn.panel("### Column groups:").servable()
 ds.get_row_widgets()
 
 # shap plot
-shap_plot = pn.bind(shap_tornado_plot, ds.param.item, [ds.col])  # col is wrapped to be passed as reference
+#shap_plot = pn.bind(shap_tornado_plot, ds.param.item, [ds.col])  # col is wrapped to be passed as reference
 
 # remaining layout
 pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)).servable()
@@ -26,7 +26,7 @@ pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)).servable()
 render_plot = pn.bind(lambda e: e.plot, ds.param.render_plot)
 sim_plot = pn.bind(lambda e: e.plot, ds.param.similar_plot)
 
-pn.Row(shap_plot, sim_plot, render_plot, styles=dict(margin='5px 20px 5px 20px')).servable()
+pn.Row(sim_plot, render_plot, styles=dict(margin='5px 20px 5px 20px')).servable()
 
 ds.get_customization_widgets()
 

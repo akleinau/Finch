@@ -22,7 +22,7 @@ class Item:
 
         self.data = get_item_data(self.data_raw)
         self.data_series = get_item_Series(self.data_raw)
-        self.shap = get_shap(type, data_loader, self.data_raw, predict_class, self.prediction, combined_columns)
+        #self.shap = get_shap(type, data_loader, self.data_raw, predict_class, self.prediction, combined_columns)
         self.predict_class = predict_class
         self.pred_class_label = predict_class_label
         self.prob_class = self.data_prob_raw[predict_class]

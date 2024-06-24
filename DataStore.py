@@ -44,10 +44,15 @@ class DataStore(param.Parameterized):
                                         parameter_names=['value'], onlychanged=False)
 
         # columns
+        self.col_type = 'singular'
         self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
         self.all_selected_cols = column_functions.return_col(self.col.value)
+        self.all_selected_cols_widget = pn.widgets.MultiChoice(name='columns', options=self.data_loader.columns)
         self.col.param.watch(
             lambda event: self.param.update(all_selected_cols=column_functions.return_col(event.new)),
+            parameter_names=['value'], onlychanged=False)
+        self.all_selected_cols_widget.param.watch(
+            lambda event: self.param.update(all_selected_cols=event.new),
             parameter_names=['value'], onlychanged=False)
 
         # groups
@@ -55,6 +60,8 @@ class DataStore(param.Parameterized):
                                              value=self.all_selected_cols[0], align='center')
         self.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value=event.new[0]),
                          parameter_names=['all_selected_cols'], onlychanged=False)
+        self.all_selected_cols_widget.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value=event.new[0]),
+                                                    parameter_names=['value'], onlychanged=False)
         self.column_grouping = column_functions.ColumnGrouping(self.data_loader.columns)
         self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'],
                                          onlychanged=False)
@@ -84,7 +91,7 @@ class DataStore(param.Parameterized):
         # clustered data
         self.clustering = self._update_clustered_data()
         self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
-        #self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.item_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.num_leafs.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
@@ -104,6 +111,11 @@ class DataStore(param.Parameterized):
         # render similar plot
         self.similar_plot = similar_plot.SimilarPlot(self.data_loader, self.item, self.all_selected_cols, self.cur_feature.value)
         self.cur_feature.param.watch(lambda event: self.param.update(similar_plot=
+                                                                    similar_plot.SimilarPlot(self.data_loader, self.item,
+                                                                                             self.all_selected_cols,
+                                                                                             self.cur_feature.value)),
+                                parameter_names=['value'], onlychanged=False)
+        self.item_index.param.watch(lambda event: self.param.update(similar_plot=
                                                                     similar_plot.SimilarPlot(self.data_loader, self.item,
                                                                                              self.all_selected_cols,
                                                                                              self.cur_feature.value)),
@@ -183,10 +195,12 @@ class DataStore(param.Parameterized):
         return pn.Row(self.cluster_type, self.num_leafs).servable()
 
     def get_row_widgets(self):
+        if (self.col_type == 'singular'):
+            return pn.Row(self.all_selected_cols_widget, styles=dict(margin="auto")).servable()
         return self.column_grouping.row.servable()
 
     def _update_render_plot(self, caused_by_chart=False):
-        active_tab = 1 if caused_by_chart else 4
+        active_tab = 1 if caused_by_chart else 1
         return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
                                       self.clustering.data, self.cur_feature, self.item,
                                       self.item_index.value,
