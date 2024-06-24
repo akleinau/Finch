@@ -6,18 +6,33 @@ from calculations import shap_set_functions
 
 
 class DataLoader(Viewer):
-    def __init__(self, file=None, nn_file=None):
+    def __init__(self, file=None, nn_file=None, truth_file=None):
         super().__init__()
         if file is None or nn_file is None:
             self.data = load_weather_data()[0:1000]
+            self.columns = [col for col in self.data.columns]
             self.nn = load_weather_nn()
+            truth = load_weather_truth()[0:1000]
+
         else:
             self.data = load_data(file)[0:1000]
             self.nn = load_nn(nn_file)
-
-        self.means = get_means(self.data)
+            self.columns = [col for col in self.data.columns]
+            truth = load_data(truth_file)[0:1000]
 
         self.type = 'classification' if hasattr(self.nn, 'classes_') else 'regression'
+
+        if self.type == 'classification':
+            self.data["truth"] = truth
+            for label in set(truth.iloc[:, 0].values):
+                col_name = 'truth_' + str(label)
+                self.data[col_name] = (truth == label)
+                self.data[col_name] = self.data[col_name].apply(lambda x: 1 if x else 0)
+        else:
+            self.data["truth"] = truth
+            self.data["truth_Y"] = truth
+
+        self.means = get_means(self.data[self.columns])
 
         self.predict = self.nn.predict_proba if self.type == 'classification' else self.nn.predict
 
@@ -27,11 +42,10 @@ class DataLoader(Viewer):
         else:
             self.classes = ['prob_Y']
 
-        self.columns = [col for col in self.data.columns]
-        self.data_and_probabilities = self.combine_data_and_results(self.data)
+        self.data_and_probabilities = self.combine_data_and_results()
 
-    def combine_data_and_results(self, data):
-        all_predictions = self.predict(data)
+    def combine_data_and_results(self):
+        all_predictions = self.predict(self.data[self.columns])
         all_predictions = pd.DataFrame(all_predictions, columns=self.classes)
         all_predictions['prediction'] = all_predictions.idxmax(axis=1)
         # merge X_test, shap, predictions
@@ -53,6 +67,13 @@ def load_weather_nn():
     file_nn.close()
 
     return nn
+
+def load_weather_truth():
+    # load weather files
+    file_truth = open('weather_data/weather_testtruth.csv', 'rb')
+    truth = pd.read_csv(file_truth)
+
+    return truth
 
 
 def load_data(file_data):

@@ -22,6 +22,7 @@ class DataStore(param.Parameterized):
         self.active = True
         self.file = pn.widgets.FileInput(accept='.csv', name='Upload data')
         self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network')
+        self.truth_file = pn.widgets.FileInput(accept='.csv', name='Upload truth')
         self.calculate = pn.widgets.Button(name='Calculate', button_type='primary')
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
@@ -129,9 +130,10 @@ class DataStore(param.Parameterized):
 
     def update_data(self, event):
         self.active = False
-        loader = data_loader.DataLoader(self.file.value, self.nn_file.value)
+        loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[0]
         all_selected_cols = column_functions.return_col(loader.columns[0])
+        self.all_selected_cols_widget.options = loader.columns
         cur_feature = all_selected_cols[0]
         cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
                                              value=cur_feature, align='center')
@@ -178,7 +180,7 @@ class DataStore(param.Parameterized):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
 
     def get_file_widgets(self):
-        return pn.Row(self.file, self.nn_file, self.calculate, styles=dict(margin="auto")).servable()
+        return pn.Row(self.file, self.nn_file, self.truth_file, self.calculate, styles=dict(margin="auto")).servable()
 
     def get_title_widgets(self):
         return pn.Row(self.predict_class, self.predict_class_label, styles=dict(margin="auto")).servable()

@@ -22,13 +22,17 @@ def kde(x, y, N):
 
 
 def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
+    truth = "truth" in data.columns
     relative = True
     item_style = "line"
     add_clusters = False
     sorted_data = data.copy().sort_values(by=col)
     mean = data[item.predict_class].mean()
+    truth_class = "truth_" + item.predict_class[5:]
     if relative:
         sorted_data[item.predict_class] = sorted_data[item.predict_class].apply(lambda x: x- mean)
+        if truth is not None:
+            sorted_data[truth_class] = sorted_data[truth_class].apply(lambda x: x - mean)
 
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
@@ -54,26 +58,52 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
         colors.append([c for c in sorted_data["scatter_group"].unique()]) # add all colors for the different groups
     colors.append('#808080') # add grey for the standard group
     colors.append('#ee82ee') # add purple for the similar ones
+    if truth is not None:
+        colors.append('#c0c0c0') # lighter grey
+        colors.append('#dda0dd') # lighter purple
     include_cols = [c for c in all_selected_cols if c != col]
     for i, color in enumerate(colors):
-        if (color == '#808080'):
+        # choose right data
+        if (color == '#808080') or (color == '#c0c0c0'):
             filtered_data = sorted_data
-        elif (color == '#ee82ee'):
+        elif (color == '#ee82ee') or (color == '#dda0dd'):
             filtered_data = get_similar_items(sorted_data, item, include_cols)
         else:
             filtered_data = sorted_data[sorted_data["scatter_group"] == color].sort_values(by=col)
+
+        # choose right column
+        if (color == '#c0c0c0'):
+            y_col = truth_class
+        elif (color == '#dda0dd'):
+            y_col = truth_class
+        else:
+            y_col = item.predict_class
+
+        # choose right line
+        if (color == "#c0c0c0") or (color == "#dda0dd"):
+            line_type = "dashed"
+        else:
+            line_type = "solid"
+
         if len(filtered_data) > 0:
+            # choose right label
             if color == '#808080':
                 cluster_label = 'standard'
             elif color == '#ee82ee':
                 cluster_label = 'similar ' + ", ".join(include_cols[:3]) # only show the first 3 columns to save space TODO improve
+            elif color == '#c0c0c0':
+                cluster_label = 'standard truth'
+            elif color == '#dda0dd':
+                cluster_label = 'similar truth'
             else:
                 cluster_label = filtered_data["scatter_label"].iloc[0]
+
+
             window = max(len(filtered_data) // 10, 10)
-            rolling = filtered_data[item.predict_class].rolling(window=window, center=True, min_periods=1).agg(
+            rolling = filtered_data[y_col].rolling(window=window, center=True, min_periods=1).agg(
                 {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
                  'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
-                 'median': 'median',
+                 'mean': 'mean',
                  'count': 'count'})
             rolling = rolling.rolling(window=window, center=True, min_periods=1).mean()
             combined = pd.concat([filtered_data, rolling], axis=1)
@@ -90,7 +120,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 else:
                     data_subset = filtered_data
 
-                x, y, z = kde(data_subset[col], data_subset[item.predict_class], 100)
+                x, y, z = kde(data_subset[col], data_subset[y_col], 100)
 
                 # use the color to create a palette
                 rgb = color = tuple(int(color[1:][i:i + 2], 16) for i in (0, 2, 4))  # convert hex to rgb
@@ -122,23 +152,24 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 chart3.add_tools(band_hover)
 
             if "line" in chart_type:
-                line = chart3.line(col, 'median', source=combined, color=color, line_width=2,
+                line = chart3.line(col, 'mean', source=combined, color=color, line_width=2,
                                    # legend_label=cluster_label,
-                                   name=cluster_label)
+                                   name=cluster_label, line_dash=line_type)
                 line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
                 chart3.add_tools(line_hover)
 
             if "scatter" in chart_type:
-                alpha = 0.3
-                chart3.scatter(col, item.predict_class, color=color, source=filtered_data,
-                               alpha=alpha, marker='circle', size=3, name="scatter_label",
-                               # legend_group="scatter_label"
-                               )
+                if color != '#808080':
+                    alpha = 0.3
+                    chart3.scatter(col, y_col, color=color, source=filtered_data,
+                                   alpha=alpha, marker='circle', size=3, name="scatter_label",
+                                   # legend_group="scatter_label"
+                                   )
 
     # add the selected item
     if item.type != 'global':
         if (item_style == "point"):
-            item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple', size=7, name="selected item",
+            item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[y_col], color='purple', size=7, name="selected item",
                                           legend_label="selected item")
 
             scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])

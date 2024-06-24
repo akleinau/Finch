@@ -9,7 +9,7 @@ def get_similar_items(data, item, col_white_list):
 
     if len(col_white_list) == 0:
         columns = list(data.columns)
-        excluded_columns = ['prob_', 'scatter', 'prediction', 'group']
+        excluded_columns = ['prob_', 'scatter', 'prediction', 'group', 'truth']
 
         columns = [col for col in columns if not any([excluded in col for excluded in excluded_columns])]
         item_columns = [col for col in item_data.columns if not any([excluded in col for excluded in excluded_columns])]
