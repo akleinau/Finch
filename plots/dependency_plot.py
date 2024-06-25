@@ -1,5 +1,6 @@
 from bokeh.plotting import figure
-from bokeh.models import Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation, Arrow, NormalHead
+from bokeh.models import (Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation, Arrow, NormalHead,
+                          LinearAxis, LinearColorMapper, ColorBar, Text, Label)
 import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
@@ -23,14 +24,18 @@ def kde(x, y, N):
 
 def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     #colors
-    grey = '#808080'
+    grey = '#505050'
     purple = '#9932CC'
-    light_grey = '#c0c0c0'
+    light_grey = '#505051'
     light_purple = '#cc98e6'
+    positive_color = 'mediumblue'
+    negative_color = 'darkred'
+    selected_color = "lightseagreen"
 
     truth = "truth" in data.columns
     relative = True
     item_style = "grey_line"
+    influence_marker = ["color_axis"]
     add_clusters = False
     sorted_data = data.copy().sort_values(by=col)
     mean = data[item.predict_class].mean()
@@ -44,16 +49,17 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     x_range = (sorted_data[col].min(), sorted_data[col].max())
     item_x = item.data_prob_raw[col]
     x_std = sorted_data[col].std()
-    #x_range = (item_x - x_std, item_x + x_std)
+    x_range_padded = [x_range[0] - 0.1 * (x_range[1] - x_range[0]), x_range[1] + 0.1 * (x_range[1] - x_range[0])]
 
     y_range = [np.floor(sorted_data[item.predict_class].min()), np.ceil(sorted_data[item.predict_class].max())]
+    y_range_padded = [y_range[0] - 0.1 * (y_range[1] - y_range[0]), y_range[1] + 0.1 * (y_range[1] - y_range[0])]
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
         title = "Clusters for " + ", ".join(all_selected_cols)
     else:
         title = "Clusters for all columns"
 
-    chart3 = figure(title=title, y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=y_range, x_range=x_range,
+    chart3 = figure(title=title, y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=y_range_padded, x_range=x_range_padded,
                     width=800, toolbar_location=None, active_scroll="xwheel_zoom")
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
@@ -61,8 +67,6 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     chart3.add_layout(Legend(), 'right')
     chart3.x_range.start = item_x - x_std
     chart3.x_range.end = item_x + x_std
-    #chart3.toolbar.active_scroll = "xwheel_zoom"
-    #chart3.y_range.bounds = (-0.1, 1.1)  # add a little padding around y axis
 
     # create bands and contours for each group
     legend_items = []
@@ -95,8 +99,10 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
         # choose right line
         if (color == light_grey) or (color == light_purple):
             line_type = "dotted"
+            alpha = 0.7
         else:
             line_type = "solid"
+            alpha = 1
 
         if len(filtered_data) > 0:
             # choose right label
@@ -165,23 +171,25 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 chart3.add_tools(band_hover)
 
             if "line" in chart_type:
-                if color == purple or color == light_purple:
+                line_width = 3
+                if (color == purple or color == light_purple) and "colored_lines" in influence_marker:
                     # add a line that is red over 0 and blue below 0
+                    # Segment or MultiLine might both be an easier variant for colored lines
                     combined_over_0 = combined[combined['mean'] >= 0]
                     combined_below_0 = combined[combined['mean'] <= 0]
-                    line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color='mediumblue', line_width=2,
+                    line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color=positive_color, line_width=line_width,
                                              # legend_label=cluster_label,
-                                             name=cluster_label, line_dash=line_type)
-                    line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color='darkred', line_width=2,
+                                             name=cluster_label, line_dash=line_type, alpha=alpha)
+                    line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color=negative_color, line_width=line_width,
                                               # legend_label=cluster_label,
-                                              name=cluster_label, line_dash=line_type)
+                                              name=cluster_label, line_dash=line_type, alpha=alpha)
                     line_hover = HoverTool(renderers=[line_over_0, line_below_0], tooltips=[('', '$name')])
                     chart3.add_tools(line_hover)
 
                 else:
-                    line = chart3.line(col, 'mean', source=combined, color=color, line_width=2,
+                    line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
                                        # legend_label=cluster_label,
-                                       name=cluster_label, line_dash=line_type)
+                                       name=cluster_label, line_dash=line_type, alpha=alpha)
                     line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
                     chart3.add_tools(line_hover)
 
@@ -195,6 +203,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     # add the selected item
     if item.type != 'global':
+        line_width = 2.5
         if (item_style == "absolute_point"):
             item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple', size=7, name="selected item",
                                           legend_label="selected item")
@@ -219,22 +228,43 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
         elif (item_style == "line"):
 
-            line_blue = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]], line_width=2,
-                        color='mediumblue', alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]))
+            line_blue = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]], line_width=line_width,
+                        color=positive_color, alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]), line_cap='round')
 
-            line_red = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0], line_width=2,
-                        color='darkred', alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]))
+            line_red = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0], line_width=line_width,
+                        color=negative_color, alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]), line_cap='round')
             itemline_hover = HoverTool(renderers=[line_red, line_blue], tooltips=[(col + " of item", '$name')])
             chart3.add_tools(itemline_hover)
 
         elif (item_style == "grey_line"):
-            chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=2, color=light_grey,
-                                    legend_label="selected item")
+            chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=line_width, color=selected_color,
+                                    legend_label="selected item", line_cap='round')
 
-    chart3.text(x=[item_x], y=[y_range[1]], text=[" positive   influence"], text_align='center', text_baseline='top',
-                text_font_size='11pt', text_color="mediumblue")
-    chart3.text(x=[item_x], y=[y_range[0]], text=["negative   influence"], text_align='center', text_baseline='bottom',
-                text_font_size='11pt', text_color="darkred")
+    if "color_axis" in influence_marker:
+        chart3.add_layout(
+            Label(x=10, x_units="screen", y=0.5 * y_range[1], text="positive influence", text_align='center',
+                  text_baseline='top', text_font_size='11pt', text_color=positive_color, angle=np.pi / 2))
+        chart3.add_layout(
+            Label(x=10, x_units="screen", y=0.5 * y_range[0], text="negative influence", text_align='center',
+                  text_baseline='top', text_font_size='11pt', text_color=negative_color, angle=np.pi / 2))
+        chart3.add_layout(
+            BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=0, bottom=y_range[0],
+                          fill_color=negative_color, fill_alpha=1))
+        chart3.add_layout(
+            BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=y_range[1], bottom=0,
+                          fill_color=positive_color, fill_alpha=1))
+    else:
+        chart3.add_layout(Label(x=20, x_units="screen", y=1.1*y_range[1], text="positive influence", text_align='left', text_baseline='top',
+                    text_font_size='11pt', text_color="mediumblue"))
+        chart3.add_layout(Label(x=20, x_units="screen", y=1.1*y_range[0], text="negative influence", text_align='left', text_baseline='bottom',
+                    text_font_size='11pt', text_color="darkred"))
+
+
+
+    chart3.text(x=[item_x], y=[1.1*y_range[1]], text=[col + " = " + str(item_x)], text_align='center', text_baseline='top',
+                text_font_size='11pt', text_color=selected_color)
+
+
 
 
     # add legend
@@ -242,12 +272,13 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     chart3.legend.location = "right"
 
     # add the "standard probability" line
-    chart3.line(x=[x_range[0], x_range[1]], y=[0, 0], line_width=2, color='#444444', alpha=1,
+    chart3.line(x=[x_range[0], x_range[1]], y=[0, 0], line_width=1.5, color='#A0A0A0', alpha=1,
                 legend_label='mean probability')
 
-    # color the background, blue below 0, red above 0
-    #chart3.add_layout(BoxAnnotation(bottom=y_range[0], top=0, fill_color='lightblue', fill_alpha=0.1))
-    #chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color='lightcoral', fill_alpha=0.1))
+    if "colored_background" in influence_marker:
+        # color the background, blue below 0, red above 0
+        chart3.add_layout(BoxAnnotation(bottom=y_range[0], top=0, fill_color=negative_color, fill_alpha=0.05))
+        chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color=positive_color, fill_alpha=0.05))
 
 
     return chart3

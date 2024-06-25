@@ -146,7 +146,7 @@ class DataStore(param.Parameterized):
         self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
                           render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
                                                              clustering.data, cur_feature_widget, item,
-                                                             self.item_index.value, self.chart_type, predict_class, predict_class, active_tab=0))
+                                                             self.item_index.value, self.chart_type, predict_class, predict_class, active_tab=1))
 
         self.col.param.update(options=loader.columns)
 
