@@ -25,8 +25,9 @@ pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)).servable()
 
 render_plot = pn.bind(lambda e: e.plot, ds.param.render_plot)
 sim_plot = pn.bind(lambda e: e.plot, ds.param.similar_plot)
+item_data = pn.bind(lambda e: e.data_reduced, ds.param.item)
 
-pn.Row(sim_plot, render_plot, styles=dict(margin='5px 20px 5px 20px')).servable()
+pn.Row(item_data, sim_plot, render_plot, styles=dict(margin='5px 20px 5px 20px')).servable()
 
 ds.get_customization_widgets()
 

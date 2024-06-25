@@ -42,6 +42,10 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
 
     x_range = (sorted_data[col].min(), sorted_data[col].max())
+    item_x = item.data_prob_raw[col]
+    x_std = sorted_data[col].std()
+    #x_range = (item_x - x_std, item_x + x_std)
+
     y_range = [np.floor(sorted_data[item.predict_class].min()), np.ceil(sorted_data[item.predict_class].max())]
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
@@ -49,12 +53,15 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     else:
         title = "Clusters for all columns"
 
-    chart3 = figure(title=title, y_axis_label="probability", tools="tap", y_range=y_range, x_range=x_range,
-                    width=800, toolbar_location=None)
+    chart3 = figure(title=title, y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=y_range, x_range=x_range,
+                    width=800, toolbar_location=None, active_scroll="xwheel_zoom")
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
     chart3.add_layout(Legend(), 'right')
+    chart3.x_range.start = item_x - x_std
+    chart3.x_range.end = item_x + x_std
+    #chart3.toolbar.active_scroll = "xwheel_zoom"
     #chart3.y_range.bounds = (-0.1, 1.1)  # add a little padding around y axis
 
     # create bands and contours for each group
@@ -189,16 +196,17 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
         elif (item_style == "line"):
             #chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=2, color='purple', alpha=0.5,
             #                        legend_label="selected item")
-            chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]], line_width=2,
-                        color='darkred', alpha=0.5, legend_label="selected item")
+            line_red = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]], line_width=2,
+                        color='darkred', alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]))
 
-            chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0], line_width=2,
-                        color='mediumblue', alpha=0.5, legend_label="selected item")
+            line_blue = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0], line_width=2,
+                        color='mediumblue', alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]))
+            itemline_hover = HoverTool(renderers=[line_red, line_blue], tooltips=[(col + " of item", '$name')])
+            chart3.add_tools(itemline_hover)
 
-            center_x = (x_range[1] + x_range[0]) / 2
-            chart3.text(x=[center_x], y=[y_range[1]], text=["positive influence"], text_align='center', text_baseline='top',
+            chart3.text(x=[item_x], y=[y_range[1]], text=[" positive   influence"], text_align='center', text_baseline='top',
                         text_font_size='11pt', text_color="darkred")
-            chart3.text(x=[center_x], y=[y_range[0]], text=["negative influence"], text_align='center', text_baseline='bottom',
+            chart3.text(x=[item_x], y=[y_range[0]], text=["negative   influence"], text_align='center', text_baseline='bottom',
                         text_font_size='11pt', text_color="mediumblue")
 
 
