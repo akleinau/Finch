@@ -30,7 +30,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     light_purple = '#cc98e6'
     positive_color = 'mediumblue'
     negative_color = 'darkred'
-    selected_color = "lightseagreen"
+    selected_color = "#996611"
 
     truth = "truth" in data.columns
     relative = True
