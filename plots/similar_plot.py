@@ -55,17 +55,17 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
 
         # add points
         #plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.1, source=data, size=2, color='grey')
-        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=0.3, source=similar_item_group, size=5, color='#9932CC')
+        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=0.3, source=similar_item_group, size=5, color='#40e0d0')
 
 
         # add the mean of the data and of similar_item_group as lines
         data_mean = data[col].mean()
         similar_item_group_mean = similar_item_group[col].mean()
-        plot.line([data_mean, data_mean], [0, 2], color='black', line_width=2, alpha=0.9)
+        plot.line([data_mean, data_mean], [0, 2], color='grey', line_width=2, alpha=0.9)
         #plot.line([similar_item_group_mean, similar_item_group_mean], [0, 2], color='#9932CC', line_width=2)
 
         # add item as a red dot
-        plot.scatter(x=item.data_raw[col], y=1, size=7, color='black')
+        plot.scatter(x=item.data_raw[col], y=1, size=7, color='#9932CC')
 
         plot.yaxis.axis_label = col + " = " + "{:.2f}".format(item.data_raw[col].values[0])
         plot.yaxis.axis_label_orientation = "horizontal"

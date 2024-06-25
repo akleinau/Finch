@@ -28,7 +28,7 @@ class Item:
         self.pred_class_label = predict_class_label
         self.prob_class = self.data_prob_raw[predict_class]
         self.pred_class_str = self.get_item_class_probability_string()
-        self.prob_wo_selected_cols = get_prob_wo_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
+        self.prob_only_selected_cols = get_prob_only_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
         self.group = 0
         self.scatter_group = 0
         self.scatter_label = 'All'
@@ -141,11 +141,11 @@ def get_item_prediction(data, index):
     return data.iloc[index]['prediction']
 
 
-def get_prob_wo_selected_cols(nn, all_selected_cols, means, item, pred_label):
+def get_prob_only_selected_cols(nn, all_selected_cols, means, item, pred_label):
     item_df = pd.DataFrame(item['value'].values, index=item['feature'].values).T
     new_item = means.copy()
 
-    # replace the values of the selected columns with the mean
+    # replace the values of the selected columns with the the item values, rest stays at mean
     for col in all_selected_cols:
         new_item[col] = item_df[col].iloc[0]
 

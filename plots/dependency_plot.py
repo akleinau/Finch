@@ -1,5 +1,5 @@
 from bokeh.plotting import figure
-from bokeh.models import Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation
+from bokeh.models import Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation, Arrow, NormalHead
 import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
@@ -30,7 +30,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     truth = "truth" in data.columns
     relative = True
-    item_style = "line"
+    item_style = "grey_line"
     add_clusters = False
     sorted_data = data.copy().sort_values(by=col)
     mean = data[item.predict_class].mean()
@@ -120,7 +120,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                  'count': 'count'})
             rolling = rolling.rolling(window=window, center=True, min_periods=1).mean()
             combined = pd.concat([filtered_data, rolling], axis=1)
-            combined = ColumnDataSource(combined.reset_index())
+            #combined = ColumnDataSource(combined.reset_index())
 
             # add legend items
             dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
@@ -165,11 +165,25 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 chart3.add_tools(band_hover)
 
             if "line" in chart_type:
-                line = chart3.line(col, 'mean', source=combined, color=color, line_width=2,
-                                   # legend_label=cluster_label,
-                                   name=cluster_label, line_dash=line_type)
-                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
-                chart3.add_tools(line_hover)
+                if color == purple or color == light_purple:
+                    # add a line that is red over 0 and blue below 0
+                    combined_over_0 = combined[combined['mean'] >= 0]
+                    combined_below_0 = combined[combined['mean'] <= 0]
+                    line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color='mediumblue', line_width=2,
+                                             # legend_label=cluster_label,
+                                             name=cluster_label, line_dash=line_type)
+                    line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color='darkred', line_width=2,
+                                              # legend_label=cluster_label,
+                                              name=cluster_label, line_dash=line_type)
+                    line_hover = HoverTool(renderers=[line_over_0, line_below_0], tooltips=[('', '$name')])
+                    chart3.add_tools(line_hover)
+
+                else:
+                    line = chart3.line(col, 'mean', source=combined, color=color, line_width=2,
+                                       # legend_label=cluster_label,
+                                       name=cluster_label, line_dash=line_type)
+                    line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
+                    chart3.add_tools(line_hover)
 
             if "scatter" in chart_type:
                 if color != grey:
@@ -181,34 +195,46 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     # add the selected item
     if item.type != 'global':
-        if (item_style == "point"):
-            item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[y_col], color='purple', size=7, name="selected item",
+        if (item_style == "absolute_point"):
+            item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple', size=7, name="selected item",
                                           legend_label="selected item")
 
             scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
             chart3.add_tools(scatter_hover)
 
+        elif (item_style == "point"):
             # add the point when only selected cols are used
-            if item.prob_wo_selected_cols is not None:
-                chart3.scatter(x=item.data_prob_raw[col], y=item.prob_wo_selected_cols, color='grey',
-                               legend_label='selection probability')
+            if item.prob_only_selected_cols is not None:
+                chart3.scatter(x=item.data_prob_raw[col], y=item.prob_only_selected_cols - mean, color='purple',
+                               legend_label='influence on item')
+
+        elif (item_style == "arrow"):
+            if item.prob_only_selected_cols is not None:
+                # add the arrow when only selected cols are used
+                color = "mediumblue" if item.prob_only_selected_cols - mean < 0 else "darkred"
+                nh = NormalHead(fill_color=color, line_color=color, size=7)
+                arrow = Arrow(end=nh, x_start=item_x, y_start=0, x_end=item_x, y_end=item.prob_only_selected_cols - mean,
+                            line_color=color, line_width=2)
+                chart3.add_layout(arrow)
 
         elif (item_style == "line"):
-            #chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=2, color='purple', alpha=0.5,
-            #                        legend_label="selected item")
-            line_red = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]], line_width=2,
-                        color='darkred', alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]))
 
-            line_blue = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0], line_width=2,
+            line_blue = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]], line_width=2,
                         color='mediumblue', alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]))
+
+            line_red = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0], line_width=2,
+                        color='darkred', alpha=0.5, legend_label="selected item", name=str(item.data_prob_raw[col]))
             itemline_hover = HoverTool(renderers=[line_red, line_blue], tooltips=[(col + " of item", '$name')])
             chart3.add_tools(itemline_hover)
 
-            chart3.text(x=[item_x], y=[y_range[1]], text=[" positive   influence"], text_align='center', text_baseline='top',
-                        text_font_size='11pt', text_color="darkred")
-            chart3.text(x=[item_x], y=[y_range[0]], text=["negative   influence"], text_align='center', text_baseline='bottom',
-                        text_font_size='11pt', text_color="mediumblue")
+        elif (item_style == "grey_line"):
+            chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=2, color=light_grey,
+                                    legend_label="selected item")
 
+    chart3.text(x=[item_x], y=[y_range[1]], text=[" positive   influence"], text_align='center', text_baseline='top',
+                text_font_size='11pt', text_color="mediumblue")
+    chart3.text(x=[item_x], y=[y_range[0]], text=["negative   influence"], text_align='center', text_baseline='bottom',
+                text_font_size='11pt', text_color="darkred")
 
 
     # add legend
@@ -216,7 +242,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     chart3.legend.location = "right"
 
     # add the "standard probability" line
-    chart3.line(x=[x_range[0], x_range[1]], y=[0, 0], line_width=2, color='black', alpha=0.2,
+    chart3.line(x=[x_range[0], x_range[1]], y=[0, 0], line_width=2, color='#444444', alpha=1,
                 legend_label='mean probability')
 
     # color the background, blue below 0, red above 0
