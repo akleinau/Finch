@@ -9,16 +9,16 @@ class DataLoader(Viewer):
     def __init__(self, file=None, nn_file=None, truth_file=None):
         super().__init__()
         if file is None or nn_file is None:
-            self.data = load_weather_data()[0:1000]
+            self.data = load_weather_data()[0:2000]
             self.columns = [col for col in self.data.columns]
             self.nn = load_weather_nn()
-            truth = load_weather_truth()[0:1000]
+            truth = load_weather_truth()[0:2000]
 
         else:
-            self.data = load_data(file)[0:1000]
+            self.data = load_data(file)[0:2000]
             self.nn = load_nn(nn_file)
             self.columns = [col for col in self.data.columns]
-            truth = load_data(truth_file)[0:1000]
+            truth = load_data(truth_file)[0:2000]
 
         self.type = 'classification' if hasattr(self.nn, 'classes_') else 'regression'
 

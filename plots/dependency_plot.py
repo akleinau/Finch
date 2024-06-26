@@ -26,16 +26,16 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     #colors
     grey = '#505050'
     purple = '#9932CC'
-    light_grey = '#505051'
+    light_grey = '#808080'
     light_purple = '#cc98e6'
-    positive_color = 'mediumblue'
-    negative_color = 'darkred'
-    selected_color = "#996611"
+    positive_color = 'darkred'
+    negative_color = 'mediumblue'
+    selected_color = "#449944"
 
     truth = "truth" in data.columns
     relative = True
-    item_style = "grey_line"
-    influence_marker = ["color_axis"]
+    item_style = "grey_line" # "point", "arrow", "line", "grey_line"
+    influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
     add_clusters = False
     sorted_data = data.copy().sort_values(by=col)
     mean = data[item.predict_class].mean()
@@ -49,10 +49,10 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     x_range = (sorted_data[col].min(), sorted_data[col].max())
     item_x = item.data_prob_raw[col]
     x_std = sorted_data[col].std()
-    x_range_padded = [x_range[0] - 0.1 * (x_range[1] - x_range[0]), x_range[1] + 0.1 * (x_range[1] - x_range[0])]
+    x_range_padded = [x_range[0], x_range[1]]
 
-    y_range = [np.floor(sorted_data[item.predict_class].min()), np.ceil(sorted_data[item.predict_class].max())]
-    y_range_padded = [y_range[0] - 0.1 * (y_range[1] - y_range[0]), y_range[1] + 0.1 * (y_range[1] - y_range[0])]
+    y_range = [sorted_data[item.predict_class].min(), sorted_data[item.predict_class].max()]
+    y_range_padded = [y_range[0], y_range[1] + 0.1 * (y_range[1] - y_range[0])]
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
         title = "Clusters for " + ", ".join(all_selected_cols)
@@ -99,7 +99,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
         # choose right line
         if (color == light_grey) or (color == light_purple):
             line_type = "dotted"
-            alpha = 0.7
+            alpha = 1
         else:
             line_type = "solid"
             alpha = 1
@@ -118,7 +118,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 cluster_label = filtered_data["scatter_label"].iloc[0]
 
 
-            window = max(len(filtered_data) // 10, 10)
+            window = max(len(filtered_data) // 10, 20)
             rolling = filtered_data[y_col].rolling(window=window, center=True, min_periods=1).agg(
                 {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
                  'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
@@ -242,10 +242,10 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     if "color_axis" in influence_marker:
         chart3.add_layout(
-            Label(x=10, x_units="screen", y=0.5 * y_range[1], text="positive influence", text_align='center',
+            Label(x=10, x_units="screen", y=0.5 * y_range[1], text="positive", text_align='center',
                   text_baseline='top', text_font_size='11pt', text_color=positive_color, angle=np.pi / 2))
         chart3.add_layout(
-            Label(x=10, x_units="screen", y=0.5 * y_range[0], text="negative influence", text_align='center',
+            Label(x=10, x_units="screen", y=0.5 * y_range[0], text="negative", text_align='center',
                   text_baseline='top', text_font_size='11pt', text_color=negative_color, angle=np.pi / 2))
         chart3.add_layout(
             BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=0, bottom=y_range[0],
@@ -254,14 +254,14 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
             BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=y_range[1], bottom=0,
                           fill_color=positive_color, fill_alpha=1))
     else:
-        chart3.add_layout(Label(x=20, x_units="screen", y=1.1*y_range[1], text="positive influence", text_align='left', text_baseline='top',
+        chart3.add_layout(Label(x=20, x_units="screen", y=1.1*y_range[1], text="positive", text_align='left', text_baseline='top',
                     text_font_size='11pt', text_color="mediumblue"))
-        chart3.add_layout(Label(x=20, x_units="screen", y=1.1*y_range[0], text="negative influence", text_align='left', text_baseline='bottom',
+        chart3.add_layout(Label(x=20, x_units="screen", y=1.1*y_range[0], text="negative", text_align='left', text_baseline='bottom',
                     text_font_size='11pt', text_color="darkred"))
 
 
 
-    chart3.text(x=[item_x], y=[1.1*y_range[1]], text=[col + " = " + str(item_x)], text_align='center', text_baseline='top',
+    chart3.text(x=[item_x], y=[1.2*y_range[1]], text=[col + " = " + str(item_x)], text_align='center', text_baseline='top',
                 text_font_size='11pt', text_color=selected_color)
 
 
@@ -277,8 +277,14 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     if "colored_background" in influence_marker:
         # color the background, blue below 0, red above 0
-        chart3.add_layout(BoxAnnotation(bottom=y_range[0], top=0, fill_color=negative_color, fill_alpha=0.05))
-        chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color=positive_color, fill_alpha=0.05))
+        chart3.add_layout(BoxAnnotation(bottom=y_range[0], top=0, fill_color='#EEEEFF', level='underlay'))
+        chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color='#FFEEEE', level='underlay'))
 
+    if "selective_colored_background" in influence_marker:
+        # color the background, blue below 0, red above 0
+        if (item.prob_only_selected_cols - mean) < 0:
+            chart3.add_layout(BoxAnnotation(bottom=y_range[0], top=0, fill_color='#AAAAFF'))
+        else:
+            chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color='#FFAAAA'))
 
     return chart3
