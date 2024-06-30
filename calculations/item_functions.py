@@ -18,7 +18,7 @@ class Item:
             self.data_prob_raw = data_and_probabilities.iloc[index]
         else:
             self.data_raw = extract_data_from_custom_content(custom_content, data_loader)
-            self.data_prob_raw = data_loader.combine_data_and_results(self.data_raw).iloc[0]
+            self.data_prob_raw = data_loader.combine_data_and_results().iloc[0]
 
         self.data = get_item_data(self.data_raw)
         self.data_series = get_item_Series(self.data_raw)

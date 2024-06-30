@@ -9,6 +9,8 @@ from plots.similar_bar_plot import similar_bar_plot
 
 class RenderPlot(param.Parameterized):
     active_tab = param.Integer(default=0)
+    only_show_dep = True
+    dont_show_dep_options = True
 
     def __init__(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index, chart_type,
                  predict_class, predict_label, active_tab=0, **params):
@@ -34,6 +36,8 @@ class RenderPlot(param.Parameterized):
             dep_plot = dependency_scatterplot(clustered_data, cur_feature.value, all_selected_cols,
                                               item, chart_type.value)
             dep_plot = add_style(dep_plot)
+            if self.dont_show_dep_options:
+                return pn.Column(dep_plot, cur_feature)
             return pn.Column(dep_plot, cur_feature, chart_type)
         else:
             plot = parallel_plot(clustered_data, cur_feature.value, all_selected_cols,
@@ -43,6 +47,10 @@ class RenderPlot(param.Parameterized):
 
     def render_plot_tabs(self, all_selected_cols, clustered_data, cur_feature, item, item_index,
                         chart_type, predict_class, predict_label, active_tab):
+        if self.only_show_dep:
+            return self.get_render_plot('Dependency', all_selected_cols, clustered_data, cur_feature, item, item_index,
+                                        chart_type, predict_class, predict_label)
+
         p1 = self.get_render_plot('Cluster', all_selected_cols, clustered_data, cur_feature, item, item_index,
                                          chart_type, predict_class, predict_label)
         p2 = self.get_render_plot('Dependency', all_selected_cols, clustered_data, cur_feature, item, item_index,

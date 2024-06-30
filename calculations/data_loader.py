@@ -8,29 +8,33 @@ from calculations import shap_set_functions
 class DataLoader(Viewer):
     def __init__(self, file=None, nn_file=None, truth_file=None):
         super().__init__()
+        restrict = 2000
         if file is None or nn_file is None:
-            self.data = load_weather_data()[0:2000]
+            self.data = load_weather_data()[0:restrict]
             self.columns = [col for col in self.data.columns]
             self.nn = load_weather_nn()
-            truth = load_weather_truth()[0:2000]
+            truth = load_weather_truth()[0:restrict]
 
         else:
-            self.data = load_data(file)[0:2000]
+            self.data = load_data(file)[0:restrict]
             self.nn = load_nn(nn_file)
             self.columns = [col for col in self.data.columns]
-            truth = load_data(truth_file)[0:2000]
+            truth = None
+            if truth_file is not None:
+                truth = load_data(truth_file)[0:restrict]
 
         self.type = 'classification' if hasattr(self.nn, 'classes_') else 'regression'
 
-        if self.type == 'classification':
-            self.data["truth"] = truth
-            for label in set(truth.iloc[:, 0].values):
-                col_name = 'truth_' + str(label)
-                self.data[col_name] = (truth == label)
-                self.data[col_name] = self.data[col_name].apply(lambda x: 1 if x else 0)
-        else:
-            self.data["truth"] = truth
-            self.data["truth_Y"] = truth
+        if truth is not None:
+            if self.type == 'classification':
+                self.data["truth"] = truth
+                for label in set(truth.iloc[:, 0].values):
+                    col_name = 'truth_' + str(label)
+                    self.data[col_name] = (truth == label)
+                    self.data[col_name] = self.data[col_name].apply(lambda x: 1 if x else 0)
+            else:
+                self.data["truth"] = truth
+                self.data["truth_Y"] = truth
 
         self.means = get_means(self.data[self.columns])
 

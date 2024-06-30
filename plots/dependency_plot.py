@@ -42,7 +42,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     truth_class = "truth_" + item.predict_class[5:]
     if relative:
         sorted_data[item.predict_class] = sorted_data[item.predict_class].apply(lambda x: x- mean)
-        if truth is not None:
+        if truth:
             sorted_data[truth_class] = sorted_data[truth_class].apply(lambda x: x - mean)
 
 
@@ -55,9 +55,9 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     y_range_padded = [y_range[0], y_range[1] + 0.1 * (y_range[1] - y_range[0])]
 
     if (len(all_selected_cols) != len(item.data_raw.columns)):
-        title = "Clusters for " + ", ".join(all_selected_cols)
+        title = "Influence of " + ", ".join(all_selected_cols)
     else:
-        title = "Clusters for all columns"
+        title = "Influence of all features"
 
     chart3 = figure(title=title, y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=y_range_padded, x_range=x_range_padded,
                     width=800, toolbar_location=None, active_scroll="xwheel_zoom")
@@ -65,8 +65,9 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
     chart3.add_layout(Legend(), 'right')
-    chart3.x_range.start = item_x - x_std
-    chart3.x_range.end = item_x + x_std
+    if item.type != 'global':
+        chart3.x_range.start = item_x - x_std
+        chart3.x_range.end = item_x + x_std
 
     # create bands and contours for each group
     legend_items = []
@@ -74,10 +75,12 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     if add_clusters:
         colors.append([c for c in sorted_data["scatter_group"].unique()]) # add all colors for the different groups
     colors.append(grey) # add grey for the standard group
-    colors.append(purple) # add purple for the similar ones
-    if truth is not None:
+    if item.type != 'global':
+        colors.append(purple) # add purple for the similar ones
+    if truth:
         colors.append(light_grey) # lighter grey
-        colors.append(light_purple) # lighter purple
+        if item.type != 'global':
+            colors.append(light_purple) # lighter purple
     include_cols = [c for c in all_selected_cols if c != col]
     for i, color in enumerate(colors):
         # choose right data
@@ -132,7 +135,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
             dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
             legend_items.append((cluster_label, [dummy_for_legend]))
 
-            if "contour" in chart_type:
+            if "contour" in chart_type and color == purple:
                 # only use subset of data for performance reasons
                 if len(filtered_data) > 1000:
                     data_subset = filtered_data.sample(n=1000)
@@ -162,7 +165,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                 contour_hover = HoverTool(renderers=[contour.fill_renderer], tooltips=[('', '$name')])
                 chart3.add_tools(contour_hover)
 
-            if "band" in chart_type:
+            if "band" in chart_type and color == purple:
                 band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
                                     # legend_label=cluster_label,
                                     fill_color=color,
@@ -193,13 +196,12 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                     line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
                     chart3.add_tools(line_hover)
 
-            if "scatter" in chart_type:
-                if color != grey:
-                    alpha = 0.3
-                    chart3.scatter(col, y_col, color=color, source=filtered_data,
-                                   alpha=alpha, marker='circle', size=3, name="scatter_label",
-                                   # legend_group="scatter_label"
-                                   )
+            if "scatter" in chart_type and color == purple:
+                alpha = 0.3
+                chart3.scatter(col, y_col, color=color, source=filtered_data,
+                               alpha=alpha, marker='circle', size=3, name="scatter_label",
+                               # legend_group="scatter_label"
+                               )
 
     # add the selected item
     if item.type != 'global':
@@ -240,13 +242,19 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
             chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]], line_width=line_width, color=selected_color,
                                     legend_label="selected item", line_cap='round')
 
+        # add the label
+        chart3.text(x=[item_x], y=[1.2 * y_range[1]], text=[col + " = " + str(item_x)], text_align='center',
+                    text_baseline='top',
+                    text_font_size='11pt', text_color=selected_color)
+
     if "color_axis" in influence_marker:
+        angle = 0 # np.pi / 2
         chart3.add_layout(
-            Label(x=10, x_units="screen", y=0.5 * y_range[1], text="positive", text_align='center',
-                  text_baseline='top', text_font_size='11pt', text_color=positive_color, angle=np.pi / 2))
+            Label(x=25, x_units="screen", y=0.5 * y_range[1], text="+", text_align='center',
+                  text_baseline='middle', text_font_size='30pt', text_color=positive_color, angle=angle))
         chart3.add_layout(
-            Label(x=10, x_units="screen", y=0.5 * y_range[0], text="negative", text_align='center',
-                  text_baseline='top', text_font_size='11pt', text_color=negative_color, angle=np.pi / 2))
+            Label(x=25, x_units="screen", y=0.5 * y_range[0], text="-", text_align='center',
+                  text_baseline='middle', text_font_size='30pt', text_color=negative_color, angle=angle))
         chart3.add_layout(
             BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=0, bottom=y_range[0],
                           fill_color=negative_color, fill_alpha=1))
@@ -260,9 +268,6 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                     text_font_size='11pt', text_color="darkred"))
 
 
-
-    chart3.text(x=[item_x], y=[1.2*y_range[1]], text=[col + " = " + str(item_x)], text_align='center', text_baseline='top',
-                text_font_size='11pt', text_color=selected_color)
 
 
 

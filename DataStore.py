@@ -48,7 +48,7 @@ class DataStore(param.Parameterized):
         self.col_type = 'singular'
         self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
         self.all_selected_cols = column_functions.return_col(self.col.value)
-        self.all_selected_cols_widget = pn.widgets.MultiChoice(name='columns', options=self.data_loader.columns)
+        self.all_selected_cols_widget = pn.widgets.MultiChoice(name='Interacting Features', options=self.data_loader.columns)
         self.col.param.watch(
             lambda event: self.param.update(all_selected_cols=column_functions.return_col(event.new)),
             parameter_names=['value'], onlychanged=False)
@@ -110,16 +110,12 @@ class DataStore(param.Parameterized):
                                        onlychanged=False)
 
         # render similar plot
-        self.similar_plot = similar_plot.SimilarPlot(self.data_loader, self.item, self.all_selected_cols, self.cur_feature.value)
-        self.cur_feature.param.watch(lambda event: self.param.update(similar_plot=
-                                                                    similar_plot.SimilarPlot(self.data_loader, self.item,
-                                                                                             self.all_selected_cols,
-                                                                                             self.cur_feature.value)),
+        self.similar_plot = self._update_similar_plot()
+        self.cur_feature.param.watch(self.update_similar_plot,
                                 parameter_names=['value'], onlychanged=False)
-        self.item_index.param.watch(lambda event: self.param.update(similar_plot=
-                                                                    similar_plot.SimilarPlot(self.data_loader, self.item,
-                                                                                             self.all_selected_cols,
-                                                                                             self.cur_feature.value)),
+        self.item_index.param.watch(self.update_similar_plot,
+                                parameter_names=['value'], onlychanged=False)
+        self.item_type.param.watch(self.update_similar_plot,
                                 parameter_names=['value'], onlychanged=False)
 
     def prediction_string(self):
@@ -137,10 +133,11 @@ class DataStore(param.Parameterized):
         cur_feature = all_selected_cols[0]
         cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
                                              value=cur_feature, align='center')
-        item = item_functions.Item(loader, loader.data_and_probabilities,'global', self.item_index.value, predict_class, predict_class, [])
+        item = item_functions.Item(loader, loader.data_and_probabilities, self.item_type.value, self.item_index.value, predict_class, predict_class, [])
         clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
                                            cur_feature, predict_class, item, num_leafs=self.num_leafs.value,
                                            exclude_col=False)
+
         self.predict_class.param.update(options=loader.classes, value=predict_class)
 
         self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
@@ -153,6 +150,8 @@ class DataStore(param.Parameterized):
         self.column_grouping.init_groups(loader.columns)
 
         self.cur_feature.param.update(options=self.all_selected_cols, value=cur_feature)
+
+        self.init_item_custom_content()
 
         self.active = True
 
@@ -180,7 +179,7 @@ class DataStore(param.Parameterized):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
 
     def get_file_widgets(self):
-        return pn.Row(self.file, self.nn_file, self.truth_file, self.calculate, styles=dict(margin="auto")).servable()
+        return pn.Row("Data:", self.file, "Model:", self.nn_file, "Truth (optional):", self.truth_file, self.calculate, styles=dict(margin="auto")).servable()
 
     def get_title_widgets(self):
         return pn.Row(self.predict_class, self.predict_class_label, styles=dict(margin="auto")).servable()
@@ -211,6 +210,13 @@ class DataStore(param.Parameterized):
     def update_render_plot(self, event, caused_by_chart=False):
         if self.active:
             self.param.update(render_plot=self._update_render_plot(caused_by_chart))
+
+    def _update_similar_plot(self):
+        return similar_plot.SimilarPlot(self.data_loader, self.item, self.all_selected_cols, self.cur_feature.value)
+
+    def update_similar_plot(self, *params):
+        if self.active:
+            self.param.update(similar_plot= self._update_similar_plot())
 
     def _update_item_self(self):
             return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
