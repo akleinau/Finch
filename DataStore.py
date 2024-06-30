@@ -179,26 +179,26 @@ class DataStore(param.Parameterized):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
 
     def get_file_widgets(self):
-        return pn.Row("Data:", self.file, "Model:", self.nn_file, "Truth (optional):", self.truth_file, self.calculate, styles=dict(margin="auto")).servable()
+        return pn.Column("Data:", self.file, "Model:", self.nn_file, "Truth (optional):", self.truth_file, self.calculate)
 
     def get_title_widgets(self):
-        return pn.Row(self.predict_class, self.predict_class_label, styles=dict(margin="auto")).servable()
+        return pn.Column(self.predict_class, self.predict_class_label)
 
     def get_item_widgets(self):
         second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_button if t == 'custom' else None, self.item_type)
-        return pn.Row(self.item_type, second_item, self.item_floatpanel_placeholder, styles=dict(margin="auto")).servable()
+        return pn.Column(self.item_type, second_item, self.item_floatpanel_placeholder)
 
     def show_item_custom(self, event):
         floatpanel = pn.layout.FloatPanel(self.item_custom_content, name="custom item input", contained=False, position='center')
         self.item_floatpanel_placeholder.append(floatpanel)
 
     def get_customization_widgets(self):
-        return pn.Row(self.cluster_type, self.num_leafs).servable()
+        return pn.Row(self.cluster_type, self.num_leafs)
 
     def get_row_widgets(self):
         if (self.col_type == 'singular'):
-            return pn.Row(self.all_selected_cols_widget, styles=dict(margin="auto")).servable()
-        return self.column_grouping.row.servable()
+            return pn.Row(self.all_selected_cols_widget, styles=dict(margin="auto"))
+        return self.column_grouping.row
 
     def _update_render_plot(self, caused_by_chart=False):
         active_tab = 1 if caused_by_chart else 1

@@ -13,7 +13,7 @@ class SimilarPlot(param.Parameterized):
 
 def similar_plot(data_loader, item, all_selected_cols, cur_feature):
     color_similar = "#BB54EE"
-    color_item = "#449944"
+    color_item = "#18B473"
 
 
     column_criteria = "curr"
