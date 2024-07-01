@@ -59,7 +59,7 @@ class DataStore(param.Parameterized):
         # groups
         self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols,
                                              value=self.all_selected_cols[0], align='center')
-        self.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value=event.new[0]),
+        self.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value = self.get_first(event.new)),
                          parameter_names=['all_selected_cols'], onlychanged=False)
         #self.all_selected_cols_widget.param.watch(lambda event: self.cur_feature.param.update(options=self.get_all_selected_cols(event.new), value=self.get_all_selected_cols(event.new)[0]),
          #                                           parameter_names=['value'], onlychanged=False)
@@ -130,6 +130,7 @@ class DataStore(param.Parameterized):
         predict_class = loader.classes[0]
         all_selected_cols = column_functions.return_col(loader.columns[0])
         self.all_selected_cols_widget.options = loader.columns
+        self.all_selected_cols_widget.value = all_selected_cols[0]
         cur_feature = all_selected_cols[0]
         cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
                                              value=cur_feature, align='center')
@@ -175,6 +176,11 @@ class DataStore(param.Parameterized):
         if self.active:
             self.param.update(
                 clustering=self._update_clustered_data())
+
+    def get_first(self, event):
+        if len(event) > 0:
+            return event[0]
+        return None
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)

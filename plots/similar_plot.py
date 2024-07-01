@@ -13,6 +13,9 @@ class SimilarPlot(param.Parameterized):
         self.plot = similar_plot(data_loader, item, all_selected_cols, cur_feature)
 
 def similar_plot(data_loader, item, all_selected_cols, cur_feature):
+    if len(all_selected_cols) == 0:
+        return ""
+
     color_similar = "#BB54EE"
     color_item = "#18B473"
 

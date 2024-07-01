@@ -32,7 +32,7 @@ item_data = pn.bind(lambda e: e.data_reduced, ds.param.item)
 template.main.append(pn.Column(
     ds.get_row_widgets(),
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
-    pn.Row(item_data, render_plot, sim_plot, styles=dict(margin='auto'))
+    pn.Row(item_data, render_plot, sim_plot)
 ))
 
 #ds.get_customization_widgets()

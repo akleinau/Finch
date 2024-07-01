@@ -20,6 +20,9 @@ class RenderPlot(param.Parameterized):
 
     def get_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
                         chart_type, predict_class, predict_label):
+        if len(all_selected_cols) == 0:
+            return ""
+
         if graph_type == 'Cluster':
             plot = cluster_bar_plot(clustered_data, item, all_selected_cols, predict_class, predict_label)
             plot = add_style(plot)
