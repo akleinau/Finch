@@ -12,7 +12,9 @@ template = pn.template.MaterialTemplate(
 )
 
 # create widgets
-template.sidebar.append(pn.Column(ds.get_file_widgets(), ds.get_title_widgets(), ds.get_item_widgets(), styles=dict(margin='auto')))
+template.sidebar.append(pn.Column("# Data set", ds.get_file_widgets(), pn.layout.Spacer(),
+                                  "# Target", ds.get_title_widgets(), pn.layout.Spacer(),
+                                  "# Item", ds.get_item_widgets(), styles=dict(margin='auto')))
 
 # create all the widgets and variables needed for the column group selection
 #pn.panel("<br>").servable()

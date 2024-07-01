@@ -23,13 +23,13 @@ class DataStore(param.Parameterized):
         self.file = pn.widgets.FileInput(accept='.csv', name='Upload data')
         self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network')
         self.truth_file = pn.widgets.FileInput(accept='.csv', name='Upload truth')
-        self.calculate = pn.widgets.Button(name='Calculate', button_type='primary')
+        self.calculate = pn.widgets.Button(name='Calculate', button_type='primary', styles=dict(margin='auto'))
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
 
         # item
         self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom', 'global'], value='predefined')
-        self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26)
+        self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26, width=250)
         self.item_custom_button = pn.widgets.Button(name='Customize', button_type='primary')
         self.item_custom_content = pn.Column()
         self.item_custom = pn.layout.FloatPanel(self.item_custom_content, name="Add Info", contained=False, position='center')
@@ -39,8 +39,8 @@ class DataStore(param.Parameterized):
                                       parameter_names=['value'], onlychanged=False)
 
         # predict class
-        self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes))
-        self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value)
+        self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes), width=250)
+        self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value, width=250)
         self.predict_class.param.watch(lambda event: self.predict_class_label.param.update(value=event.new),
                                         parameter_names=['value'], onlychanged=False)
 
@@ -179,10 +179,14 @@ class DataStore(param.Parameterized):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
 
     def get_file_widgets(self):
-        return pn.Column("Data:", self.file, "Model:", self.nn_file, "Truth (optional):", self.truth_file, self.calculate)
+        return pn.Column(pn.Row(
+            pn.Column("Data*:", "Model*:", "Truth:"),
+            pn.Column(self.file, self.nn_file,  self.truth_file)),
+            self.calculate,
+            styles=dict(padding_bottom='10px', margin='0', align='end'))
 
     def get_title_widgets(self):
-        return pn.Column(self.predict_class, self.predict_class_label)
+        return pn.Column(self.predict_class, self.predict_class_label, styles=dict(padding_top='10px'))
 
     def get_item_widgets(self):
         second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_button if t == 'custom' else None, self.item_type)
