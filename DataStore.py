@@ -47,7 +47,7 @@ class DataStore(param.Parameterized):
         # columns
         self.col_type = 'singular'
         self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
-        self.all_selected_cols = column_functions.return_col(self.col.value)
+        self.all_selected_cols = []
         self.all_selected_cols_widget = pn.widgets.MultiChoice(name='Interacting Features', options=self.data_loader.columns, value=self.all_selected_cols)
         self.col.param.watch(
             lambda event: self.param.update(all_selected_cols=column_functions.return_col(event.new)),
@@ -58,7 +58,7 @@ class DataStore(param.Parameterized):
 
         # groups
         self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols,
-                                             value=self.all_selected_cols[0], align='center')
+                                             value=None, align='center')
         self.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value = self.get_first(event.new)),
                          parameter_names=['all_selected_cols'], onlychanged=False)
         #self.all_selected_cols_widget.param.watch(lambda event: self.cur_feature.param.update(options=self.get_all_selected_cols(event.new), value=self.get_all_selected_cols(event.new)[0]),
@@ -128,10 +128,10 @@ class DataStore(param.Parameterized):
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[0]
-        all_selected_cols = column_functions.return_col(loader.columns[0])
+        all_selected_cols = []
         self.all_selected_cols_widget.options = loader.columns
-        self.all_selected_cols_widget.value = all_selected_cols[0]
-        cur_feature = all_selected_cols[0]
+        self.all_selected_cols_widget.value = []
+        cur_feature = None
         cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
                                              value=cur_feature, align='center')
         item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, None, predict_class, predict_class)
@@ -153,6 +153,9 @@ class DataStore(param.Parameterized):
         self.cur_feature.param.update(options=self.all_selected_cols, value=cur_feature)
 
         self.init_item_custom_content()
+
+        self.render_plot = self._update_render_plot()
+        self.similar_plot = self._update_similar_plot()
 
         self.active = True
 

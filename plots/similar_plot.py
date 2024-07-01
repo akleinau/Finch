@@ -17,7 +17,7 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
         return ""
 
     color_similar = "#BB54EE"
-    color_item = "#18B473"
+    color_item = "#19b57A"
 
 
     column_criteria = "curr"
@@ -61,7 +61,7 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
 
         # create a figure
         x_range = [data[col].min(), data[col].max()]
-        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=80, width=400, sizing_mode='fixed')
+        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=80, width=400, sizing_mode='fixed', tools='')
 
         if i == 0:
             plot.add_layout(Legend(), 'above')
@@ -80,7 +80,7 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
         else:
             if len(all_selected_cols) > 1:
                 plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=0.2, source=similar_item_group, size=5,
-                         color=color_similar, legend_label='Similar items')
+                         color=color_similar, legend_label='Neighborhood')
             # item dot
             plot.scatter(x=item.data_raw[col], y=1, size=7, color=color_item, legend_label='Item')
 

@@ -6,11 +6,15 @@ import numpy as np
 from sklearn.tree import _tree
 from calculations.similarity import get_similar_items
 
+no_clustering = True
 
 class Clustering:
     def __init__(self, cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction, item_index,
                  exclude_col=True, num_leafs=6):
-        self.data = get_clustering(cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction,
+        if no_clustering:
+            self.data = data_and_probabilities
+        else:
+            self.data = get_clustering(cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction,
                                    item_index, exclude_col, num_leafs)
 
 

@@ -30,7 +30,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     light_purple = '#cc98e6'
     positive_color = '#AE0139'
     negative_color = '#3801AC'
-    selected_color = "#18B473"
+    selected_color = "#19b57A"
 
     truth = "truth" in data.columns
     relative = True
@@ -281,8 +281,8 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     if "colored_background" in influence_marker:
         # color the background, blue below 0, red above 0
-        chart3.add_layout(BoxAnnotation(bottom=y_range_padded[0], top=0, fill_color='#F5F8FF', level='underlay'))
-        chart3.add_layout(BoxAnnotation(bottom=0, top=y_range_padded[1], fill_color='#FFF3FF', level='underlay'))
+        chart3.add_layout(BoxAnnotation(bottom=y_range_padded[0], top=0, fill_color='#E6EDFF', level='underlay'))
+        chart3.add_layout(BoxAnnotation(bottom=0, top=y_range_padded[1], fill_color='#FFE6FF', level='underlay'))
 
     if "selective_colored_background" in influence_marker:
         # color the background, blue below 0, red above 0
