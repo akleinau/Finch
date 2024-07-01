@@ -47,13 +47,13 @@ class DataStore(param.Parameterized):
         # columns
         self.col_type = 'singular'
         self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
-        self.all_selected_cols = self.data_loader.columns
-        self.all_selected_cols_widget = pn.widgets.MultiChoice(name='Interacting Features', options=self.data_loader.columns)
+        self.all_selected_cols = column_functions.return_col(self.col.value)
+        self.all_selected_cols_widget = pn.widgets.MultiChoice(name='Interacting Features', options=self.data_loader.columns, value=self.all_selected_cols)
         self.col.param.watch(
             lambda event: self.param.update(all_selected_cols=column_functions.return_col(event.new)),
             parameter_names=['value'], onlychanged=False)
         self.all_selected_cols_widget.param.watch(
-            lambda event: self.param.update(all_selected_cols=event.new if len(event.new) > 0 else self.data_loader.columns),
+            lambda event: self.param.update(all_selected_cols=event.new),
             parameter_names=['value'], onlychanged=False)
 
         # groups

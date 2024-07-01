@@ -1,9 +1,10 @@
 from bokeh.models import Legend
 from bokeh.plotting import figure
 from bokeh.transform import jitter
-from bokeh.layouts import column, layout
+from bokeh.layouts import column, layout, Spacer
 from calculations.similarity import get_similar_items
 import param
+import panel as pn
 
 class SimilarPlot(param.Parameterized):
 
@@ -46,11 +47,12 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
     diff = diff.sort_values(ascending=False)
 
     # for each column, create a bokeh plot with the distribution of the data
-    plot_list = []
+    plot_list = pn.Column(styles=dict(margin='auto'))
 
     display_cols = diff.index.tolist()
     include_cols_for_display = all_selected_cols if len(all_selected_cols) > 0 else data_loader.data.columns
-    display_cols = [col for col in display_cols if col in include_cols_for_display]
+    display_cols = [col for col in display_cols if col in include_cols_for_display and col != cur_feature]
+    display_cols = [cur_feature, *display_cols] # make sur cur_feature is first
 
     for i, col in enumerate(display_cols):
 
@@ -73,7 +75,8 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
             plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.1, source=data, size=2, color='grey',
                          legend_label='Standard')
         else:
-            plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=0.2, source=similar_item_group, size=5,
+            if len(all_selected_cols) > 1:
+                plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=0.2, source=similar_item_group, size=5,
                          color=color_similar, legend_label='Similar items')
             # item dot
             plot.scatter(x=item.data_raw[col], y=1, size=7, color=color_item, legend_label='Item')
@@ -96,12 +99,16 @@ def similar_plot(data_loader, item, all_selected_cols, cur_feature):
         plot.ygrid.grid_line_color = None
         plot.xgrid.grid_line_color = None
 
-
         plot.title.visible = False
+
+        if i == 1:
+            # add divider
+            plot_list.append("## Subgroup: ")
+
         plot_list.append(plot)
 
 
-    return layout(plot_list)
+    return plot_list
 
 
 

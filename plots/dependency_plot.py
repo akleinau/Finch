@@ -78,12 +78,12 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     colors = []
     if truth:
         colors.append(light_grey) # lighter grey
-        if item.type != 'global':
+        if item.type != 'global' and len(all_selected_cols) > 1:
             colors.append(light_purple) # lighter purple
     if add_clusters:
         colors.append([c for c in sorted_data["scatter_group"].unique()]) # add all colors for the different groups
     colors.append(grey) # add grey for the standard group
-    if item.type != 'global':
+    if item.type != 'global' and len(all_selected_cols) > 1:
         colors.append(purple) # add purple for the similar ones
     include_cols = [c for c in all_selected_cols if c != col]
     for i, color in enumerate(colors):
