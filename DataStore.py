@@ -30,13 +30,7 @@ class DataStore(param.Parameterized):
         # item
         self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom', 'global'], value='predefined')
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26, width=250)
-        self.item_custom_button = pn.widgets.Button(name='Customize', button_type='primary')
         self.item_custom_content = pn.Column()
-        self.item_custom = pn.layout.FloatPanel(self.item_custom_content, name="Add Info", contained=False, position='center')
-        self.item_floatpanel_placeholder = pn.Row()
-        self.item_custom_button.on_click(self.show_item_custom)
-        self.item_type.param.watch(lambda event: self.show_item_custom(event) if event.new == 'custom' else None,
-                                      parameter_names=['value'], onlychanged=False)
 
         # predict class
         self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes), width=250)
@@ -199,12 +193,8 @@ class DataStore(param.Parameterized):
         return pn.Column(self.predict_class, self.predict_class_label, styles=dict(padding_top='10px'))
 
     def get_item_widgets(self):
-        second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_button if t == 'custom' else None, self.item_type)
-        return pn.Column(self.item_type, second_item, self.item_floatpanel_placeholder)
-
-    def show_item_custom(self, event):
-        floatpanel = pn.layout.FloatPanel(self.item_custom_content, name="custom item input", contained=False, position='center')
-        self.item_floatpanel_placeholder.append(floatpanel)
+        second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_content if t == 'custom' else None, self.item_type)
+        return pn.Column(self.item_type, second_item)
 
     def get_customization_widgets(self):
         return pn.Row(self.cluster_type, self.num_leafs)
