@@ -54,7 +54,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     y_range = [sorted_data[item.predict_class].min(), sorted_data[item.predict_class].max()]
     y_range_padded = [y_range[0] - 0.025 * (y_range[1] - y_range[0]), y_range[1] + 0.05 * (y_range[1] - y_range[0])]
 
-    if (len(all_selected_cols) != len(item.data_raw.columns)):
+    if (len(all_selected_cols) != len(item.data_reduced)):
         title = "Influence of " + ", ".join(all_selected_cols)
     else:
         title = "Influence of all features"

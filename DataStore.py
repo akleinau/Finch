@@ -47,13 +47,13 @@ class DataStore(param.Parameterized):
         # columns
         self.col_type = 'singular'
         self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
-        self.all_selected_cols = column_functions.return_col(self.col.value)
+        self.all_selected_cols = self.data_loader.columns
         self.all_selected_cols_widget = pn.widgets.MultiChoice(name='Interacting Features', options=self.data_loader.columns)
         self.col.param.watch(
             lambda event: self.param.update(all_selected_cols=column_functions.return_col(event.new)),
             parameter_names=['value'], onlychanged=False)
         self.all_selected_cols_widget.param.watch(
-            lambda event: self.param.update(all_selected_cols=event.new),
+            lambda event: self.param.update(all_selected_cols=event.new if len(event.new) > 0 else self.data_loader.columns),
             parameter_names=['value'], onlychanged=False)
 
         # groups
@@ -61,8 +61,8 @@ class DataStore(param.Parameterized):
                                              value=self.all_selected_cols[0], align='center')
         self.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value=event.new[0]),
                          parameter_names=['all_selected_cols'], onlychanged=False)
-        self.all_selected_cols_widget.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value=event.new[0]),
-                                                    parameter_names=['value'], onlychanged=False)
+        #self.all_selected_cols_widget.param.watch(lambda event: self.cur_feature.param.update(options=self.get_all_selected_cols(event.new), value=self.get_all_selected_cols(event.new)[0]),
+         #                                           parameter_names=['value'], onlychanged=False)
         self.column_grouping = column_functions.ColumnGrouping(self.data_loader.columns)
         self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'],
                                          onlychanged=False)
@@ -133,7 +133,7 @@ class DataStore(param.Parameterized):
         cur_feature = all_selected_cols[0]
         cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
                                              value=cur_feature, align='center')
-        item = item_functions.Item(loader, loader.data_and_probabilities, self.item_type.value, self.item_index.value, predict_class, predict_class, [])
+        item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, None, predict_class, predict_class)
         clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
                                            cur_feature, predict_class, item, num_leafs=self.num_leafs.value,
                                            exclude_col=False)
@@ -154,6 +154,7 @@ class DataStore(param.Parameterized):
         self.init_item_custom_content()
 
         self.active = True
+
 
     def init_item_custom_content(self):
         self.item_custom_content.clear()
