@@ -138,7 +138,8 @@ class DataStore(param.Parameterized):
         self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
                           render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
                                                              clustering.data, cur_feature_widget, item,
-                                                             self.item_index.value, self.chart_type, predict_class, predict_class, active_tab=1))
+                                                             self.item_index.value, self.chart_type, predict_class, predict_class,
+                                                             self.data_loader, active_tab=1))
 
         self.col.param.update(options=loader.columns)
 
@@ -210,7 +211,7 @@ class DataStore(param.Parameterized):
                                       self.clustering.data, self.cur_feature, self.item,
                                       self.item_index.value,
                                       self.chart_type, self.predict_class.value, self.predict_class_label.value,
-                                      active_tab)
+                                      self.data_loader, active_tab)
     def update_render_plot(self, event, caused_by_chart=False):
         if self.active:
             self.param.update(render_plot=self._update_render_plot(caused_by_chart))
