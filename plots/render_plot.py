@@ -12,13 +12,13 @@ class RenderPlot(param.Parameterized):
     only_show_dep = True
     dont_show_dep_options = True
 
-    def __init__(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index, chart_type,
+    def __init__(self, graph_type, all_selected_cols, clustered_data, item, item_index, chart_type,
                  predict_class, predict_label, data_loader, active_tab=0, **params):
         super().__init__(**params)
-        self.plot = self.render_plot_tabs(all_selected_cols, clustered_data, cur_feature, item, item_index,
+        self.plot = self.render_plot_tabs(all_selected_cols, clustered_data, item, item_index,
                                          chart_type, predict_class, predict_label, data_loader, active_tab)
 
-    def get_render_plot(self, graph_type, all_selected_cols, clustered_data, cur_feature, item, item_index,
+    def get_render_plot(self, graph_type, all_selected_cols, clustered_data, item, item_index,
                         chart_type, predict_class, predict_label, data_loader):
         if len(all_selected_cols) == 0:
             return ""
@@ -36,33 +36,33 @@ class RenderPlot(param.Parameterized):
             plot = add_style(plot)
             return plot
         elif graph_type == 'Dependency':
-            dep_plot = dependency_scatterplot(clustered_data, cur_feature.value, all_selected_cols,
+            dep_plot = dependency_scatterplot(clustered_data, all_selected_cols,
                                               item, chart_type.value, data_loader)
             dep_plot = add_style(dep_plot)
             if self.dont_show_dep_options:
-                return pn.Column(dep_plot, cur_feature)
-            return pn.Column(dep_plot, cur_feature, chart_type)
+                return pn.Column(dep_plot)
+            return pn.Column(dep_plot, chart_type)
         else:
-            plot = parallel_plot(clustered_data, cur_feature.value, all_selected_cols,
+            plot = parallel_plot(clustered_data, all_selected_cols,
                                  item.prediction, item.data, chart_type)
             plot = add_style(plot)
             return plot
 
-    def render_plot_tabs(self, all_selected_cols, clustered_data, cur_feature, item, item_index,
+    def render_plot_tabs(self, all_selected_cols, clustered_data, item, item_index,
                         chart_type, predict_class, predict_label, data_loader, active_tab):
         if self.only_show_dep:
-            return self.get_render_plot('Dependency', all_selected_cols, clustered_data, cur_feature, item, item_index,
+            return self.get_render_plot('Dependency', all_selected_cols, clustered_data, item, item_index,
                                         chart_type, predict_class, predict_label, data_loader)
 
-        p1 = self.get_render_plot('Cluster', all_selected_cols, clustered_data, cur_feature, item, item_index,
+        p1 = self.get_render_plot('Cluster', all_selected_cols, clustered_data, item, item_index,
                                          chart_type, predict_class, predict_label, data_loader)
-        p2 = self.get_render_plot('Dependency', all_selected_cols, clustered_data, cur_feature, item, item_index,
+        p2 = self.get_render_plot('Dependency', all_selected_cols, clustered_data, item, item_index,
                                             chart_type, predict_class, predict_label, data_loader)
-        p3 = self.get_render_plot('Parallel', all_selected_cols, clustered_data, cur_feature, item, item_index,
+        p3 = self.get_render_plot('Parallel', all_selected_cols, clustered_data, item, item_index,
                                             chart_type, predict_class, predict_label, data_loader)
-        p4 = self.get_render_plot('Similar', all_selected_cols, clustered_data, cur_feature, item, item_index,
+        p4 = self.get_render_plot('Similar', all_selected_cols, clustered_data, item, item_index,
                                             chart_type, predict_class, predict_label, data_loader)
-        p5 = self.get_render_plot('ClusterSimilar', all_selected_cols, clustered_data, cur_feature, item, item_index,
+        p5 = self.get_render_plot('ClusterSimilar', all_selected_cols, clustered_data, item, item_index,
                                          chart_type, predict_class, predict_label, data_loader)
         return pn.Tabs(('Cluster', p1), ('Dependency', p2), ('Parallel', p3), ('Similar', p4),
                        ('ClusterSimilar', p5), dynamic=True, active=active_tab)

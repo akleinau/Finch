@@ -24,7 +24,9 @@ def kde(x, y, N):
     return X, Y, Z
 
 
-def dependency_scatterplot(data, col, all_selected_cols, item, chart_type, data_loader):
+def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loader):
+    col = all_selected_cols[0]
+
     #colors
     color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
               'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
@@ -58,7 +60,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type, data_
         title = "Influence of all features"
 
     chart3 = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=y_range_padded, x_range=x_range_padded,
-                    width=800, toolbar_location=None, active_scroll="xwheel_zoom")
+                    width=800, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05

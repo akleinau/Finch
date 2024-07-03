@@ -4,6 +4,7 @@ import calculations.data_loader as data_loader
 import calculations.item_functions as item_functions
 import calculations.column_functions as column_functions
 import calculations.clusters as clusters
+import calculations.feature_iter as feature_iter
 import plots.render_plot as render_plot
 import plots.similar_plot as similar_plot
 
@@ -12,10 +13,10 @@ class DataStore(param.Parameterized):
     item = param.ClassSelector(class_=item_functions.Item)
     columnGrouping = param.ClassSelector(class_=column_functions.ColumnGrouping)
     data_loader = param.ClassSelector(class_=data_loader.DataLoader)
-    all_selected_cols = param.List()
     clustering = param.ClassSelector(class_=clusters.Clustering)
     render_plot = param.ClassSelector(class_=render_plot.RenderPlot)
     similar_plot = param.ClassSelector(class_=similar_plot.SimilarPlot)
+    feature_iter = param.ClassSelector(class_=feature_iter.FeatureIter)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -39,27 +40,7 @@ class DataStore(param.Parameterized):
                                         parameter_names=['value'], onlychanged=False)
 
         # columns
-        self.col_type = 'singular'
-        self.col = pn.widgets.Select(name='column', options=self.data_loader.columns)
-        self.all_selected_cols = []
-        self.all_selected_cols_widget = pn.widgets.MultiChoice(name='Interacting Features', options=self.data_loader.columns, value=self.all_selected_cols)
-        self.col.param.watch(
-            lambda event: self.param.update(all_selected_cols=column_functions.return_col(event.new)),
-            parameter_names=['value'], onlychanged=False)
-        self.all_selected_cols_widget.param.watch(
-            lambda event: self.param.update(all_selected_cols=event.new),
-            parameter_names=['value'], onlychanged=False)
-
-        # groups
-        self.cur_feature = pn.widgets.Select(name='', options=self.all_selected_cols,
-                                             value=None, align='center')
-        self.param.watch(lambda event: self.cur_feature.param.update(options=event.new, value = self.get_first(event.new)),
-                         parameter_names=['all_selected_cols'], onlychanged=False)
-        #self.all_selected_cols_widget.param.watch(lambda event: self.cur_feature.param.update(options=self.get_all_selected_cols(event.new), value=self.get_all_selected_cols(event.new)[0]),
-         #                                           parameter_names=['value'], onlychanged=False)
-        self.column_grouping = column_functions.ColumnGrouping(self.data_loader.columns)
-        self.column_grouping.param.watch(self.column_grouping_changed, parameter_names=['combined_columns'],
-                                         onlychanged=False)
+        self.feature_iter = feature_iter.FeatureIter(self.data_loader.columns)
 
         # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree',
@@ -85,7 +66,7 @@ class DataStore(param.Parameterized):
 
         # clustered data
         self.clustering = self._update_clustered_data()
-        self.cur_feature.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.feature_iter.param.watch(self.update_clustered_data, parameter_names=['all_selected_cols'], onlychanged=False)
         self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.item_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
@@ -105,8 +86,8 @@ class DataStore(param.Parameterized):
 
         # render similar plot
         self.similar_plot = self._update_similar_plot()
-        self.cur_feature.param.watch(self.update_similar_plot,
-                                parameter_names=['value'], onlychanged=False)
+        self.feature_iter.param.watch(self.update_similar_plot,
+                                parameter_names=['all_selected_cols'], onlychanged=False)
         self.item_index.param.watch(self.update_similar_plot,
                                 parameter_names=['value'], onlychanged=False)
         self.item_type.param.watch(self.update_similar_plot,
@@ -122,30 +103,21 @@ class DataStore(param.Parameterized):
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[0]
-        all_selected_cols = []
-        self.all_selected_cols_widget.options = loader.columns
-        self.all_selected_cols_widget.value = []
-        cur_feature = None
-        cur_feature_widget = pn.widgets.Select(name='', options=all_selected_cols,
-                                             value=cur_feature, align='center')
+        all_selected_cols = loader.columns
         item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, None, predict_class, predict_class)
         clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
-                                           cur_feature, predict_class, item, num_leafs=self.num_leafs.value,
+                                            predict_class, item, num_leafs=self.num_leafs.value,
                                            exclude_col=False)
 
         self.predict_class.param.update(options=loader.classes, value=predict_class)
 
-        self.param.update(data_loader=loader, item=item, clustering=clustering, all_selected_cols=all_selected_cols,
+        self.param.update(data_loader=loader, item=item, clustering=clustering,
                           render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
-                                                             clustering.data, cur_feature_widget, item,
+                                                             clustering.data, item,
                                                              self.item_index.value, self.chart_type, predict_class, predict_class,
                                                              self.data_loader, active_tab=1))
+        self.feature_iter.load_new_columns(loader.columns)
 
-        self.col.param.update(options=loader.columns)
-
-        self.column_grouping.init_groups(loader.columns)
-
-        self.cur_feature.param.update(options=self.all_selected_cols, value=cur_feature)
 
         self.init_item_custom_content()
 
@@ -166,19 +138,13 @@ class DataStore(param.Parameterized):
 
     def _update_clustered_data(self):
         return clusters.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
-                                     self.all_selected_cols,
-                                     self.cur_feature.value, self.predict_class.value, self.item,
+                                     self.feature_iter.all_selected_cols, self.predict_class.value, self.item,
                                      exclude_col=False, num_leafs=self.num_leafs.value)
 
     def update_clustered_data(self, *params):
         if self.active:
             self.param.update(
                 clustering=self._update_clustered_data())
-
-    def get_first(self, event):
-        if len(event) > 0:
-            return event[0]
-        return None
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
@@ -201,14 +167,12 @@ class DataStore(param.Parameterized):
         return pn.Row(self.cluster_type, self.num_leafs)
 
     def get_row_widgets(self):
-        if (self.col_type == 'singular'):
-            return pn.Row(self.all_selected_cols_widget, styles=dict(margin="auto"))
-        return self.column_grouping.row
+        return pn.Row(self.feature_iter.widgets, styles=dict(margin="auto"))
 
     def _update_render_plot(self, caused_by_chart=False):
         active_tab = 1 if caused_by_chart else 1
-        return render_plot.RenderPlot(self.graph_type.value, self.all_selected_cols,
-                                      self.clustering.data, self.cur_feature, self.item,
+        return render_plot.RenderPlot(self.graph_type.value, self.feature_iter.all_selected_cols,
+                                      self.clustering.data, self.item,
                                       self.item_index.value,
                                       self.chart_type, self.predict_class.value, self.predict_class_label.value,
                                       self.data_loader, active_tab)
@@ -217,7 +181,7 @@ class DataStore(param.Parameterized):
             self.param.update(render_plot=self._update_render_plot(caused_by_chart))
 
     def _update_similar_plot(self):
-        return similar_plot.SimilarPlot(self.data_loader, self.item, self.all_selected_cols, self.cur_feature.value)
+        return similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols)
 
     def update_similar_plot(self, *params):
         if self.active:
@@ -227,7 +191,7 @@ class DataStore(param.Parameterized):
             return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
                                          self.item_index.value, self.item_custom_content,
                                          self.predict_class.value, self.predict_class_label.value,
-                                         self.column_grouping.combined_columns)
+                                         [])
 
     def update_item_self(self, *params):
         if self.active:

@@ -9,12 +9,12 @@ from calculations.similarity import get_similar_items
 no_clustering = True
 
 class Clustering:
-    def __init__(self, cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction, item_index,
+    def __init__(self, cluster_type, data_and_probabilities, all_selected_cols, prediction, item_index,
                  exclude_col=True, num_leafs=6):
         if no_clustering:
             self.data = data_and_probabilities
         else:
-            self.data = get_clustering(cluster_type, data_and_probabilities, all_selected_cols, cur_feature, prediction,
+            self.data = get_clustering(cluster_type, data_and_probabilities, all_selected_cols, prediction,
                                    item_index, exclude_col, num_leafs)
 
 
@@ -263,7 +263,8 @@ def get_similarity_tree_groups(data, all_selected_cols, cur_col, prediction, ite
     return data
 
 
-def get_clustering(cluster_type, data, all_selected_cols, cur_col, prediction, item, exclude_col=True, num_leafs=6):
+def get_clustering(cluster_type, data, all_selected_cols, prediction, item, exclude_col=True, num_leafs=6):
+    cur_col = None if len(all_selected_cols) == 0 else all_selected_cols[0]
     if cluster_type == 'Relative Decision Tree' and item.type != 'global':
         return get_relative_tree_groups(data, all_selected_cols, cur_col, prediction, item, exclude_col, num_leafs)
     elif cluster_type == 'SimGroup Decision Tree' and item.type != 'global':

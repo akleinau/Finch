@@ -8,13 +8,15 @@ import panel as pn
 
 class SimilarPlot(param.Parameterized):
 
-    def __init__(self, data_loader, item, all_selected_cols, cur_feature=None, **params):
+    def __init__(self, data_loader, item, all_selected_cols, **params):
         super().__init__(**params)
-        self.plot = similar_plot(data_loader, item, all_selected_cols, cur_feature)
+        self.plot = similar_plot(data_loader, item, all_selected_cols)
 
-def similar_plot(data_loader, item, all_selected_cols, cur_feature):
+def similar_plot(data_loader, item, all_selected_cols):
     if len(all_selected_cols) == 0:
         return ""
+
+    cur_feature = all_selected_cols[0]
 
     color_similar = "#BB54EE"
     color_item = "#19b57A"
