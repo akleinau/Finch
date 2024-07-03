@@ -1,3 +1,5 @@
+import itertools
+
 from bokeh.plotting import figure
 from bokeh.models import (Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation, Arrow, NormalHead,
                           LinearAxis, LinearColorMapper, ColorBar, Text, Label)
@@ -5,7 +7,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
 import bokeh.colors
-from calculations.similarity import get_similar_items
+from calculations.similarity import get_similar_items, get_pdp_items
 
 
 # for the contours
@@ -22,19 +24,22 @@ def kde(x, y, N):
     return X, Y, Z
 
 
-def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
+def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loader):
+    col = all_selected_cols[0]
+
     #colors
     color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
-              'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#FFA500'}
+              'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
 
     truth = "truth" in data.columns
+    only_interaction = True
     relative = True
     item_style = "grey_line" # "point", "arrow", "line", "grey_line"
     influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
     add_clusters = False
+    truth_class = "truth_" + item.predict_class[5:]
     sorted_data = data.copy().sort_values(by=col)
     mean = data[item.predict_class].mean()
-    truth_class = "truth_" + item.predict_class[5:]
     if relative:
         sorted_data[item.predict_class] = sorted_data[item.predict_class].apply(lambda x: x- mean)
         if truth:
@@ -55,7 +60,7 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
         title = "Influence of all features"
 
     chart3 = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=y_range_padded, x_range=x_range_padded,
-                    width=800, toolbar_location=None, active_scroll="xwheel_zoom")
+                    width=800, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
     chart3.grid.level = "overlay"
     chart3.grid.grid_line_color = "black"
     chart3.grid.grid_line_alpha = 0.05
@@ -70,12 +75,12 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
 
     # create bands and contours for each group
     legend_items = []
-    colors = get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_map, False)
+    colors = get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_map, only_interaction)
     include_cols = [c for c in all_selected_cols if c != col]
     for i, color in enumerate(colors):
         # choose right data
         y_col = get_group_col(color, item, truth_class, color_map)
-        group_data = get_group_data(color, include_cols, item, sorted_data, color_map, y_col)
+        group_data = get_group_data(color, include_cols, item, sorted_data, color_map, y_col, col, data_loader)
         alpha, line_type = get_group_style(color, color_map)
 
         if len(group_data) > 0:
@@ -97,7 +102,8 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
                             color_map)
 
             if "scatter" in chart_type and color == color_map['purple']:
-                create_scatter(chart3, col, color, group_data, y_col)
+                data = get_filtered_data(color, include_cols, item, sorted_data, color_map)
+                create_scatter(chart3, col, color, data, y_col)
 
     # add the selected item
     if item.type != 'global':
@@ -114,22 +120,46 @@ def dependency_scatterplot(data, col, all_selected_cols, item, chart_type):
     return chart3
 
 
-def get_rolling(data, y_col):
-    window = max(len(data) // 10, 20)
-    rolling = data[y_col].rolling(window=window, center=True, min_periods=1).agg(
+def get_rolling(data, y_col, col):
+    #first get mean per value of the col
+    mean_data = data.groupby(col).agg({y_col: 'mean'})
+
+    # then smooth the line
+    window = max(1, min(int(len(mean_data)/15), 30))
+    rolling = mean_data[y_col].rolling(window=window, center=False, min_periods=1).agg(
         {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
          'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
-         'mean': 'mean',
-         'count': 'count'})
-    rolling = rolling.rolling(window=window, center=True, min_periods=1).mean()
-    combined = pd.concat([data, rolling], axis=1)
+         'mean': 'mean'})
+
+    rolling = rolling.rolling(window=window, center=False, min_periods=1).mean()
+
+    mean_data = mean_data.drop(columns=[y_col])
+
+    combined = pd.concat([mean_data, rolling], axis=1)
+    #print(combined.head())
     # combined = ColumnDataSource(combined.reset_index())
     return combined
 
-def get_group_data(color, include_cols, item, sorted_data, color_map, y_col):
-    filtered_data = get_filtered_data(color, include_cols, item, sorted_data, color_map)
-    combined = get_rolling(filtered_data, y_col)
+def get_filtered_data(color, include_cols, item, sorted_data, color_map):
+    if (color == color_map['grey']) or (color == color_map['light_grey']):
+        filtered_data = sorted_data
+    elif (color == color_map['purple']) or (color == color_map['light_purple']):
+        filtered_data = get_similar_items(sorted_data, item, include_cols)
+    else:
+        filtered_data = sorted_data[sorted_data["scatter_group"] == color]
+    return filtered_data
+
+def get_group_data(color, include_cols, item, sorted_data, color_map, y_col, col, data_loader):
+    if color == color_map['only_interaction']:
+        filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+        combined = get_rolling(filtered_data, y_col, col)
+
+    else:
+        filtered_data = get_filtered_data(color, include_cols, item, sorted_data, color_map)
+        combined = get_rolling(filtered_data, y_col, col)
+
     return combined
+
 
 def add_background(chart3, influence_marker, item, mean, y_range, y_range_padded):
     if "colored_background" in influence_marker:
@@ -286,28 +316,30 @@ def create_contour(chart3, cluster_label, col, color, filtered_data, y_col):
 
 def get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_map, only_interaction):
     colors = []
-    if truth:
-        colors.append(color_map['light_grey'])  # lighter colors['grey']
-        if item.type != 'global' and len(all_selected_cols) > 1:
-            colors.append(color_map['light_purple'])  # lighter colors['purple']
+    ## light grey for truth
+    if truth and len(all_selected_cols) == 1:
+        colors.append(color_map['light_grey'])
+
+    ## light purple for neighbor truth
+    if truth and item.type != 'global' and len(all_selected_cols) > 1:
+        colors.append(color_map['light_purple'])
+
+    # clusters
     if add_clusters:
-        colors.append([c for c in sorted_data["scatter_group"].unique()])  # add all colors for the different groups
-    colors.append(color_map['grey'])  # add colors['grey'] for the standard group
+        colors.append([c for c in sorted_data["scatter_group"].unique()])
+
+    # grey for the standard group
+    colors.append(color_map['grey'])
+
+    # only_interaction
+    if only_interaction and len(all_selected_cols) > 2:
+        colors.append(color_map['only_interaction'])
+
+    # purple for neighbors
     if item.type != 'global' and len(all_selected_cols) > 1:
-        colors.append(color_map['purple'])  # add colors['purple'] for the similar ones
-    if only_interaction:
-        colors = [color_map['only_interaction']]
+        colors.append(color_map['purple'])
+
     return colors
-
-
-def get_filtered_data(color, include_cols, item, sorted_data, color_map):
-    if (color == color_map['grey']) or (color == color_map['light_grey']):
-        filtered_data = sorted_data
-    elif (color == color_map['purple']) or (color == color_map['light_purple'] or color == color_map['only_interaction']):
-        filtered_data = get_similar_items(sorted_data, item, include_cols)
-    else:
-        filtered_data = sorted_data[sorted_data["scatter_group"] == color]
-    return filtered_data
 
 
 def get_group_style(color, color_map):

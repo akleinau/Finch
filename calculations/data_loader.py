@@ -8,7 +8,7 @@ from calculations import shap_set_functions
 class DataLoader(Viewer):
     def __init__(self, file=None, nn_file=None, truth_file=None):
         super().__init__()
-        restrict = 2000
+        restrict = 3000
         if file is None or nn_file is None:
             self.data = load_weather_data()[0:restrict]
             self.columns = [col for col in self.data.columns]
@@ -48,12 +48,19 @@ class DataLoader(Viewer):
 
         self.data_and_probabilities = self.combine_data_and_results()
 
-    def combine_data_and_results(self):
-        all_predictions = self.predict(self.data[self.columns])
+    def combine_data_and_results(self, data=None):
+        if data is None:
+            data = self.data
+
+        #drop old columns: all starting with 'prob_' and 'prediction'
+        data = data.drop(columns=[col for col in data.columns if col.startswith('prob_') or col == 'prediction'])
+
+        # get new probabilities
+        all_predictions = self.predict(data[self.columns])
         all_predictions = pd.DataFrame(all_predictions, columns=self.classes)
         all_predictions['prediction'] = all_predictions.idxmax(axis=1)
         # merge X_test, shap, predictions
-        all_data = pd.concat([self.data, all_predictions], axis=1)
+        all_data = pd.concat([data, all_predictions], axis=1)
         return all_data
 
 def load_weather_data():
