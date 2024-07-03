@@ -27,7 +27,7 @@ def kde(x, y, N):
 def dependency_scatterplot(data, col, all_selected_cols, item, chart_type, data_loader):
     #colors
     color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
-              'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#FFA500'}
+              'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
 
     truth = "truth" in data.columns
     only_interaction = True
@@ -150,35 +150,34 @@ def get_filtered_data(color, include_cols, item, sorted_data, color_map):
 def get_group_data(color, include_cols, item, sorted_data, color_map, y_col, col, data_loader):
     if color == color_map['only_interaction']:
         #get current prediction
-        filtered_data = get_similar_items(sorted_data, item, include_cols)
-        filtered_data = data_loader.combine_data_and_results(filtered_data)
-        # TODO now I'd have to get the new predictions and substract the mean
+        filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+        #filtered_data = data_loader.combine_data_and_results(filtered_data)
+        # PDP: TODO now I'd have to get the new predictions and substract the mean
         combined = get_rolling(filtered_data, y_col, col)
 
         # get previous prediction
-        filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
-        # TODO now I'd have to get the new predictions and substract the mean
-        filtered_data = data_loader.combine_data_and_results(filtered_data)
+        #filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+        # PDP: TODO now I'd have to get the new predictions and substract the mean
+        #filtered_data = data_loader.combine_data_and_results(filtered_data)
 
-        sub_combined = get_rolling(filtered_data, y_col, col)
+        #sub_combined = get_rolling(filtered_data, y_col, col)
         # rename mean to sub_mean
-        sub_combined = sub_combined.rename(columns={'mean': 'sub_mean', 'upper': 'sub_upper', 'lower': 'sub_lower'})
+        #sub_combined = sub_combined.rename(columns={'mean': 'sub_mean', 'upper': 'sub_upper', 'lower': 'sub_lower'})
         # inner join combined and sub_combined on col
-        combined = pd.merge(combined, sub_combined, on=col, how='inner')
+        #combined = pd.merge(combined, sub_combined, on=col, how='inner')
         # substract the mean of sub_combined from combined
-        combined['mean'] = combined['mean'] - combined['sub_mean']
-        combined['upper'] = combined['upper'] - combined['sub_upper']
-        combined['lower'] = combined['lower'] - combined['sub_lower']
+        #combined['mean'] = combined['mean'] - combined['sub_mean']
+        #combined['upper'] = combined['upper'] - combined['sub_upper']
+        #combined['lower'] = combined['lower'] - combined['sub_lower']
         # delete sub_mean again
-        combined = combined.drop(columns=['sub_mean', 'sub_upper', 'sub_lower'])
+        #combined = combined.drop(columns=['sub_mean', 'sub_upper', 'sub_lower'])
         #print(combined.head())
     else:
         filtered_data = get_filtered_data(color, include_cols, item, sorted_data, color_map)
         # TODO now I'd have to get the new predictions and substract the mean
-        filtered_data = data_loader.combine_data_and_results(filtered_data)
+        #filtered_data = data_loader.combine_data_and_results(filtered_data)
         combined = get_rolling(filtered_data, y_col, col)
-        print(color)
-        print(combined)
+
     return combined
 
 
@@ -337,17 +336,29 @@ def create_contour(chart3, cluster_label, col, color, filtered_data, y_col):
 
 def get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_map, only_interaction):
     colors = []
-    if truth:
-        colors.append(color_map['light_grey'])  # lighter colors['grey']
-        if item.type != 'global' and len(all_selected_cols) > 1:
-            colors.append(color_map['light_purple'])  # lighter colors['purple']
+    ## light grey for truth
+    if truth and len(all_selected_cols) == 1:
+        colors.append(color_map['light_grey'])
+
+    ## light purple for neighbor truth
+    if truth and item.type != 'global' and len(all_selected_cols) > 1:
+        colors.append(color_map['light_purple'])
+
+    # clusters
     if add_clusters:
-        colors.append([c for c in sorted_data["scatter_group"].unique()])  # add all colors for the different groups
-    colors.append(color_map['grey'])  # add colors['grey'] for the standard group
-    if item.type != 'global' and len(all_selected_cols) > 1:
-        colors.append(color_map['purple'])  # add colors['purple'] for the similar ones
+        colors.append([c for c in sorted_data["scatter_group"].unique()])
+
+    # grey for the standard group
+    colors.append(color_map['grey'])
+
+    # only_interaction
     if only_interaction and len(all_selected_cols) > 2:
         colors.append(color_map['only_interaction'])
+
+    # purple for neighbors
+    if item.type != 'global' and len(all_selected_cols) > 1:
+        colors.append(color_map['purple'])
+
     return colors
 
 

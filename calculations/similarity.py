@@ -1,7 +1,7 @@
 import pandas as pd
 
 def get_similar_items(data, item, col_white_list):
-    use_pdp = True
+    use_pdp = False
     if use_pdp:
         return get_pdp_items(data, item, col_white_list)
     else:
@@ -70,8 +70,6 @@ def get_pdp_items(data, item, col_white_list):
     data_pdp = data.copy()
     item_data = item.data_raw.copy()
     columns = get_columns(col_white_list, data, item_data)
-
-    print(col_white_list)
 
     # replace each column with the item value
     for col in columns:
