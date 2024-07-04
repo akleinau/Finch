@@ -8,125 +8,148 @@ from scipy.stats import gaussian_kde
 import pandas as pd
 import bokeh.colors
 from calculations.similarity import get_similar_items, get_pdp_items
+import panel as pn
+import param
+from plots.styling import add_style
+from panel.viewable import Viewer
+
+class DependencyPlot(Viewer):
+    plot = param.ClassSelector(class_=figure)
+
+    def __init__(self, **params):
+        super().__init__(**params)
+        self.plot = figure(toolbar_location=None, tools="")
+        self.relative = True
+        self.item_style = "grey_line" # "point", "arrow", "line", "grey_line"
+        self.influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
+        self.add_clusters = False
+        self.col = None
 
 
-# for the contours
-def kde(x, y, N):
-    xmin, xmax = x.min(), x.max()
-    ymin, ymax = y.min(), y.max()
 
-    X, Y = np.mgrid[xmin:xmax:N * 1j, ymin:ymax:N * 1j]
-    positions = np.vstack([X.ravel(), Y.ravel()])
-    values = np.vstack([x, y])
-    kernel = gaussian_kde(values)
-    Z = np.reshape(kernel(positions).T, X.shape)
+        #colors
+        self.color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
+                  'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
 
-    return X, Y, Z
-
-
-def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loader, only_interaction=True):
-    col = all_selected_cols[0]
-
-    #colors
-    color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
-              'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
-
-    truth = "truth" in data.columns
-    relative = True
-    item_style = "grey_line" # "point", "arrow", "line", "grey_line"
-    influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
-    add_clusters = False
-    truth_class = "truth_" + item.predict_class[5:]
-    sorted_data = data.copy().sort_values(by=col)
-    mean = data[item.predict_class].mean()
-    if relative:
-        sorted_data[item.predict_class] = sorted_data[item.predict_class].apply(lambda x: x- mean)
-        if truth:
-            sorted_data[truth_class] = sorted_data[truth_class].apply(lambda x: x - mean)
+    def update_plot(self, data, all_selected_cols, item, chart_type, data_loader, only_interaction=True):
+        if len(all_selected_cols) == 0:
+            self.plot = figure()
+            self.col = None
+        else:
+            if (self.col != all_selected_cols[0]):
+                plot = self.create_figure(all_selected_cols[0], data, item)
+                add_axis(plot, self.influence_marker, self.y_range_padded, self.color_map)
+                add_background(plot, self.influence_marker, item, self.mean, self.y_range, self.y_range_padded)
+                self.col = all_selected_cols[0]
+                plot = add_style(plot)
+                self.plot = self.dependency_scatterplot(plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction)
+            else:
+                self.plot = self.dependency_scatterplot(self.plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction)
 
 
-    x_range = (sorted_data[col].min(), sorted_data[col].max())
-    item_x = item.data_prob_raw[col]
-    x_std = sorted_data[col].std()
-    x_range_padded = [x_range[0], x_range[1]]
 
-    y_range = [sorted_data[item.predict_class].min(), sorted_data[item.predict_class].max()]
-    y_range_padded = [y_range[0] - 0.025 * (y_range[1] - y_range[0]), y_range[1] + 0.05 * (y_range[1] - y_range[0])]
+    @param.depends('plot')
+    def __panel__(self):
+        return self.plot
 
-    if (len(all_selected_cols) != len(item.data_reduced)):
-        title = "Influence of " + ", ".join(all_selected_cols)
-    else:
-        title = "Influence of all features"
 
-    chart3 = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=y_range_padded, x_range=x_range_padded,
-                    width=800, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
-    chart3.grid.level = "overlay"
-    chart3.grid.grid_line_color = "black"
-    chart3.grid.grid_line_alpha = 0.05
-    chart3.add_layout(Legend(), 'above')
-    chart3.legend.orientation = "horizontal"
-    if item.type != 'global':
-        chart3.x_range.start = item_x - x_std
-        chart3.x_range.end = item_x + x_std
+    def dependency_scatterplot(self, plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction=True):
+        col = all_selected_cols[0]
 
-    # add the "standard probability" line
-    chart3.line(x=[x_range[0], x_range[1]], y=[0, 0], line_width=1.5, color='#A0A0A0', alpha=1)
+        # clear the plot
+        plot.renderers = []
+        plot.legend.items.clear()
 
-    # create bands and contours for each group
-    legend_items = []
-    colors = get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_map, only_interaction)
-    include_cols = [c for c in all_selected_cols if c != col]
+        # add the "standard probability" line
+        plot.line(x=[self.x_range[0], self.x_range[1]], y=[0, 0], line_width=1.5, color='#A0A0A0', alpha=1)
 
-    color_data = {}
-    for i, color in enumerate(colors):
-        y_col = get_group_col(color, item, truth_class, color_map)
-        color_data[color] = get_group_data(color, include_cols, item, sorted_data, color_map, y_col, col, data_loader)
+        # create bands and contours for each group
+        legend_items = []
+        colors = get_colors(self.add_clusters, all_selected_cols, item, self.sorted_data, self.truth, self.color_map, only_interaction)
+        include_cols = [c for c in all_selected_cols if c != col]
 
-    for i, color in enumerate(colors):
-        # choose right data
-        y_col = get_group_col(color, item, truth_class, color_map)
-        group_data = color_data[color]
-        alpha, line_type = get_group_style(color, color_map)
+        color_data = {}
+        for i, color in enumerate(colors):
+            y_col = get_group_col(color, item, self.truth_class, self.color_map)
+            color_data[color] = get_group_data(color, include_cols, item, self.sorted_data, self.color_map, y_col, col, data_loader)
 
-        if len(group_data) > 0:
-            # choose right label
-            cluster_label = get_group_label(color, group_data, color_map)
+        for i, color in enumerate(colors):
+            # choose right data
+            y_col = get_group_col(color, item, self.truth_class, self.color_map)
+            group_data = color_data[color]
+            alpha, line_type = get_group_style(color, self.color_map)
 
-            # add legend items
-            dummy_for_legend = chart3.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
-            legend_items.append((cluster_label, [dummy_for_legend]))
+            if len(group_data) > 0:
+                # choose right label
+                cluster_label = get_group_label(color, group_data, self.color_map)
 
-            if "contour" in chart_type and color == color_map['purple']:
-                color = create_contour(chart3, cluster_label, col, color, group_data, y_col)
+                # add legend items
+                dummy_for_legend = plot.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
+                legend_items.append((cluster_label, [dummy_for_legend]))
 
-            if "band" in chart_type and color == color_map['purple']:
-                create_band(chart3, cluster_label, col, color, group_data)
+                if "contour" in chart_type and color == self.color_map['purple']:
+                    color = create_contour(plot, cluster_label, col, color, group_data, y_col)
 
-            if "line" in chart_type:
-                create_line(alpha, chart3, cluster_label, col, color, group_data, influence_marker, line_type,
-                            color_map)
+                if "band" in chart_type and color == self.color_map['purple']:
+                    create_band(plot, cluster_label, col, color, group_data)
 
-            if "scatter" in chart_type and color == color_map['purple']:
-                data = get_filtered_data(color, include_cols, item, sorted_data, color_map)
-                create_scatter(chart3, col, color, data, y_col)
+                if "line" in chart_type:
+                    create_line(alpha, plot, cluster_label, col, color, group_data, self.influence_marker, line_type,
+                                self.color_map)
 
-    # add influence
-    if only_interaction:
-        create_influence_band(chart3, col, color_data, color_map)
+                if "scatter" in chart_type and color == self.color_map['purple']:
+                    data = get_filtered_data(color, include_cols, item, self.sorted_data, self.color_map)
+                    create_scatter(plot, col, color, data, y_col)
 
-    # add the selected item
-    if item.type != 'global':
-        add_item(chart3, col, item, item_style, item_x, mean, y_range, color_map)
+        # add influence
+        if only_interaction:
+            create_influence_band(plot, col, color_data, self.color_map)
 
-    add_axis(chart3, influence_marker, y_range_padded, color_map)
+        # add the selected item
+        if item.type != 'global':
+            add_item(plot, self.col, item, self.item_style, self.item_x, self.mean, self.y_range,
+                     self.color_map)
 
-    # add legend
-    chart3.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
-    chart3.legend.location = "top"
+        # add legend
+        plot.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
 
-    add_background(chart3, influence_marker, item, mean, y_range, y_range_padded)
+        return plot
 
-    return chart3
+
+    def create_figure(self, col, data, item):
+        self.truth = "truth" in data.columns
+        self.truth_class = "truth_" + item.predict_class[5:]
+        self.sorted_data = data.copy().sort_values(by=col)
+        self.mean = data[item.predict_class].mean()
+        if self.relative:
+            self.sorted_data[item.predict_class] = self.sorted_data[item.predict_class].apply(lambda x: x - self.mean)
+            if self.truth:
+                self.sorted_data[self.truth_class] = self.sorted_data[self.truth_class].apply(lambda x: x - self.mean)
+        self.x_range = (self.sorted_data[col].min(), self.sorted_data[col].max())
+        self.item_x = item.data_prob_raw[col]
+        x_std = self.sorted_data[col].std()
+        x_range_padded = [self.x_range[0], self.x_range[1]]
+        self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
+        self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]), self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
+        plot = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
+                        x_range=x_range_padded,
+                        width=800, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
+        plot.grid.level = "overlay"
+        plot.grid.grid_line_color = "black"
+        plot.grid.grid_line_alpha = 0.05
+        plot.add_layout(Legend(), 'above')
+        plot.legend.orientation = "horizontal"
+        plot.legend.location = "top"
+
+        if item.type != 'global':
+            plot.x_range.start = self.item_x - x_std
+            plot.x_range.end = self.item_x + x_std
+            # add the label
+            plot.add_layout(
+                Label(x=self.item_x, y=465, y_units="screen", text=col + " = " + str(self.item_x), text_align='center',
+                      text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
+
+        return plot
 
 
 def create_influence_band(chart3, col, color_data, color_map):
@@ -277,9 +300,6 @@ def add_item(chart3, col, item, item_style, item_x, mean, y_range, colors):
         chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
                     line_width=line_width, color=colors['selected_color'],
                     legend_label="Item", line_cap='round')
-    # add the label
-    chart3.add_layout(Label(x=item_x, y=465, y_units="screen", text=col + " = " + str(item_x), text_align='center',
-                            text_baseline='bottom', text_font_size='11pt', text_color=colors['selected_color']))
 
 
 def create_scatter(chart3, col, color, filtered_data, y_col):
@@ -410,3 +430,16 @@ def get_group_col(color, item, truth_class, color_map):
     else:
         y_col = item.predict_class
     return y_col
+
+# for the contours
+def kde(x, y, N):
+    xmin, xmax = x.min(), x.max()
+    ymin, ymax = y.min(), y.max()
+
+    X, Y = np.mgrid[xmin:xmax:N * 1j, ymin:ymax:N * 1j]
+    positions = np.vstack([X.ravel(), Y.ravel()])
+    values = np.vstack([x, y])
+    kernel = gaussian_kde(values)
+    Z = np.reshape(kernel(positions).T, X.shape)
+
+    return X, Y, Z

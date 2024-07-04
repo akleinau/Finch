@@ -2,7 +2,7 @@ import panel as pn
 import param
 from plots.cluster_bar_plot import cluster_bar_plot
 from plots.cluster_similar_bar_plot import cluster_similar_bar_plot
-from plots.dependency_plot import dependency_scatterplot
+from plots.dependency_plot import DependencyPlot
 from plots.parallel_plot import parallel_plot
 from plots.similar_bar_plot import similar_bar_plot
 

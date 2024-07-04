@@ -5,16 +5,25 @@ from bokeh.layouts import column, layout, Spacer
 from calculations.similarity import get_similar_items
 import param
 import panel as pn
+from panel.viewable import Viewer, Viewable
+from plots.styling import add_style
 
-class SimilarPlot(param.Parameterized):
+
+class SimilarPlot(Viewer):
+
+    plot = param.ClassSelector(class_=pn.Column)
 
     def __init__(self, data_loader, item, all_selected_cols, **params):
         super().__init__(**params)
         self.plot = similar_plot(data_loader, item, all_selected_cols)
 
+    @param.depends('plot')
+    def __panel__(self):
+        return self.plot
+
 def similar_plot(data_loader, item, all_selected_cols):
     if len(all_selected_cols) == 0:
-        return ""
+        return pn.Column()
 
     cur_feature = all_selected_cols[0]
 
@@ -93,6 +102,7 @@ def similar_plot(data_loader, item, all_selected_cols):
         plot.line([data_mean, data_mean], [0, 2], color='grey', line_width=2, alpha=0.9, legend_label='Standard mean')
         #plot.line([similar_item_group_mean, similar_item_group_mean], [0, 2], color='#9932CC', line_width=2)
 
+        plot = add_style(plot)
 
         plot.yaxis.axis_label = col + " = " + "{:.2f}".format(item.data_raw[col].values[0])
         plot.yaxis.axis_label_orientation = "horizontal"
@@ -100,11 +110,9 @@ def similar_plot(data_loader, item, all_selected_cols):
         plot.yaxis.major_tick_line_color = None
         plot.yaxis.minor_tick_line_color = None
         plot.yaxis.major_label_text_font_size = '0pt'
-        #hide grid
-        plot.ygrid.grid_line_color = None
-        plot.xgrid.grid_line_color = None
 
         plot.title.visible = False
+
 
         if i == 1:
             # add divider
