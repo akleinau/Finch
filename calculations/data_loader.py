@@ -8,20 +8,19 @@ from calculations import shap_set_functions
 class DataLoader(Viewer):
     def __init__(self, file=None, nn_file=None, truth_file=None):
         super().__init__()
-        restrict = 3000
         if file is None or nn_file is None:
-            self.data = load_weather_data()[0:restrict]
+            self.data = load_weather_data()
             self.columns = [col for col in self.data.columns]
             self.nn = load_weather_nn()
-            truth = load_weather_truth()[0:restrict]
+            truth = load_weather_truth()
 
         else:
-            self.data = load_data(file)[0:restrict]
+            self.data = load_data(file)
             self.nn = load_nn(nn_file)
             self.columns = [col for col in self.data.columns]
             truth = None
             if truth_file is not None:
-                truth = load_data(truth_file)[0:restrict]
+                truth = load_data(truth_file)
 
         self.type = 'classification' if hasattr(self.nn, 'classes_') else 'regression'
 

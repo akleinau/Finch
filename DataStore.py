@@ -83,6 +83,7 @@ class DataStore(param.Parameterized):
                                     parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
                                        onlychanged=False)
+        self.feature_iter.param.watch(self.update_render_plot, parameter_names=['show_process'], onlychanged=False)
 
         # render similar plot
         self.similar_plot = self._update_similar_plot()
@@ -175,7 +176,7 @@ class DataStore(param.Parameterized):
                                       self.clustering.data, self.item,
                                       self.item_index.value,
                                       self.chart_type, self.predict_class.value, self.predict_class_label.value,
-                                      self.data_loader, active_tab)
+                                      self.data_loader, active_tab, only_interaction=self.feature_iter.show_process)
     def update_render_plot(self, event, caused_by_chart=False):
         if self.active:
             self.param.update(render_plot=self._update_render_plot(caused_by_chart))

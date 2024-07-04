@@ -24,7 +24,7 @@ def kde(x, y, N):
     return X, Y, Z
 
 
-def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loader):
+def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loader, only_interaction=True):
     col = all_selected_cols[0]
 
     #colors
@@ -32,7 +32,6 @@ def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loade
               'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
 
     truth = "truth" in data.columns
-    only_interaction = True
     relative = True
     item_style = "grey_line" # "point", "arrow", "line", "grey_line"
     influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
@@ -77,10 +76,16 @@ def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loade
     legend_items = []
     colors = get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_map, only_interaction)
     include_cols = [c for c in all_selected_cols if c != col]
+
+    color_data = {}
+    for i, color in enumerate(colors):
+        y_col = get_group_col(color, item, truth_class, color_map)
+        color_data[color] = get_group_data(color, include_cols, item, sorted_data, color_map, y_col, col, data_loader)
+
     for i, color in enumerate(colors):
         # choose right data
         y_col = get_group_col(color, item, truth_class, color_map)
-        group_data = get_group_data(color, include_cols, item, sorted_data, color_map, y_col, col, data_loader)
+        group_data = color_data[color]
         alpha, line_type = get_group_style(color, color_map)
 
         if len(group_data) > 0:
@@ -105,6 +110,10 @@ def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loade
                 data = get_filtered_data(color, include_cols, item, sorted_data, color_map)
                 create_scatter(chart3, col, color, data, y_col)
 
+    # add influence
+    if only_interaction:
+        create_influence_band(chart3, col, color_data, color_map)
+
     # add the selected item
     if item.type != 'global':
         add_item(chart3, col, item, item_style, item_x, mean, y_range, color_map)
@@ -118,6 +127,33 @@ def dependency_scatterplot(data, all_selected_cols, item, chart_type, data_loade
     add_background(chart3, influence_marker, item, mean, y_range, y_range_padded)
 
     return chart3
+
+
+def create_influence_band(chart3, col, color_data, color_map):
+    if color_map['only_interaction'] in color_data:
+        group_data = color_data[color_map['purple']]
+        compare_data = color_data[color_map['only_interaction']]
+    elif color_map['purple'] in color_data:
+        group_data = color_data[color_map['purple']]
+        compare_data = color_data[color_map['grey']]
+    else:
+        group_data = color_data[color_map['grey']]
+        compare_data = group_data.copy()
+        compare_data['mean'] = 0
+
+    # combine group_data and purple_data to visualize the area between them
+    combined = group_data.join(compare_data, lsuffix='_p', rsuffix='_g', how='outer')
+
+    ## fill the missing values with the previous value
+    combined = combined.interpolate()
+    combined.reset_index(inplace=True)
+    # create two bands, a positive and a negative one
+    combined['max'] = combined[['mean_g', 'mean_p']].max(axis=1)
+    combined['min'] = combined[['mean_g', 'mean_p']].min(axis=1)
+    chart3.varea(x=col, y1='mean_g', y2='max', source=combined, fill_color=color_map['positive_color'],
+                 fill_alpha=0.4, level='underlay')
+    chart3.varea(x=col, y1='mean_g', y2='min', source=combined, fill_color=color_map['negative_color'],
+                 fill_alpha=0.4, level='underlay')
 
 
 def get_rolling(data, y_col, col):
@@ -242,7 +278,7 @@ def add_item(chart3, col, item, item_style, item_x, mean, y_range, colors):
                     line_width=line_width, color=colors['selected_color'],
                     legend_label="Item", line_cap='round')
     # add the label
-    chart3.add_layout(Label(x=item_x, y=495, y_units="screen", text=col + " = " + str(item_x), text_align='center',
+    chart3.add_layout(Label(x=item_x, y=465, y_units="screen", text=col + " = " + str(item_x), text_align='center',
                             text_baseline='bottom', text_font_size='11pt', text_color=colors['selected_color']))
 
 
@@ -362,7 +398,7 @@ def get_group_label(color, filtered_data, color_map):
     elif color == color_map['light_purple']:
         cluster_label = 'Neighborhood ground truth'
     elif color == color_map['only_interaction']:
-        cluster_label = 'Only Interaction'
+        cluster_label = 'Previous'
     else:
         cluster_label = filtered_data["scatter_label"].iloc[0]
     return cluster_label
