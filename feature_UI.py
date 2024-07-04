@@ -30,7 +30,7 @@ sim_plot = pn.bind(lambda e: e.plot, ds.param.similar_plot)
 item_data = pn.bind(lambda e: e.data_reduced, ds.param.item)
 
 template.main.append(pn.Column(
-    ds.get_row_widgets(),
+    pn.Row(ds.feature_iter, styles=dict(margin="auto")),
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
     pn.Row(item_data, ds.render_plot, sim_plot)
 ))

@@ -1,96 +1,100 @@
 import panel as pn
 import param
+from panel.viewable import Viewer
 
-
-class FeatureIter(param.Parameterized):
+class FeatureIter(Viewer):
     all_selected_cols = param.List()
+    all_selected_cols_final = param.List()
     show_process = param.Boolean()
+    widgets = param.ClassSelector(class_=pn.Row)
 
     def __init__(self, columns, **params):
         super().__init__(**params)
 
         self.columns = columns
-        self.all_selected_cols = []
+        self.active = True
 
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
-        self.col_widget.param.watch(self.changed, parameter_names=['value'], onlychanged=False)
+        self.col_widget.param.watch(self.add_col, parameter_names=['value'], onlychanged=False)
 
-        self.col_display = pn.Row()
+        self.col_display = pn.widgets.RadioButtonGroup(button_type='primary', button_style='outline', align="center")
+        self.col_display.param.watch(lambda event: self.col_selected(event.new), parameter_names=['value'], onlychanged=False)
+
         self.col_type = 'singular'
         self.all_selected_cols = []
+        self.all_selected_cols_final = []
         self.col_whitelist = columns
 
-        # create plus button
-        self.plus_button = pn.widgets.Button(name='+', button_type='primary')
-        self.plus_button.on_click(self.add_widget)
-
         # create minus button
-        self.minus_button = pn.widgets.Button(name='-', button_type='primary')
-        self.minus_button.on_click(self.remove_widget)
+        self.minus_button = pn.widgets.ButtonIcon(icon='trash', size="2em", align="center")
+        self.minus_button.on_click(self.remove_col)
 
         # create final toggle
         self.show_process = True
-        self.final_toggle = pn.widgets.Toggle(name='Final', value=False)
+        self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center")
         self.final_toggle.param.watch(self.final_toggle_changed, parameter_names=['value'], onlychanged=False)
 
-        self.update_widgets()
+        self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget,  self.final_toggle)
+
+    @param.depends('widgets')
+    def __panel__(self):
+        return self.widgets
 
 
-    def changed(self, event):
+    def add_col(self, event):
+        if event.new != "" and self.active:
+            self.all_selected_cols_final.append(event.new)
+            self.update_col_whitelist()
 
-        new_cols = self.all_selected_cols.copy()
-        if (event.old == ""):
-            if (event.new != ""):
-                new_cols.append(event.new)
-        elif (event.new == ""):
-            new_cols = new_cols[:-1]
-        else:
-            new_cols[-1] = event.new
-        self.param.update(all_selected_cols=new_cols)
-        self.update_col_whitelist()
+
+    def col_selected(self, col):
+        if self.active:
+            self.active = False
+            if col is not None:
+                index = self.all_selected_cols_final.index(col)
+                self.all_selected_cols = self.all_selected_cols_final[:index+1]
+
+            self.show_process = True
+            self.final_toggle.value = False
+            self.active = True
 
     def update_col_whitelist(self):
-        list = self.all_selected_cols if self.col_widget.value == "" else self.all_selected_cols[:-1]
-
-        self.col_whitelist = [col for col in self.columns if col not in list]
-
-    def add_widget(self, event):
-        if (self.col_widget.value != ""):
-            self.all_selected_cols.append(self.col_widget.value)
-            self.update_col_whitelist()
-            self.col_widget.value = ""
-            self.col_widget.options = ["", *self.col_whitelist]
-            self.update_widgets()
-
-    def remove_widget(self, event):
-        self.all_selected_cols = self.all_selected_cols[:-1]
-        self.update_col_whitelist()
+        self.active = False
+        self.col_whitelist = [col for col in self.columns if col not in self.all_selected_cols_final]
         self.col_widget.options = ["", *self.col_whitelist]
-        self.col_widget.value = self.all_selected_cols[-1]
+        self.col_widget.value = ""
+        self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget, self.final_toggle)
 
-        self.update_widgets()
+        self.active = True
 
-    def update_col_display(self):
-        self.col_display.clear()
-        list = self.all_selected_cols if self.col_widget.value == "" else self.all_selected_cols[:-1]
-        for col in list:
-            self.col_display.append("## " + col + ", ")
 
-    def update_widgets(self):
-        self.update_col_display()
+        if len(self.all_selected_cols_final) > 0:
+            self.col_display.visible = True
+            self.col_display.options = self.all_selected_cols_final
+            self.col_display.value = self.all_selected_cols_final[-1]
 
-        self.widgets = pn.Row(self.col_display, self.col_widget, self.plus_button, self.minus_button, self.final_toggle)
+        else:
+            self.col_display.visible = False
+
+
+
+    def remove_col(self, event):
+        if len(self.all_selected_cols_final) > 0:
+            self.all_selected_cols_final = self.all_selected_cols_final[:-1]
+            self.update_col_whitelist()
 
     def load_new_columns(self, columns):
         self.columns = columns
         self.all_selected_cols = []
         self.update_col_whitelist()
-        self.col_widget.options = ["", *self.col_whitelist]
-        self.col_widget.value = ""
-        self.update_widgets()
 
     def final_toggle_changed(self, event):
-        self.show_process = not event.new
+        if self.active:
+            self.active = False
+            self.show_process = not event.new
+            self.all_selected_cols = self.all_selected_cols_final
+            self.col_display.value = None
+            self.active = True
 
 
 def get_first(event):

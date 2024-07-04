@@ -113,17 +113,13 @@ class DataStore(param.Parameterized):
 
         self.predict_class.param.update(options=loader.classes, value=predict_class)
 
-        self.param.update(data_loader=loader, item=item, clustering=clustering,
-                          render_plot=render_plot.RenderPlot(self.graph_type.value, all_selected_cols,
-                                                             clustering.data, item,
-                                                             self.item_index.value, self.chart_type, predict_class, predict_class,
-                                                             self.data_loader, active_tab=1))
+        self.param.update(data_loader=loader, item=item, clustering=clustering)
         self.feature_iter.load_new_columns(loader.columns)
 
 
         self.init_item_custom_content()
 
-        self.render_plot = self._update_render_plot()
+        self.update_render_plot()
         self.similar_plot = self._update_similar_plot()
 
         self.active = True
@@ -167,9 +163,6 @@ class DataStore(param.Parameterized):
 
     def get_customization_widgets(self):
         return pn.Row(self.cluster_type, self.num_leafs)
-
-    def get_row_widgets(self):
-        return pn.Row(self.feature_iter.widgets, styles=dict(margin="auto"))
 
     def get_render_plot(self):
         return pn.Row(self.render_plot.plot)
