@@ -86,6 +86,7 @@ class FeatureIter(Viewer):
     def load_new_columns(self, columns):
         self.columns = columns
         self.all_selected_cols = []
+        self.all_selected_cols_final = []
         self.update_col_whitelist()
 
     def final_toggle_changed(self, event):
