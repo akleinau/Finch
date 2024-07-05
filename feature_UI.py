@@ -1,7 +1,8 @@
 import panel as pn
 import DataStore as DataStore
 from plots.styling import color
-pn.extension()
+
+pn.extension(global_css=[f':root {{ --design-primary-color: {color}; }}'])
 
 ds = DataStore.DataStore()
 
