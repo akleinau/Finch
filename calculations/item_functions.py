@@ -1,11 +1,15 @@
 import pandas as pd
 import panel as pn
 import calculations.shap_set_functions as shap_set_functions
+from panel.viewable import Viewer
+import param
 
+class Item(Viewer):
+    data_reduced = param.ClassSelector(class_=pd.DataFrame)
 
-
-class Item:
-    def __init__(self, data_loader, data_and_probabilities, type, index, custom_content, predict_class, predict_class_label, combined_columns=None):
+    def __init__(self, data_loader, data_and_probabilities, type, index, custom_content, predict_class,
+                 predict_class_label, combined_columns=None, **params):
+        super().__init__(**params)
         self.data_loader = data_loader
         if data_loader.type == 'classification':
             self.prediction = get_item_prediction(data_and_probabilities, index)
@@ -18,7 +22,7 @@ class Item:
             self.data_prob_raw = data_and_probabilities.iloc[index]
         else:
             self.data_raw = extract_data_from_custom_content(custom_content, data_loader)
-            self.data_prob_raw = data_loader.combine_data_and_results().iloc[0]
+            self.data_prob_raw = data_loader.combine_data_and_results(data=self.data_raw).iloc[0]
 
         self.data = get_item_data(self.data_raw)
         self.data_series = get_item_Series(self.data_raw)
@@ -32,6 +36,10 @@ class Item:
         self.group = 0
         self.scatter_group = 0
         self.scatter_label = 'All'
+
+    @param.depends('data_reduced')
+    def __panel__(self):
+        return self.data_reduced
 
 
     def prediction_string(self):

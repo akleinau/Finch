@@ -24,8 +24,7 @@ class DependencyPlot(Viewer):
         self.influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
         self.add_clusters = False
         self.col = None
-
-
+        self.item_x = None
 
         #colors
         self.color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
@@ -36,13 +35,16 @@ class DependencyPlot(Viewer):
             self.plot = figure()
             self.col = None
         else:
-            if (self.col != all_selected_cols[0]):
-                plot = self.create_figure(all_selected_cols[0], data, item)
+            col = all_selected_cols[0]
+            print("item_x: ", self.item_x, " col: ", item.data_prob_raw[col])
+            if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
+                plot = self.create_figure(col, data, item)
                 add_axis(plot, self.influence_marker, self.y_range_padded, self.color_map)
                 add_background(plot, self.influence_marker, item, self.mean, self.y_range, self.y_range_padded)
-                self.col = all_selected_cols[0]
+                self.col = col
                 plot = add_style(plot)
                 self.plot = self.dependency_scatterplot(plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction)
+                self.item_x = item.data_prob_raw[col]
             else:
                 self.plot = self.dependency_scatterplot(self.plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction)
 

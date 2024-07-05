@@ -28,6 +28,7 @@ class FeatureIter(Viewer):
         # create minus button
         self.minus_button = pn.widgets.ButtonIcon(icon='trash', size="2em", align="center")
         self.minus_button.on_click(self.remove_col)
+        self.minus_button.visible = False
 
         # create final toggle
         self.show_process = True
@@ -44,7 +45,7 @@ class FeatureIter(Viewer):
     def add_col(self, event):
         if event.new != "" and self.active:
             self.all_selected_cols_final.append(event.new)
-            self.update_col_whitelist()
+            self.update_widgets()
 
 
     def col_selected(self, col):
@@ -58,16 +59,17 @@ class FeatureIter(Viewer):
             self.final_toggle.value = False
             self.active = True
 
-    def update_col_whitelist(self):
+    def update_widgets(self):
         self.active = False
         self.col_whitelist = [col for col in self.columns if col not in self.all_selected_cols_final]
         self.col_widget.options = ["", *self.col_whitelist]
         self.col_widget.value = ""
+        self.minus_button.visible = len(self.all_selected_cols_final) > 0
         self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget, self.final_toggle)
 
         self.active = True
 
-
+        # this intentionally triggers col_selected
         if len(self.all_selected_cols_final) > 0:
             self.col_display.visible = True
             self.col_display.options = self.all_selected_cols_final
@@ -75,19 +77,20 @@ class FeatureIter(Viewer):
 
         else:
             self.col_display.visible = False
+            self.all_selected_cols = []
 
 
 
     def remove_col(self, event):
         if len(self.all_selected_cols_final) > 0:
             self.all_selected_cols_final = self.all_selected_cols_final[:-1]
-            self.update_col_whitelist()
+            self.update_widgets()
 
     def load_new_columns(self, columns):
         self.columns = columns
         self.all_selected_cols = []
         self.all_selected_cols_final = []
-        self.update_col_whitelist()
+        self.update_widgets()
 
     def final_toggle_changed(self, event):
         if self.active:

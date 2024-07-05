@@ -69,13 +69,12 @@ class DataStore(param.Parameterized):
         # clustered data
         self.clustering = self._update_clustered_data()
         self.feature_iter.param.watch(self.update_clustered_data, parameter_names=['all_selected_cols'], onlychanged=False)
-        self.item_index.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
-        self.item_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
+        self.param.watch(self.update_clustered_data, parameter_names=['item'], onlychanged=False)
         self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.num_leafs.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
         self.predict_class.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
 
-        # render
+        # render dependency plot
         self.param.watch(self.update_render_plot,
             parameter_names=['clustering'], onlychanged=False)
         self.graph_type.param.watch(self.update_render_plot,
@@ -90,10 +89,8 @@ class DataStore(param.Parameterized):
         self.similar_plot = self._update_similar_plot()
         self.feature_iter.param.watch(self.update_similar_plot,
                                 parameter_names=['all_selected_cols'], onlychanged=False)
-        self.item_index.param.watch(self.update_similar_plot,
-                                parameter_names=['value'], onlychanged=False)
-        self.item_type.param.watch(self.update_similar_plot,
-                                parameter_names=['value'], onlychanged=False)
+        self.param.watch(self.update_similar_plot,
+                                parameter_names=['item'], onlychanged=False)
 
     def prediction_string(self):
         return pn.bind(lambda x: x.item.prediction_string(), self)
