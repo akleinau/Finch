@@ -13,7 +13,7 @@ class Item(Viewer):
     data_reduced = param.ClassSelector(class_=pd.DataFrame)
 
     def __init__(self, data_loader: DataLoader, data_and_probabilities: pd.DataFrame, type: str, index: int,
-                 custom_content: list, predict_class: str,
+                 custom_content: pn.Column, predict_class: str,
                  predict_class_label: str, **params):
         super().__init__(**params)
         self.data_loader = data_loader
@@ -45,7 +45,8 @@ class Item(Viewer):
 
     @param.depends('data_reduced')
     def __panel__(self) -> pd.DataFrame:
-        return self.data_reduced
+
+        return self.data_reduced #['value'].apply(lambda x: "{:.2f}".format(x))
 
     def prediction_string(self) -> pn.pane.Str:
         return pn.pane.Str(self.pred_class_str, sizing_mode="stretch_width", align="center",
@@ -67,7 +68,7 @@ class Item(Viewer):
         return "Probability of " + self.pred_class_label + ": " + "{:10.0f}".format(self.prob_class * 100) + "%"
 
 
-def extract_data_from_custom_content(custom_content: list, data_loader: DataLoader) -> pd.DataFrame:
+def extract_data_from_custom_content(custom_content: pn.Column, data_loader: DataLoader) -> pd.DataFrame:
     """
     extracts the data from the custom content input fields
 

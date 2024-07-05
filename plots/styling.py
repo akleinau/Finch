@@ -1,5 +1,32 @@
 from bokeh.plotting import figure
 
+color = "#381eaa"
+
+style_options = f"""    
+    :host(.outline) .bk-btn-group .bk-btn-default.bk-active {{
+        background-color: {color};
+        border-color: {color};
+        color: white;
+    }}
+    
+    :host(.outline) .bk-btn-group .bk-btn-default {{
+        border-color: {color}
+    }}
+    
+    :host(.solid) .bk-btn-group .bk-btn-default.bk-active {{
+        background-color: {color};
+        border-color: {color};
+        color: white;
+    }}
+    
+"""
+
+style_button = f"""
+    :host(.solid) .bk-btn.bk-btn-default {{
+        background-color: {color};
+        color: white;
+    }}
+"""
 
 def add_style(plot: figure) -> figure:
     """

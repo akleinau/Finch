@@ -42,7 +42,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
     cur_feature = all_selected_cols[0]
 
-    color_similar = "#BB54EE"
+    color_similar = "#A336C0"
     color_item = "#19b57A"
 
     column_criteria = "curr"
@@ -104,7 +104,8 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
                          legend_label='Standard')
         else:
             if len(all_selected_cols) > 1:
-                plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=0.2, source=similar_item_group, size=5,
+                alpha = max(min(100/ len(similar_item_group), 0.2), 0.05) # find a good alpha value based on length
+                plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
                              color=color_similar, legend_label='Neighborhood')
             # item dot
             plot.scatter(x=item.data_raw[col], y=1, size=7, color=color_item, legend_label='Item')
@@ -128,7 +129,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         if i == 1:
             # add divider
-            plot_list.append("## Subgroup: ")
+            plot_list.append("## Subgroup (n = " + str(len(similar_item_group)) + "):")
 
         plot_list.append(plot)
 

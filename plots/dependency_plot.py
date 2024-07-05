@@ -52,7 +52,7 @@ class DependencyPlot(Viewer):
         """
 
         if len(all_selected_cols) == 0:
-            self.plot = figure()
+            self.plot = figure(toolbar_location=None, tools="")
             self.col = None
         else:
             col = all_selected_cols[0]
@@ -245,7 +245,8 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
     # then smooth the line
-    window = max(1, min(int(len(mean_data) / 15), 30))
+    window = max(1, min(int(len(mean_data) / 15), 10))
+    window = window**2
     rolling = mean_data[y_col].rolling(window=window, center=False, min_periods=1).agg(
         {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
          'upper': lambda ev: ev.quantile(.75, interpolation='higher'),

@@ -1,18 +1,21 @@
 import panel as pn
 import DataStore as DataStore
-
+from plots.styling import color
 pn.extension()
 
 ds = DataStore.DataStore()
 
 template = pn.template.MaterialTemplate(
     title="Feature",
+    header_background =color,
 )
+
+item_widgets = pn.bind(lambda e: e, ds.param.item_widgets)
 
 # sidebar content
 template.sidebar.append(pn.Column("# Data set", ds.get_file_widgets(), pn.layout.Spacer(),
                                   "# Target", ds.get_title_widgets(), pn.layout.Spacer(),
-                                  "# Item", ds.get_item_widgets(), styles=dict(margin='auto')))
+                                  "# Item", item_widgets, styles=dict(margin='auto')))
 
 # somehow necessary for reactivity
 render_plot = pn.bind(lambda e: e, ds.param.render_plot)

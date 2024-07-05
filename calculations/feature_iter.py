@@ -1,7 +1,7 @@
 import panel as pn
 import param
 from panel.viewable import Viewer
-
+from plots.styling import style_options, style_button
 
 class FeatureIter(Viewer):
     """
@@ -22,7 +22,7 @@ class FeatureIter(Viewer):
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
         self.col_widget.param.watch(self.add_col, parameter_names=['value'], onlychanged=False)
 
-        self.col_display = pn.widgets.RadioButtonGroup(button_type='primary', button_style='outline', align="center")
+        self.col_display = pn.widgets.RadioButtonGroup(button_style='outline', align="center", stylesheets=[style_options])
         self.col_display.param.watch(lambda event: self.col_selected(event.new), parameter_names=['value'],
                                      onlychanged=False)
 
@@ -38,7 +38,7 @@ class FeatureIter(Viewer):
 
         # create final toggle
         self.show_process = True
-        self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center")
+        self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center", stylesheets=[style_options])
         self.final_toggle.param.watch(self.final_toggle_changed, parameter_names=['value'], onlychanged=False)
 
         self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget, self.final_toggle)
