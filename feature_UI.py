@@ -25,9 +25,9 @@ template.sidebar.append(pn.Column("# Data set", ds.get_file_widgets(), pn.layout
 
 # remaining layout
 
-render_plot = pn.bind(lambda e: e.plot, ds.param.render_plot)
-sim_plot = pn.bind(lambda e: e.plot, ds.param.similar_plot)
-item_data = pn.bind(lambda e: e.data_reduced, ds.param.item)
+render_plot = pn.bind(lambda e: e, ds.param.render_plot)
+sim_plot = pn.bind(lambda e: e, ds.param.similar_plot)
+item_data = pn.bind(lambda e: e, ds.param.item)
 
 template.main.append(pn.Column(
     pn.Row(ds.feature_iter, styles=dict(margin="auto")),

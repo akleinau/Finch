@@ -36,7 +36,6 @@ class DependencyPlot(Viewer):
             self.col = None
         else:
             col = all_selected_cols[0]
-            print("item_x: ", self.item_x, " col: ", item.data_prob_raw[col])
             if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
                 plot = self.create_figure(col, data, item)
                 add_axis(plot, self.influence_marker, self.y_range_padded, self.color_map)
