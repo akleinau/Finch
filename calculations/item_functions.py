@@ -4,6 +4,7 @@ from panel.viewable import Viewer
 import param
 from calculations.data_loader import DataLoader
 
+
 class Item(Viewer):
     """
     Class to store all information necessary for the currently selected item
@@ -36,7 +37,8 @@ class Item(Viewer):
         self.pred_class_label = predict_class_label
         self.prob_class = self.data_prob_raw[predict_class]
         self.pred_class_str = self.get_item_class_probability_string()
-        self.prob_only_selected_cols = get_prob_only_selected_cols(data_loader.nn, data_loader.columns, data_loader.means, self.data, self.prediction)
+        self.prob_only_selected_cols = get_prob_only_selected_cols(data_loader.nn, data_loader.columns,
+                                                                   data_loader.means, self.data, self.prediction)
         self.group = 0
         self.scatter_group = 0
         self.scatter_label = 'All'
@@ -64,6 +66,7 @@ class Item(Viewer):
             return "Prediction: " + "{:.2f}".format(self.prob_class)
         return "Probability of " + self.pred_class_label + ": " + "{:10.0f}".format(self.prob_class * 100) + "%"
 
+
 def extract_data_from_custom_content(custom_content: list, data_loader: DataLoader) -> pd.DataFrame:
     """
     extracts the data from the custom content input fields
@@ -75,7 +78,7 @@ def extract_data_from_custom_content(custom_content: list, data_loader: DataLoad
 
     data = {}
     for item in custom_content:
-        #check if it is an input widget and not a button
+        # check if it is an input widget and not a button
         if hasattr(item, 'value') and not hasattr(item, 'clicks'):
             if (item.value is not None) and (item.value != ''):
                 data[item.name] = item.value
@@ -113,7 +116,7 @@ def get_prob_only_selected_cols(nn, all_selected_cols, means, item, pred_label):
     prediction = predict(new_item)
     classes = nn.classes_ if hasattr(nn, 'classes_') else ['Y']
     prediction = pd.DataFrame(prediction, columns=[str(a) for a in classes])
-    #print(prediction)
+    # print(prediction)
     index = str(pred_label[5:])
 
     return prediction[index][0]

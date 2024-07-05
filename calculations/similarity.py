@@ -1,6 +1,7 @@
 import pandas as pd
 from calculations.item_functions import Item
 
+
 def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
     """
     depending on if pdp is used, starts the calculation of the similar items
@@ -16,6 +17,7 @@ def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list) -> p
     else:
         return get_similar_subset(data, item, col_white_list)
 
+
 def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
     """
     returns a subset of the data that is similar to the item
@@ -25,7 +27,6 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
     :param col_white_list: list
     :return: pd.DataFrame
     """
-
 
     # standardize the data
     data_std = data.copy()
@@ -42,7 +43,7 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
     # calculate distance to item, using shap as weights
     data_std['distance'] = 0
     for col in columns:
-        data_std['distance'] += (data_std[col] - item_data[col][0])**2
+        data_std['distance'] += (data_std[col] - item_data[col][0]) ** 2
 
     # get the 10% closest items
     data_std = data_std.sort_values(by='distance')
@@ -52,7 +53,7 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
     closest_distance = data_std[data_std['distance'] <= min_distance]
     combined_indexes = closest_density.index.union(closest_distance.index)
 
-    #map back to original data
+    # map back to original data
     data = data[data.index.isin(combined_indexes)]
 
     return data
@@ -67,7 +68,6 @@ def get_columns(col_white_list: list, data: pd.DataFrame, item_data: pd.DataFram
     :param item_data: pd.DataFrame
     :return: list
     """
-
 
     if len(col_white_list) == 0:
         columns = list(data.columns)
@@ -99,4 +99,3 @@ def get_pdp_items(data, item, col_white_list):
         data_pdp[col] = item_data[col].values[0]
 
     return data_pdp
-

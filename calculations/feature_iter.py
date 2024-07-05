@@ -2,11 +2,11 @@ import panel as pn
 import param
 from panel.viewable import Viewer
 
+
 class FeatureIter(Viewer):
     """
     Class to coordinate the selection of features
     """
-
 
     all_selected_cols = param.List()
     all_selected_cols_final = param.List()
@@ -23,7 +23,8 @@ class FeatureIter(Viewer):
         self.col_widget.param.watch(self.add_col, parameter_names=['value'], onlychanged=False)
 
         self.col_display = pn.widgets.RadioButtonGroup(button_type='primary', button_style='outline', align="center")
-        self.col_display.param.watch(lambda event: self.col_selected(event.new), parameter_names=['value'], onlychanged=False)
+        self.col_display.param.watch(lambda event: self.col_selected(event.new), parameter_names=['value'],
+                                     onlychanged=False)
 
         self.col_type = 'singular'
         self.all_selected_cols = []
@@ -40,7 +41,7 @@ class FeatureIter(Viewer):
         self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center")
         self.final_toggle.param.watch(self.final_toggle_changed, parameter_names=['value'], onlychanged=False)
 
-        self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget,  self.final_toggle)
+        self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget, self.final_toggle)
 
     @param.depends('widgets')
     def __panel__(self) -> pn.Row:
@@ -62,7 +63,7 @@ class FeatureIter(Viewer):
             self.active = False
             if col is not None:
                 index = self.all_selected_cols_final.index(col)
-                self.all_selected_cols = self.all_selected_cols_final[:index+1]
+                self.all_selected_cols = self.all_selected_cols_final[:index + 1]
 
             self.show_process = True
             self.final_toggle.value = False
@@ -93,8 +94,6 @@ class FeatureIter(Viewer):
             self.col_display.visible = False
             self.all_selected_cols = []
 
-
-
     def remove_col(self, event):
         if len(self.all_selected_cols_final) > 0:
             self.all_selected_cols_final = self.all_selected_cols_final[:-1]
@@ -124,4 +123,3 @@ def get_first(event):
     if len(event) > 0:
         return event[0]
     return None
-

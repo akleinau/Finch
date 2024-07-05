@@ -12,7 +12,6 @@ class DataStore(param.Parameterized):
     main data store that manages everything
     """
 
-
     item = param.ClassSelector(class_=item_functions.Item)
     data_loader = param.ClassSelector(class_=data_loader.DataLoader)
     render_plot = param.ClassSelector(class_=dependency_plot.DependencyPlot)
@@ -30,15 +29,17 @@ class DataStore(param.Parameterized):
         self.data_loader = data_loader.DataLoader()
 
         # item
-        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'], value='predefined')
+        self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'],
+                                                     value='predefined')
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26, width=250)
         self.item_custom_content = pn.Column()
 
         # predict class
         self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes), width=250)
-        self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value, width=250)
+        self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value,
+                                                        width=250)
         self.predict_class.param.watch(lambda event: self.predict_class_label.param.update(value=event.new),
-                                        parameter_names=['value'], onlychanged=False)
+                                       parameter_names=['value'], onlychanged=False)
 
         # columns
         self.feature_iter = feature_iter.FeatureIter(self.data_loader.columns)
@@ -61,9 +62,9 @@ class DataStore(param.Parameterized):
         self.item_index.param.watch(self.update_item_self, parameter_names=['value'],
                                     onlychanged=False)
         self.predict_class_label.param.watch(self.update_item_self, parameter_names=['value'],
-                                       onlychanged=False)
+                                             onlychanged=False)
         self.item_type.param.watch(self.update_item_self, parameter_names=['value'],
-                                    onlychanged=False)
+                                   onlychanged=False)
         self.init_item_custom_content()
 
         # render dependency plot
@@ -75,15 +76,15 @@ class DataStore(param.Parameterized):
         self.chart_type.param.watch(self.update_render_plot,
                                     parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
-                                       onlychanged=False)
+                                             onlychanged=False)
         self.feature_iter.param.watch(self.update_render_plot, parameter_names=['show_process'], onlychanged=False)
 
         # render similar plot
         self.update_similar_plot()
         self.feature_iter.param.watch(self.update_similar_plot,
-                                parameter_names=['all_selected_cols'], onlychanged=False)
+                                      parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_similar_plot,
-                                parameter_names=['item'], onlychanged=False)
+                         parameter_names=['item'], onlychanged=False)
 
     def update_data(self, event):
         """
@@ -95,7 +96,8 @@ class DataStore(param.Parameterized):
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[0]
-        item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, None, predict_class, predict_class)
+        item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, None,
+                                   predict_class, predict_class)
 
         self.predict_class.param.update(options=loader.classes, value=predict_class)
         self.param.update(data_loader=loader, item=item)
@@ -121,7 +123,7 @@ class DataStore(param.Parameterized):
     def get_file_widgets(self) -> pn.Column:
         return pn.Column(pn.Row(
             pn.Column("Data*:", "Model*:", "Truth:"),
-            pn.Column(self.file, self.nn_file,  self.truth_file)),
+            pn.Column(self.file, self.nn_file, self.truth_file)),
             self.calculate,
             styles=dict(padding_bottom='10px', margin='0', align='end'))
 
@@ -129,23 +131,28 @@ class DataStore(param.Parameterized):
         return pn.Column(self.predict_class, self.predict_class_label, styles=dict(padding_top='10px'))
 
     def get_item_widgets(self) -> pn.Column:
-        second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_content if t == 'custom' else None, self.item_type)
+        second_item = pn.bind(
+            lambda t: self.item_index if t == 'predefined' else self.item_custom_content if t == 'custom' else None,
+            self.item_type)
         return pn.Column(self.item_type, second_item)
 
     def update_render_plot(self, *params):
         if self.active:
-            self.render_plot.update_plot(self.data_loader.data_and_probabilities, self.feature_iter.all_selected_cols, self.item,
-                                          self.chart_type.value, self.data_loader, only_interaction=self.feature_iter.show_process)
+            self.render_plot.update_plot(self.data_loader.data_and_probabilities, self.feature_iter.all_selected_cols,
+                                         self.item,
+                                         self.chart_type.value, self.data_loader,
+                                         only_interaction=self.feature_iter.show_process)
 
     def update_similar_plot(self, *params):
         if self.active:
-            self.param.update(similar_plot= similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols))
+            self.param.update(
+                similar_plot=similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols))
 
     def _update_item_self(self) -> item_functions.Item:
-            return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
-                                         self.item_index.value, self.item_custom_content,
-                                         self.predict_class.value, self.predict_class_label.value,
-                                         [])
+        return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
+                                   self.item_index.value, self.item_custom_content,
+                                   self.predict_class.value, self.predict_class_label.value,
+                                   [])
 
     def update_item_self(self, *params):
         if self.active:

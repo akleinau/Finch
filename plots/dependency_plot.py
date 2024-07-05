@@ -27,14 +27,16 @@ class DependencyPlot(Viewer):
         super().__init__(**params)
         self.plot = figure(toolbar_location=None, tools="")
         self.relative = True
-        self.item_style = "grey_line" # "point", "arrow", "line", "grey_line"
-        self.influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
+        self.item_style = "grey_line"  # "point", "arrow", "line", "grey_line"
+        self.influence_marker = ["color_axis",
+                                 "colored_background"]  # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
         self.col = None
         self.item_x = None
 
         #colors
         self.color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
-                  'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
+                          'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A",
+                          'only_interaction': '#E2B1E7'}
 
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
                     data_loader: DataLoader, only_interaction: bool = True):
@@ -60,20 +62,19 @@ class DependencyPlot(Viewer):
                 add_background(plot, self.influence_marker, item, self.mean, self.y_range, self.y_range_padded)
                 self.col = col
                 plot = add_style(plot)
-                self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, chart_type, data_loader, only_interaction)
+                self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, chart_type, data_loader,
+                                                        only_interaction)
                 self.item_x = item.data_prob_raw[col]
             else:
-                self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, chart_type, data_loader, only_interaction)
-
-
+                self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, chart_type, data_loader,
+                                                        only_interaction)
 
     @param.depends('plot')
     def __panel__(self):
         return self.plot
 
-
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
-                    data_loader: DataLoader, only_interaction: bool = True) -> figure:
+                               data_loader: DataLoader, only_interaction: bool = True) -> figure:
         """
         creates dependency plot
 
@@ -85,7 +86,6 @@ class DependencyPlot(Viewer):
         :param only_interaction: bool
         :return: figure
         """
-
 
         col = all_selected_cols[0]
 
@@ -172,10 +172,11 @@ class DependencyPlot(Viewer):
         x_std = self.sorted_data[col].std()
         x_range_padded = [self.x_range[0], self.x_range[1]]
         self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
-        self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]), self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
+        self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
+                               self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
         plot = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
-                        x_range=x_range_padded,
-                        width=800, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
+                      x_range=x_range_padded,
+                      width=800, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
         plot.grid.level = "overlay"
         plot.grid.grid_line_color = "black"
         plot.grid.grid_line_alpha = 0.05
@@ -240,12 +241,11 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     :return: pd.Dataframe
     """
 
-
     #first get mean per value of the col
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
     # then smooth the line
-    window = max(1, min(int(len(mean_data)/15), 30))
+    window = max(1, min(int(len(mean_data) / 15), 30))
     rolling = mean_data[y_col].rolling(window=window, center=False, min_periods=1).agg(
         {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
          'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
@@ -259,7 +259,8 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     return combined
 
 
-def get_filtered_data(color: str, include_cols: list, item: Item, sorted_data: pd.DataFrame, color_map: dict) -> pd.DataFrame:
+def get_filtered_data(color: str, include_cols: list, item: Item, sorted_data: pd.DataFrame,
+                      color_map: dict) -> pd.DataFrame:
     """
     returns the data used for the calculation of the current line
 
@@ -281,7 +282,9 @@ def get_filtered_data(color: str, include_cols: list, item: Item, sorted_data: p
         filtered_data = sorted_data[sorted_data["scatter_group"] == color]
     return filtered_data
 
-def add_background(chart3: figure, influence_marker: list, item: Item, mean: float, y_range: list, y_range_padded: list):
+
+def add_background(chart3: figure, influence_marker: list, item: Item, mean: float, y_range: list,
+                   y_range_padded: list):
     if "colored_background" in influence_marker:
         # color the background, blue below 0, red above 0
         chart3.add_layout(BoxAnnotation(bottom=y_range_padded[0], top=0, fill_color='#E6EDFF', level='underlay'))
@@ -318,7 +321,8 @@ def add_axis(chart3: figure, influence_marker: list, y_range_padded: list, color
                                 text_font_size='11pt', text_color="darkred"))
 
 
-def add_item(chart3: figure, col: str, item: Item, item_style: str, item_x: float, mean: float, y_range: list, colors: dict):
+def add_item(chart3: figure, col: str, item: Item, item_style: str, item_x: float, mean: float, y_range: list,
+             colors: dict):
     line_width = 4
     if (item_style == "absolute_point"):
         item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple',
@@ -347,12 +351,14 @@ def add_item(chart3: figure, col: str, item: Item, item_style: str, item_x: floa
 
         line_blue = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]],
                                 line_width=line_width,
-                                color=colors['positive_color'], alpha=0.5, legend_label="Item", name=str(item.data_prob_raw[col]),
+                                color=colors['positive_color'], alpha=0.5, legend_label="Item",
+                                name=str(item.data_prob_raw[col]),
                                 line_cap='round')
 
         line_red = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0],
                                line_width=line_width,
-                               color=colors['negative_color'], alpha=0.5, legend_label="Item", name=str(item.data_prob_raw[col]),
+                               color=colors['negative_color'], alpha=0.5, legend_label="Item",
+                               name=str(item.data_prob_raw[col]),
                                line_cap='round')
         itemline_hover = HoverTool(renderers=[line_red, line_blue], tooltips=[(col + " of item", '$name')])
         chart3.add_tools(itemline_hover)
@@ -379,10 +385,12 @@ def create_line(chart3: figure, alpha: float, cluster_label: str, col: str, colo
         # Segment or MultiLine might both be an easier variant for colored lines
         combined_over_0 = combined[combined['mean'] >= 0]
         combined_below_0 = combined[combined['mean'] <= 0]
-        line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color=colors['positive_color'], line_width=line_width,
+        line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color=colors['positive_color'],
+                                  line_width=line_width,
                                   # legend_label=cluster_label,
                                   name=cluster_label, line_dash=line_type, alpha=alpha)
-        line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color=colors['negative_color'], line_width=line_width,
+        line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color=colors['negative_color'],
+                                   line_width=line_width,
                                    # legend_label=cluster_label,
                                    name=cluster_label, line_dash=line_type, alpha=alpha)
         line_hover = HoverTool(renderers=[line_over_0, line_below_0], tooltips=[('', '$name')])
@@ -508,8 +516,9 @@ def get_group_col(color: str, item: Item, truth_class: str, color_map: dict) -> 
         y_col = item.predict_class
     return y_col
 
+
 # for the contours
-def kde(x: pd.Series, y: pd.Series , N: int) -> tuple:
+def kde(x: pd.Series, y: pd.Series, N: int) -> tuple:
     """
     used to calculate the contours
 

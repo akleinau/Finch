@@ -39,7 +39,7 @@ class DataLoader(Viewer):
 
         self.predict = self.nn.predict_proba if self.type == 'classification' else self.nn.predict
 
-        #in case of MLPClassifier
+        # in case of MLPClassifier
         if self.type == 'classification':
             self.classes = ['prob_' + str(name) for name in self.nn.classes_]
         else:
@@ -58,7 +58,7 @@ class DataLoader(Viewer):
         if data is None:
             data = self.data
 
-        #drop old columns: all starting with 'prob_' and 'prediction'
+        # drop old columns: all starting with 'prob_' and 'prediction'
         data = data.drop(columns=[col for col in data.columns if col.startswith('prob_') or col == 'prediction'])
 
         # get new probabilities
@@ -68,6 +68,7 @@ class DataLoader(Viewer):
         # merge X_test, shap, predictions
         all_data = pd.concat([data, all_predictions], axis=1)
         return all_data
+
 
 def load_weather_data() -> pd.DataFrame:
     file_testdata = open('weather_data/weather_testdata.csv', 'rb')
@@ -80,6 +81,7 @@ def load_weather_nn() -> pickle:
     nn = pickle.load(file_nn)
     file_nn.close()
     return nn
+
 
 def load_weather_truth() -> pd.DataFrame:
     file_truth = open('weather_data/weather_testtruth.csv', 'rb')
