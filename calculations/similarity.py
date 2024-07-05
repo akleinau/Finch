@@ -1,14 +1,32 @@
 import pandas as pd
+from calculations.item_functions import Item
 
-def get_similar_items(data, item, col_white_list):
+def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
+    """
+    depending on if pdp is used, starts the calculation of the similar items
+    :param data: pd.DataFrame
+    :param item: item_functions.Item
+    :param col_white_list: list
+    :return: pd.DataFrame
+    """
+
     use_pdp = False
     if use_pdp:
         return get_pdp_items(data, item, col_white_list)
     else:
         return get_similar_subset(data, item, col_white_list)
 
-def get_similar_subset(data, item, col_white_list):
-    use_shap = False
+def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
+    """
+    returns a subset of the data that is similar to the item
+
+    :param data: pd.DataFrame
+    :param item: item_functions.Item
+    :param col_white_list: list
+    :return: pd.DataFrame
+    """
+
+
     # standardize the data
     data_std = data.copy()
     item_data = item.data_raw.copy()
@@ -40,7 +58,17 @@ def get_similar_subset(data, item, col_white_list):
     return data
 
 
-def get_columns(col_white_list, data, item_data):
+def get_columns(col_white_list: list, data: pd.DataFrame, item_data: pd.DataFrame) -> list:
+    """
+    returns the columns that are used for the similarity calculation
+
+    :param col_white_list: list
+    :param data: pd.DataFrame
+    :param item_data: pd.DataFrame
+    :return: list
+    """
+
+
     if len(col_white_list) == 0:
         columns = list(data.columns)
         excluded_columns = ['prob_', 'scatter', 'prediction', 'group', 'truth']
@@ -54,6 +82,14 @@ def get_columns(col_white_list, data, item_data):
 
 
 def get_pdp_items(data, item, col_white_list):
+    """
+    INCOMPLETE FUNCTION - should return data adapted for PDP, but is not implemented yet and may not be necessary
+
+    :param data:
+    :param item:
+    :param col_white_list:
+    :return:
+    """
     data_pdp = data.copy()
     item_data = item.data_raw.copy()
     columns = get_columns(col_white_list, data, item_data)

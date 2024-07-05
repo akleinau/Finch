@@ -3,6 +3,8 @@ from bokeh.plotting import figure
 from bokeh.transform import jitter
 from bokeh.layouts import column, layout, Spacer
 from calculations.similarity import get_similar_items
+from calculations.item_functions import Item
+from calculations.data_loader import DataLoader
 import param
 import panel as pn
 from panel.viewable import Viewer, Viewable
@@ -10,10 +12,13 @@ from plots.styling import add_style
 
 
 class SimilarPlot(Viewer):
+    """
+    Class to create visualization of the distribution of similar items per column
+    """
 
     plot = param.ClassSelector(class_=pn.Column)
 
-    def __init__(self, data_loader, item, all_selected_cols, **params):
+    def __init__(self, data_loader: DataLoader, item: Item, all_selected_cols: list, **params):
         super().__init__(**params)
         self.plot = similar_plot(data_loader, item, all_selected_cols)
 
@@ -21,7 +26,17 @@ class SimilarPlot(Viewer):
     def __panel__(self):
         return self.plot
 
-def similar_plot(data_loader, item, all_selected_cols):
+
+def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -> pn.Column:
+    """
+    creates a plot with the distribution of the data and the similar items per column
+
+    :param data_loader: calculations.data_loader.DataLoader
+    :param item: calculations.item_functions.Item
+    :param all_selected_cols: list
+    :return: pn.Column
+    """
+
     if len(all_selected_cols) == 0:
         return pn.Column()
 
@@ -113,13 +128,11 @@ def similar_plot(data_loader, item, all_selected_cols):
 
         plot.title.visible = False
 
-
         if i == 1:
             # add divider
             plot_list.append("## Subgroup: ")
 
         plot_list.append(plot)
-
 
     return plot_list
 

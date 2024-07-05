@@ -23,6 +23,7 @@ class DataLoader(Viewer):
 
         self.type = 'classification' if hasattr(self.nn, 'classes_') else 'regression'
 
+        # in case a ground truth is provided
         if truth is not None:
             if self.type == 'classification':
                 self.data["truth"] = truth
@@ -46,7 +47,14 @@ class DataLoader(Viewer):
 
         self.data_and_probabilities = self.combine_data_and_results()
 
-    def combine_data_and_results(self, data=None):
+    def combine_data_and_results(self, data: pd.DataFrame = None) -> pd.DataFrame:
+        """
+        combines the data with the results of the neural network
+
+        :param data: pd.DataFrame
+        :return:
+        """
+
         if data is None:
             data = self.data
 
@@ -61,37 +69,31 @@ class DataLoader(Viewer):
         all_data = pd.concat([data, all_predictions], axis=1)
         return all_data
 
-def load_weather_data():
-    # load weather files
+def load_weather_data() -> pd.DataFrame:
     file_testdata = open('weather_data/weather_testdata.csv', 'rb')
     testdata = pd.read_csv(file_testdata)
-
     return testdata
 
 
-def load_weather_nn():
-    # load weather files
+def load_weather_nn() -> pickle:
     file_nn = open('weather_data/weather_nn.pkl', 'rb')
     nn = pickle.load(file_nn)
     file_nn.close()
-
     return nn
 
-def load_weather_truth():
-    # load weather files
+def load_weather_truth() -> pd.DataFrame:
     file_truth = open('weather_data/weather_testtruth.csv', 'rb')
     truth = pd.read_csv(file_truth)
-
     return truth
 
 
-def load_data(file_data):
+def load_data(file_data) -> pd.DataFrame:
     return pd.read_csv(io.BytesIO(file_data))
 
 
-def load_nn(file_nn):
+def load_nn(file_nn) -> pickle:
     return pickle.load(io.BytesIO(file_nn))
 
 
-def get_means(data):
+def get_means(data: pd.DataFrame) -> pd.DataFrame:
     return data.mean().to_frame().T

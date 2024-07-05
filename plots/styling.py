@@ -1,8 +1,18 @@
-def add_style(plot):
+from bokeh.plotting import figure
+
+
+def add_style(plot: figure) -> figure:
+    """
+    add global styling to a plot
+
+    :param plot: bokeh.plotting.figure
+    :return:bokeh.plotting.figure
+    """
+
     plot.xaxis.major_label_text_font_size = '14px'
     plot.yaxis.major_label_text_font_size = '14px'
     plot.xaxis.axis_label_text_font_size = '14px'
-    if len(plot.legend) >0:
+    if len(plot.legend) > 0:
         plot.legend.label_text_font_size = '14px'
     if len(plot.hover) > 0:
         # set the font size of the hover tooltip. I don't think this actually works?

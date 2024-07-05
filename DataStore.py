@@ -8,6 +8,11 @@ import plots.dependency_plot as dependency_plot
 
 
 class DataStore(param.Parameterized):
+    """
+    main data store that manages everything
+    """
+
+
     item = param.ClassSelector(class_=item_functions.Item)
     data_loader = param.ClassSelector(class_=data_loader.DataLoader)
     render_plot = param.ClassSelector(class_=dependency_plot.DependencyPlot)
@@ -80,28 +85,31 @@ class DataStore(param.Parameterized):
         self.param.watch(self.update_similar_plot,
                                 parameter_names=['item'], onlychanged=False)
 
-    def prediction_string(self):
-        return pn.bind(lambda x: x.item.prediction_string(), self)
-
     def update_data(self, event):
+        """
+        updates everything when a new data set is loaded
+
+        :param event
+        """
+
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[0]
         item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, None, predict_class, predict_class)
 
         self.predict_class.param.update(options=loader.classes, value=predict_class)
-
         self.param.update(data_loader=loader, item=item)
-
         self.init_item_custom_content()
-
         self.active = True
 
         # intentionally trigger visualization updates, etc
         self.feature_iter.load_new_columns(loader.columns)
 
-
     def init_item_custom_content(self):
+        """
+        initializes the custom content input fields
+        """
+
         self.item_custom_content.clear()
         self.item_custom_content.append("(missing values will be imputed)")
         for col in self.data_loader.columns:
@@ -110,28 +118,19 @@ class DataStore(param.Parameterized):
         self.item_custom_content.append(button)
         button.on_click(self.update_item_self)
 
-    def get_all_data(self):
-        return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
-
-    def get_file_widgets(self):
+    def get_file_widgets(self) -> pn.Column:
         return pn.Column(pn.Row(
             pn.Column("Data*:", "Model*:", "Truth:"),
             pn.Column(self.file, self.nn_file,  self.truth_file)),
             self.calculate,
             styles=dict(padding_bottom='10px', margin='0', align='end'))
 
-    def get_title_widgets(self):
+    def get_title_widgets(self) -> pn.Column:
         return pn.Column(self.predict_class, self.predict_class_label, styles=dict(padding_top='10px'))
 
-    def get_item_widgets(self):
+    def get_item_widgets(self) -> pn.Column:
         second_item = pn.bind(lambda t: self.item_index if t == 'predefined' else self.item_custom_content if t == 'custom' else None, self.item_type)
         return pn.Column(self.item_type, second_item)
-
-    def get_customization_widgets(self):
-        return pn.Row(self.cluster_type, self.num_leafs)
-
-    def get_render_plot(self):
-        return pn.Row(self.render_plot.plot)
 
     def update_render_plot(self, *params):
         if self.active:
@@ -142,7 +141,7 @@ class DataStore(param.Parameterized):
         if self.active:
             self.param.update(similar_plot= similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols))
 
-    def _update_item_self(self):
+    def _update_item_self(self) -> item_functions.Item:
             return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
                                          self.item_index.value, self.item_custom_content,
                                          self.predict_class.value, self.predict_class_label.value,

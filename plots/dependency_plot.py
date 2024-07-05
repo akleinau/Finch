@@ -12,8 +12,15 @@ import panel as pn
 import param
 from plots.styling import add_style
 from panel.viewable import Viewer
+from calculations.item_functions import Item
+from calculations.data_loader import DataLoader
+
 
 class DependencyPlot(Viewer):
+    """
+    Class to create a dependency plot
+    """
+
     plot = param.ClassSelector(class_=figure)
 
     def __init__(self, **params):
@@ -22,7 +29,6 @@ class DependencyPlot(Viewer):
         self.relative = True
         self.item_style = "grey_line" # "point", "arrow", "line", "grey_line"
         self.influence_marker = ["color_axis", "colored_background"] # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
-        self.add_clusters = False
         self.col = None
         self.item_x = None
 
@@ -30,7 +36,19 @@ class DependencyPlot(Viewer):
         self.color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
                   'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A", 'only_interaction': '#E2B1E7'}
 
-    def update_plot(self, data, all_selected_cols, item, chart_type, data_loader, only_interaction=True):
+    def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
+                    data_loader: DataLoader, only_interaction: bool = True):
+        """
+        updates the plot with the new data
+
+        :param data: pd.DataFrame
+        :param all_selected_cols: list
+        :param item: calculations.item_functions.Item
+        :param chart_type: list
+        :param data_loader: calculations.data_loader.DataLoader
+        :param only_interaction: bool
+        """
+
         if len(all_selected_cols) == 0:
             self.plot = figure()
             self.col = None
@@ -42,10 +60,10 @@ class DependencyPlot(Viewer):
                 add_background(plot, self.influence_marker, item, self.mean, self.y_range, self.y_range_padded)
                 self.col = col
                 plot = add_style(plot)
-                self.plot = self.dependency_scatterplot(plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction)
+                self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, chart_type, data_loader, only_interaction)
                 self.item_x = item.data_prob_raw[col]
             else:
-                self.plot = self.dependency_scatterplot(self.plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction)
+                self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, chart_type, data_loader, only_interaction)
 
 
 
@@ -54,7 +72,21 @@ class DependencyPlot(Viewer):
         return self.plot
 
 
-    def dependency_scatterplot(self, plot, data, all_selected_cols, item, chart_type, data_loader, only_interaction=True):
+    def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
+                    data_loader: DataLoader, only_interaction: bool = True) -> figure:
+        """
+        creates dependency plot
+
+        :param plot: figure
+        :param all_selected_cols: list
+        :param item: calculations.item_functions.Item
+        :param chart_type: list
+        :param data_loader: calculations.data_loader.DataLoader
+        :param only_interaction: bool
+        :return: figure
+        """
+
+
         col = all_selected_cols[0]
 
         # clear the plot
@@ -66,13 +98,14 @@ class DependencyPlot(Viewer):
 
         # create bands and contours for each group
         legend_items = []
-        colors = get_colors(self.add_clusters, all_selected_cols, item, self.sorted_data, self.truth, self.color_map, only_interaction)
+        colors = get_colors(all_selected_cols, item, self.truth, self.color_map, only_interaction)
         include_cols = [c for c in all_selected_cols if c != col]
 
         color_data = {}
         for i, color in enumerate(colors):
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
-            color_data[color] = get_group_data(color, include_cols, item, self.sorted_data, self.color_map, y_col, col, data_loader)
+            color_data[color] = get_filtered_data(color, include_cols, item, self.sorted_data, self.color_map)
+            color_data[color] = get_rolling(color_data[color], y_col, col)
 
         for i, color in enumerate(colors):
             # choose right data
@@ -82,7 +115,7 @@ class DependencyPlot(Viewer):
 
             if len(group_data) > 0:
                 # choose right label
-                cluster_label = get_group_label(color, group_data, self.color_map)
+                cluster_label = get_group_label(color, self.color_map)
 
                 # add legend items
                 dummy_for_legend = plot.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
@@ -95,7 +128,7 @@ class DependencyPlot(Viewer):
                     create_band(plot, cluster_label, col, color, group_data)
 
                 if "line" in chart_type:
-                    create_line(alpha, plot, cluster_label, col, color, group_data, self.influence_marker, line_type,
+                    create_line(plot, alpha, cluster_label, col, color, group_data, self.influence_marker, line_type,
                                 self.color_map)
 
                 if "scatter" in chart_type and color == self.color_map['purple']:
@@ -116,8 +149,16 @@ class DependencyPlot(Viewer):
 
         return plot
 
+    def create_figure(self, col: str, data: pd.DataFrame, item: Item) -> figure:
+        """
+        create the basic figure for the dependency plot. It is reused, to keep user interactions (scrolling, etc) constant
 
-    def create_figure(self, col, data, item):
+        :param col: str
+        :param data: pd.DataFrame
+        :param item: Item
+        :return: figure
+        """
+
         self.truth = "truth" in data.columns
         self.truth_class = "truth_" + item.predict_class[5:]
         self.sorted_data = data.copy().sort_values(by=col)
@@ -153,7 +194,16 @@ class DependencyPlot(Viewer):
         return plot
 
 
-def create_influence_band(chart3, col, color_data, color_map):
+def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict):
+    """
+    creates the influence band in red and blue, highlighting the last influence changes
+
+    :param chart3: figure
+    :param col: str
+    :param color_data: dict
+    :param color_map: dict
+    :return:
+    """
     if color_map['only_interaction'] in color_data:
         group_data = color_data[color_map['purple']]
         compare_data = color_data[color_map['only_interaction']]
@@ -180,7 +230,17 @@ def create_influence_band(chart3, col, color_data, color_map):
                  fill_alpha=0.4, level='underlay')
 
 
-def get_rolling(data, y_col, col):
+def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
+    """
+    creates dataframe with rolling mean and quantiles
+
+    :param data: pd.DataFrame
+    :param y_col: str
+    :param col: str
+    :return: pd.Dataframe
+    """
+
+
     #first get mean per value of the col
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
@@ -196,32 +256,32 @@ def get_rolling(data, y_col, col):
     mean_data = mean_data.drop(columns=[y_col])
 
     combined = pd.concat([mean_data, rolling], axis=1)
-    #print(combined.head())
-    # combined = ColumnDataSource(combined.reset_index())
     return combined
 
-def get_filtered_data(color, include_cols, item, sorted_data, color_map):
+
+def get_filtered_data(color: str, include_cols: list, item: Item, sorted_data: pd.DataFrame, color_map: dict) -> pd.DataFrame:
+    """
+    returns the data used for the calculation of the current line
+
+    :param color: str
+    :param include_cols: list
+    :param item: item_functions.Item
+    :param sorted_data: pd.DataFrame
+    :param color_map: dict
+    :return: pd.DataFrame
+    """
+
     if (color == color_map['grey']) or (color == color_map['light_grey']):
         filtered_data = sorted_data
     elif (color == color_map['purple']) or (color == color_map['light_purple']):
         filtered_data = get_similar_items(sorted_data, item, include_cols)
+    elif color == color_map['only_interaction']:
+        filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
     else:
         filtered_data = sorted_data[sorted_data["scatter_group"] == color]
     return filtered_data
 
-def get_group_data(color, include_cols, item, sorted_data, color_map, y_col, col, data_loader):
-    if color == color_map['only_interaction']:
-        filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
-        combined = get_rolling(filtered_data, y_col, col)
-
-    else:
-        filtered_data = get_filtered_data(color, include_cols, item, sorted_data, color_map)
-        combined = get_rolling(filtered_data, y_col, col)
-
-    return combined
-
-
-def add_background(chart3, influence_marker, item, mean, y_range, y_range_padded):
+def add_background(chart3: figure, influence_marker: list, item: Item, mean: float, y_range: list, y_range_padded: list):
     if "colored_background" in influence_marker:
         # color the background, blue below 0, red above 0
         chart3.add_layout(BoxAnnotation(bottom=y_range_padded[0], top=0, fill_color='#E6EDFF', level='underlay'))
@@ -234,7 +294,7 @@ def add_background(chart3, influence_marker, item, mean, y_range, y_range_padded
             chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color='#FFAAAA'))
 
 
-def add_axis(chart3, influence_marker, y_range_padded, colors):
+def add_axis(chart3: figure, influence_marker: list, y_range_padded: list, colors: dict):
     if "color_axis" in influence_marker:
         angle = 0  # np.pi / 2
         chart3.add_layout(
@@ -258,7 +318,7 @@ def add_axis(chart3, influence_marker, y_range_padded, colors):
                                 text_font_size='11pt', text_color="darkred"))
 
 
-def add_item(chart3, col, item, item_style, item_x, mean, y_range, colors):
+def add_item(chart3: figure, col: str, item: Item, item_style: str, item_x: float, mean: float, y_range: list, colors: dict):
     line_width = 4
     if (item_style == "absolute_point"):
         item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple',
@@ -303,7 +363,7 @@ def add_item(chart3, col, item, item_style, item_x, mean, y_range, colors):
                     legend_label="Item", line_cap='round')
 
 
-def create_scatter(chart3, col, color, filtered_data, y_col):
+def create_scatter(chart3: figure, col: str, color: str, filtered_data: pd.DataFrame, y_col: str):
     alpha = 0.3
     chart3.scatter(col, y_col, color=color, source=filtered_data,
                    alpha=alpha, marker='circle', size=3, name="scatter_label",
@@ -311,7 +371,8 @@ def create_scatter(chart3, col, color, filtered_data, y_col):
                    )
 
 
-def create_line(alpha, chart3, cluster_label, col, color, combined, influence_marker, line_type, colors):
+def create_line(chart3: figure, alpha: float, cluster_label: str, col: str, color: str, combined: pd.DataFrame,
+                influence_marker: list, line_type: str, colors: dict):
     line_width = 3.5 if color == colors['purple'] else 3 if color == colors['grey'] else 2
     if (color == colors['purple'] or color == colors['light_purple']) and "colored_lines" in influence_marker:
         # add a line that is red over 0 and blue below 0
@@ -335,9 +396,8 @@ def create_line(alpha, chart3, cluster_label, col, color, combined, influence_ma
         chart3.add_tools(line_hover)
 
 
-def create_band(chart3, cluster_label, col, color, combined):
+def create_band(chart3: figure, cluster_label: str, col: str, color: str, combined: pd.DataFrame):
     band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
-                        # legend_label=cluster_label,
                         fill_color=color,
                         alpha=0.3, name=cluster_label)
     band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
@@ -371,7 +431,18 @@ def create_contour(chart3, cluster_label, col, color, filtered_data, y_col):
     return color
 
 
-def get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_map, only_interaction):
+def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict, only_interaction: bool) -> list:
+    """
+    creates a list with all colors/ lines that will be included
+
+    :param all_selected_cols: list
+    :param item: item_functions.Item
+    :param truth: bool
+    :param color_map: dict
+    :param only_interaction: bool
+    :return: list
+    """
+
     colors = []
     ## light grey for truth
     if truth and len(all_selected_cols) == 1:
@@ -380,10 +451,6 @@ def get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_
     ## light purple for neighbor truth
     if truth and item.type != 'global' and len(all_selected_cols) > 1:
         colors.append(color_map['light_purple'])
-
-    # clusters
-    if add_clusters:
-        colors.append([c for c in sorted_data["scatter_group"].unique()])
 
     # grey for the standard group
     colors.append(color_map['grey'])
@@ -399,7 +466,7 @@ def get_colors(add_clusters, all_selected_cols, item, sorted_data, truth, color_
     return colors
 
 
-def get_group_style(color, color_map):
+def get_group_style(color: str, color_map: dict) -> tuple:
     if (color == color_map['light_grey']) or (color == color_map['light_purple']):
         line_type = "dotted"
         alpha = 1
@@ -409,7 +476,7 @@ def get_group_style(color, color_map):
     return alpha, line_type
 
 
-def get_group_label(color, filtered_data, color_map):
+def get_group_label(color: str, color_map: dict) -> str:
     if color == color_map['grey']:
         cluster_label = 'Prediction'
     elif color == color_map['purple']:
@@ -421,11 +488,20 @@ def get_group_label(color, filtered_data, color_map):
     elif color == color_map['only_interaction']:
         cluster_label = 'Previous'
     else:
-        cluster_label = filtered_data["scatter_label"].iloc[0]
+        cluster_label = ''
     return cluster_label
 
 
-def get_group_col(color, item, truth_class, color_map):
+def get_group_col(color: str, item: Item, truth_class: str, color_map: dict) -> str:
+    """
+    returns the column that is used for the y values
+
+    :param color: str
+    :param item: Item
+    :param truth_class: str
+    :param color_map: dict
+    :return: str
+    """
     if (color == color_map['light_grey']) or (color == color_map['light_purple']):
         y_col = truth_class
     else:
@@ -433,7 +509,15 @@ def get_group_col(color, item, truth_class, color_map):
     return y_col
 
 # for the contours
-def kde(x, y, N):
+def kde(x: pd.Series, y: pd.Series , N: int) -> tuple:
+    """
+    used to calculate the contours
+
+    :param x: pd.Series
+    :param y: pd.Series
+    :param N: int
+    :return: tuple
+    """
     xmin, xmax = x.min(), x.max()
     ymin, ymax = y.min(), y.max()
 
