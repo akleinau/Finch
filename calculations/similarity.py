@@ -22,22 +22,9 @@ def get_similar_subset(data, item, col_white_list):
         item_data[col] = (item_data[col] - mean) / std
 
     # calculate distance to item, using shap as weights
-
-    if use_shap:
-        shap_widened = {}
-        for row in item.shap.iterrows():
-            splits = row[1]['feature'].split(', ')
-            for split in splits:
-                shap_widened[split] = 0.1 + row[1]['abs_shap_value']
-        shap_widened = pd.DataFrame(shap_widened, index=[0])
-
-        data_std['distance'] = 0
-        for col in columns:
-            data_std['distance'] += shap_widened[col][0]*(data_std[col] - item_data[col][0])**2
-    else:
-        data_std['distance'] = 0
-        for col in columns:
-            data_std['distance'] += (data_std[col] - item_data[col][0])**2
+    data_std['distance'] = 0
+    for col in columns:
+        data_std['distance'] += (data_std[col] - item_data[col][0])**2
 
     # get the 10% closest items
     data_std = data_std.sort_values(by='distance')

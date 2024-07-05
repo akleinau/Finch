@@ -1,7 +1,7 @@
 from bokeh.plotting import figure
 from bokeh.transform import factor_cmap
 from bokeh.models import ColumnDataSource, HoverTool
-from plots.render_plot import add_style
+from plots.styling import add_style
 
 
 def set_col(data, item_source, col):

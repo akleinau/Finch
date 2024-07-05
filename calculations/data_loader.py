@@ -2,7 +2,6 @@ import pickle
 import pandas as pd
 import io
 from panel.viewable import Viewer
-from calculations import shap_set_functions
 
 
 class DataLoader(Viewer):

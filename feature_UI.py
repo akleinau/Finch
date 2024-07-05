@@ -1,6 +1,4 @@
 import panel as pn
-from plots.tornado_plot import shap_tornado_plot
-from plots.similar_plot import similar_plot
 import DataStore as DataStore
 
 pn.extension()
@@ -11,32 +9,21 @@ template = pn.template.MaterialTemplate(
     title="Feature",
 )
 
-# create widgets
+# sidebar content
 template.sidebar.append(pn.Column("# Data set", ds.get_file_widgets(), pn.layout.Spacer(),
                                   "# Target", ds.get_title_widgets(), pn.layout.Spacer(),
                                   "# Item", ds.get_item_widgets(), styles=dict(margin='auto')))
 
-# create all the widgets and variables needed for the column group selection
-#pn.panel("<br>").servable()
-#pn.panel("### Column groups:").servable()
-
-# shap plot
-#shap_plot = pn.bind(shap_tornado_plot, ds.param.item, [ds.col])  # col is wrapped to be passed as reference
-
-# remaining layout
-
+# somehow necessary for reactivity
 render_plot = pn.bind(lambda e: e, ds.param.render_plot)
 sim_plot = pn.bind(lambda e: e, ds.param.similar_plot)
 item_data = pn.bind(lambda e: e, ds.param.item)
 
+# main content
 template.main.append(pn.Column(
     pn.Row(ds.feature_iter, styles=dict(margin="auto")),
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
     pn.Row(item_data, ds.render_plot, sim_plot)
 ))
-
-#ds.get_customization_widgets()
-
-#template.main.append(pn.Row(ds.cur_feature, styles=dict(visibility='hidden')))# necessary for the column selection to work
 
 template.servable()

@@ -2,19 +2,14 @@ import param
 import panel as pn
 import calculations.data_loader as data_loader
 import calculations.item_functions as item_functions
-import calculations.column_functions as column_functions
-import calculations.clusters as clusters
 import calculations.feature_iter as feature_iter
-import plots.render_plot as render_plot
 import plots.similar_plot as similar_plot
 import plots.dependency_plot as dependency_plot
 
 
 class DataStore(param.Parameterized):
     item = param.ClassSelector(class_=item_functions.Item)
-    columnGrouping = param.ClassSelector(class_=column_functions.ColumnGrouping)
     data_loader = param.ClassSelector(class_=data_loader.DataLoader)
-    clustering = param.ClassSelector(class_=clusters.Clustering)
     render_plot = param.ClassSelector(class_=dependency_plot.DependencyPlot)
     similar_plot = param.ClassSelector(class_=similar_plot.SimilarPlot)
     feature_iter = param.ClassSelector(class_=feature_iter.FeatureIter)
@@ -66,17 +61,10 @@ class DataStore(param.Parameterized):
                                     onlychanged=False)
         self.init_item_custom_content()
 
-        # clustered data
-        self.clustering = self._update_clustered_data()
-        self.feature_iter.param.watch(self.update_clustered_data, parameter_names=['all_selected_cols'], onlychanged=False)
-        self.param.watch(self.update_clustered_data, parameter_names=['item'], onlychanged=False)
-        self.cluster_type.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
-        self.num_leafs.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
-        self.predict_class.param.watch(self.update_clustered_data, parameter_names=['value'], onlychanged=False)
-
         # render dependency plot
-        self.param.watch(self.update_render_plot,
-            parameter_names=['clustering'], onlychanged=False)
+        self.feature_iter.param.watch(self.update_render_plot, parameter_names=['all_selected_cols'], onlychanged=False)
+        self.param.watch(self.update_render_plot, parameter_names=['item'], onlychanged=False)
+        self.predict_class.param.watch(self.update_render_plot, parameter_names=['value'], onlychanged=False)
         self.graph_type.param.watch(self.update_render_plot,
                                     parameter_names=['value'], onlychanged=False)
         self.chart_type.param.watch(self.update_render_plot,
@@ -86,7 +74,7 @@ class DataStore(param.Parameterized):
         self.feature_iter.param.watch(self.update_render_plot, parameter_names=['show_process'], onlychanged=False)
 
         # render similar plot
-        self.similar_plot = self._update_similar_plot()
+        self.update_similar_plot()
         self.feature_iter.param.watch(self.update_similar_plot,
                                 parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_similar_plot,
@@ -95,31 +83,22 @@ class DataStore(param.Parameterized):
     def prediction_string(self):
         return pn.bind(lambda x: x.item.prediction_string(), self)
 
-    def column_grouping_changed(self, event):
-        self.update_item_self()
-
     def update_data(self, event):
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[0]
-        all_selected_cols = loader.columns
         item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, None, predict_class, predict_class)
-        clustering = clusters.Clustering(self.cluster_type.value, loader.data_and_probabilities, all_selected_cols,
-                                            predict_class, item, num_leafs=self.num_leafs.value,
-                                           exclude_col=False)
 
         self.predict_class.param.update(options=loader.classes, value=predict_class)
 
-        self.param.update(data_loader=loader, item=item, clustering=clustering)
-        self.feature_iter.load_new_columns(loader.columns)
-
+        self.param.update(data_loader=loader, item=item)
 
         self.init_item_custom_content()
 
-        self.update_render_plot()
-        self.similar_plot = self._update_similar_plot()
-
         self.active = True
+
+        # intentionally trigger visualization updates, etc
+        self.feature_iter.load_new_columns(loader.columns)
 
 
     def init_item_custom_content(self):
@@ -130,16 +109,6 @@ class DataStore(param.Parameterized):
         button = pn.widgets.Button(name="Calculate", button_type="primary", align="center", width=300)
         self.item_custom_content.append(button)
         button.on_click(self.update_item_self)
-
-    def _update_clustered_data(self):
-        return clusters.Clustering(self.cluster_type.value, self.data_loader.data_and_probabilities,
-                                     self.feature_iter.all_selected_cols, self.predict_class.value, self.item,
-                                     exclude_col=False, num_leafs=self.num_leafs.value)
-
-    def update_clustered_data(self, *params):
-        if self.active:
-            self.param.update(
-                clustering=self._update_clustered_data())
 
     def get_all_data(self):
         return pn.bind(data_loader.load_data, self.file.value, self.data_loader.nn)
@@ -166,15 +135,12 @@ class DataStore(param.Parameterized):
 
     def update_render_plot(self, *params):
         if self.active:
-            self.render_plot.update_plot(self.clustering.data, self.feature_iter.all_selected_cols, self.item,
+            self.render_plot.update_plot(self.data_loader.data_and_probabilities, self.feature_iter.all_selected_cols, self.item,
                                           self.chart_type.value, self.data_loader, only_interaction=self.feature_iter.show_process)
-
-    def _update_similar_plot(self):
-        return similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols)
 
     def update_similar_plot(self, *params):
         if self.active:
-            self.param.update(similar_plot= self._update_similar_plot())
+            self.param.update(similar_plot= similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols))
 
     def _update_item_self(self):
             return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
