@@ -7,7 +7,7 @@ pn.extension(global_css=[f':root {{ --design-primary-color: {color}; }}'])
 ds = DataStore.DataStore()
 
 template = pn.template.MaterialTemplate(
-    title="Feature",
+    title="FINCH - Feature Interaction Charts",
     header_background =color,
 )
 
