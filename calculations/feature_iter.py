@@ -65,8 +65,9 @@ class FeatureIter(Viewer):
                 index = self.all_selected_cols_final.index(col)
                 self.all_selected_cols = self.all_selected_cols_final[:index + 1]
 
-            self.show_process = True
-            self.final_toggle.value = False
+            if not self.show_process:
+                self.show_process = True
+                self.final_toggle.value = False
             self.active = True
 
     def update_widgets(self):

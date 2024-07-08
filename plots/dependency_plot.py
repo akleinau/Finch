@@ -39,7 +39,7 @@ class DependencyPlot(Viewer):
                           'only_interaction': '#E2B1E7'}
 
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
-                    data_loader: DataLoader, only_interaction: bool = True):
+                    data_loader: DataLoader, show_process: bool = True):
         """
         updates the plot with the new data
 
@@ -48,7 +48,7 @@ class DependencyPlot(Viewer):
         :param item: calculations.item_functions.Item
         :param chart_type: list
         :param data_loader: calculations.data_loader.DataLoader
-        :param only_interaction: bool
+        :param show_process: bool
         """
 
         if len(all_selected_cols) == 0:
@@ -63,11 +63,11 @@ class DependencyPlot(Viewer):
                 self.col = col
                 plot = add_style(plot)
                 self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, chart_type, data_loader,
-                                                        only_interaction)
+                                                        show_process)
                 self.item_x = item.data_prob_raw[col]
             else:
                 self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, chart_type, data_loader,
-                                                        only_interaction)
+                                                        show_process)
 
     @param.depends('plot')
     def __panel__(self):
@@ -136,8 +136,7 @@ class DependencyPlot(Viewer):
                     create_scatter(plot, col, color, data, y_col)
 
         # add influence
-        if only_interaction:
-            create_influence_band(plot, col, color_data, self.color_map)
+        create_influence_band(plot, col, color_data, self.color_map, only_interaction)
 
         # add the selected item
         if item.type != 'global':
@@ -195,7 +194,7 @@ class DependencyPlot(Viewer):
         return plot
 
 
-def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict):
+def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool):
     """
     creates the influence band in red and blue, highlighting the last influence changes
 
@@ -203,9 +202,11 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     :param col: str
     :param color_data: dict
     :param color_map: dict
+    :param show_process: bool
     :return:
     """
-    if color_map['only_interaction'] in color_data:
+
+    if show_process and color_map['only_interaction'] in color_data:
         group_data = color_data[color_map['purple']]
         compare_data = color_data[color_map['only_interaction']]
     elif color_map['purple'] in color_data:

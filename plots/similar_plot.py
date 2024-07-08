@@ -9,6 +9,8 @@ import param
 import panel as pn
 from panel.viewable import Viewer, Viewable
 from plots.styling import add_style
+from sklearn.neighbors import KernelDensity
+import numpy as np
 
 
 class SimilarPlot(Viewer):
@@ -55,6 +57,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
     data = data_loader.data.copy()
     data['fixed'] = 1
+    data['fixed2'] = -1
     similar_item_group = get_similar_items(data, item, include_cols)
 
     # normalize the data
@@ -99,21 +102,22 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
             plot.legend.visible = False
 
         # add points
-        if item.type == 'global':
-            plot.scatter(x=jitter(col, 3), y=jitter('fixed', 2), alpha=0.1, source=data, size=2, color='grey',
+        alpha = max(min(100 / len(data), 0.2), 0.05)
+        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed2', 2), alpha=alpha, source=data, size=2, color='grey',
                          legend_label='Standard')
-        else:
-            if len(all_selected_cols) > 1:
-                alpha = max(min(100/ len(similar_item_group), 0.2), 0.05) # find a good alpha value based on length
-                plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
-                             color=color_similar, legend_label='Neighborhood')
+        if len(all_selected_cols) > 1:
+            alpha = max(min(100/ len(similar_item_group), 0.2), 0.05) # find a good alpha value based on length
+            plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
+                         color=color_similar, legend_label='Neighborhood')
+
+
             # item dot
             plot.scatter(x=item.data_raw[col], y=1, size=7, color=color_item, legend_label='Item')
 
         # add the mean of the data and of similar_item_group as lines
-        data_mean = data[col].mean()
-        similar_item_group_mean = similar_item_group[col].mean()
-        plot.line([data_mean, data_mean], [0, 2], color='grey', line_width=2, alpha=0.9, legend_label='Standard mean')
+        #data_mean = data[col].mean()
+        #similar_item_group_mean = similar_item_group[col].mean()
+        #plot.line([data_mean, data_mean], [0, 2], color='grey', line_width=2, alpha=0.9, legend_label='Standard mean')
         # plot.line([similar_item_group_mean, similar_item_group_mean], [0, 2], color='#9932CC', line_width=2)
 
         plot = add_style(plot)

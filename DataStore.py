@@ -72,7 +72,7 @@ class DataStore(param.Parameterized):
         self.init_item_custom_content()
 
         # render dependency plot
-        self.feature_iter.param.watch(self.update_render_plot, parameter_names=['all_selected_cols'], onlychanged=False)
+        self.feature_iter.param.watch(self.update_render_plot, parameter_names=['all_selected_cols', 'show_process'], onlychanged=False)
         self.param.watch(self.update_render_plot, parameter_names=['item'], onlychanged=False)
         self.predict_class.param.watch(self.update_render_plot, parameter_names=['value'], onlychanged=False)
         self.graph_type.param.watch(self.update_render_plot,
@@ -81,7 +81,6 @@ class DataStore(param.Parameterized):
                                     parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
                                              onlychanged=False)
-        self.feature_iter.param.watch(self.update_render_plot, parameter_names=['show_process'], onlychanged=False)
 
         # render similar plot
         self.update_similar_plot()
@@ -160,7 +159,7 @@ class DataStore(param.Parameterized):
             self.render_plot.update_plot(self.data_loader.data_and_probabilities, self.feature_iter.all_selected_cols,
                                          self.item,
                                          self.chart_type.value, self.data_loader,
-                                         only_interaction=self.feature_iter.show_process)
+                                         show_process=self.feature_iter.show_process)
 
     def update_similar_plot(self, *params):
         if self.active:
