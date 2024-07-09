@@ -55,27 +55,10 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
     elif column_criteria == "curr":
         include_cols = [col for col in all_selected_cols if col != cur_feature]
 
-    data = data_loader.data.copy()
-    data['fixed'] = 1
-    data['fixed2'] = -1
+    data = get_data(data_loader)
     similar_item_group = get_similar_items(data, item, include_cols)
 
-    # normalize the data
-    normalized_data = data.copy()
-    normalized_similar_item_group = similar_item_group.copy()
-    for col in data.columns.drop('fixed'):
-        mean = data[col].mean()
-        std = data[col].std()
-        normalized_data[col] = (data[col] - mean) / std
-        normalized_similar_item_group[col] = (similar_item_group[col] - mean) / std
-
-    # calculate the difference per column
-    data_mean = normalized_data.mean()
-    similar_item_group_mean = normalized_similar_item_group.mean()
-    diff = data_mean - similar_item_group_mean
-    diff = diff.drop('fixed')
-    diff = diff.abs()
-    diff = diff.sort_values(ascending=False)
+    diff = find_order(data, similar_item_group)
 
     # for each column, create a bokeh plot with the distribution of the data
     plot_list = pn.Column(styles=dict(margin='auto'))
@@ -86,6 +69,9 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
     display_cols = [cur_feature, *display_cols]  # make sur cur_feature is first
 
     for i, col in enumerate(display_cols):
+
+        if i == 0:
+            continue
 
         # create a figure
         x_range = [data[col].min(), data[col].max()]
@@ -101,18 +87,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
             plot.add_layout(Legend(), 'above')
             plot.legend.visible = False
 
-        # add points
-        alpha = max(min(100 / len(data), 0.2), 0.05)
-        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed2', 2), alpha=alpha, source=data, size=2, color='grey',
-                         legend_label='Standard')
-        if len(all_selected_cols) > 1:
-            alpha = max(min(100/ len(similar_item_group), 0.2), 0.05) # find a good alpha value based on length
-            plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
-                         color=color_similar, legend_label='Neighborhood')
-
-
-            # item dot
-            plot.scatter(x=item.data_raw[col], y=1, size=7, color=color_item, legend_label='Item')
+        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
 
         # add the mean of the data and of similar_item_group as lines
         #data_mean = data[col].mean()
@@ -124,10 +99,8 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         plot.yaxis.axis_label = col + " = " + "{:.2f}".format(item.data_raw[col].values[0])
         plot.yaxis.axis_label_orientation = "horizontal"
-        # hide ticks of the yaxis but not the label
-        plot.yaxis.major_tick_line_color = None
-        plot.yaxis.minor_tick_line_color = None
-        plot.yaxis.major_label_text_font_size = '0pt'
+
+        style_axes(col, item, plot)
 
         plot.title.visible = False
 
@@ -138,3 +111,50 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
         plot_list.append(plot)
 
     return plot_list
+
+
+def style_axes(col, item, plot):
+    # hide ticks of the yaxis but not the label
+    plot.yaxis.major_tick_line_color = None
+    plot.yaxis.minor_tick_line_color = None
+    plot.yaxis.major_label_text_font_size = '0pt'
+
+
+def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
+    # add points
+    alpha = max(min(100 / len(data), 0.2), 0.05)
+    plot.scatter(x=jitter(col, 0.5), y=jitter('fixed2', 2), alpha=alpha, source=data, size=2, color='grey',
+                 legend_label='Standard')
+    if len(all_selected_cols) > 1:
+        alpha = max(min(100 / len(similar_item_group), 0.2), 0.05)  # find a good alpha value based on length
+        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
+                     color=color_similar, legend_label='Neighborhood')
+
+    plot.line([item.data_prob_raw[col],item.data_prob_raw[col]], [-2, 2], color=color_item,
+                line_width=4, legend_label='Item')
+
+
+def get_data(data_loader):
+    data = data_loader.data.copy()
+    data['fixed'] = 1
+    data['fixed2'] = -1
+    return data
+
+
+def find_order(data, similar_item_group):
+    # normalize the data
+    normalized_data = data.copy()
+    normalized_similar_item_group = similar_item_group.copy()
+    for col in data.columns.drop('fixed'):
+        mean = data[col].mean()
+        std = data[col].std()
+        normalized_data[col] = (data[col] - mean) / std
+        normalized_similar_item_group[col] = (similar_item_group[col] - mean) / std
+    # calculate the difference per column
+    data_mean = normalized_data.mean()
+    similar_item_group_mean = normalized_similar_item_group.mean()
+    diff = data_mean - similar_item_group_mean
+    diff = diff.drop('fixed')
+    diff = diff.abs()
+    diff = diff.sort_values(ascending=False)
+    return diff

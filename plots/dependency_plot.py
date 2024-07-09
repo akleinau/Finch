@@ -14,6 +14,7 @@ from plots.styling import add_style
 from panel.viewable import Viewer
 from calculations.item_functions import Item
 from calculations.data_loader import DataLoader
+from plots.similar_plot import get_data, add_scatter, style_axes
 
 
 class DependencyPlot(Viewer):
@@ -22,10 +23,12 @@ class DependencyPlot(Viewer):
     """
 
     plot = param.ClassSelector(class_=figure)
+    density_plot = param.ClassSelector(class_=figure)
 
     def __init__(self, **params):
         super().__init__(**params)
-        self.plot = figure(toolbar_location=None, tools="")
+        self.plot = figure(toolbar_location=None, tools="", width=800)
+        self.density_plot = figure(toolbar_location=None, tools="", width=800, height=200)
         self.relative = True
         self.item_style = "grey_line"  # "point", "arrow", "line", "grey_line"
         self.influence_marker = ["color_axis",
@@ -52,7 +55,8 @@ class DependencyPlot(Viewer):
         """
 
         if len(all_selected_cols) == 0:
-            self.plot = figure(toolbar_location=None, tools="")
+            self.plot = figure(toolbar_location=None, tools="", width=800)
+            self.density_plot = figure(toolbar_location=None, tools="", width=800, height=200)
             self.col = None
         else:
             col = all_selected_cols[0]
@@ -69,9 +73,11 @@ class DependencyPlot(Viewer):
                 self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, chart_type, data_loader,
                                                         show_process)
 
-    @param.depends('plot')
+            self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
+
+    @param.depends('density_plot')
     def __panel__(self):
-        return self.plot
+        return pn.Column(self.plot, self.density_plot)
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
                                data_loader: DataLoader, only_interaction: bool = True) -> figure:
@@ -190,6 +196,27 @@ class DependencyPlot(Viewer):
             plot.add_layout(
                 Label(x=self.item_x, y=465, y_units="screen", text=col + " = " + str(self.item_x), text_align='center',
                       text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
+
+        return plot
+
+    def create_density_plot(self, col, item, data_loader, all_selected_cols):
+        color_similar = "#A336C0"
+        color_item = "#19b57A"
+
+        data = get_data(data_loader)
+        similar_item_group = get_similar_items(data, item, all_selected_cols[1:])
+
+        plot = figure(title="data distribution", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=800, height=120,
+                      x_range=self.plot.x_range, active_scroll="xwheel_zoom",)
+        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
+
+        plot = add_style(plot)
+
+        style_axes(col, item, plot)
+
+        # hide legend
+        plot.add_layout(Legend(), 'above')
+        plot.legend.visible = False
 
         return plot
 
