@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from calculations.item_functions import Item
 
@@ -99,3 +100,22 @@ def get_pdp_items(data, item, col_white_list):
         data_pdp[col] = item_data[col].values[0]
 
     return data_pdp
+
+def get_window_items(data, item, col, y_col):
+    window = get_window_size(data)
+    item_col_value = item.data_raw[col].values[0]
+    mean_data = data.groupby(col).agg({y_col: 'mean'})
+
+    # get the items with an index that is within the window around the item
+    item_index = mean_data.index.get_loc(item_col_value)
+    start_index = max(0, item_index - window)
+    end_index = item_index + 1
+    mean_data = mean_data.iloc[start_index:end_index]
+
+    return mean_data
+
+def get_window_size(data):
+    window = max(1, min(int(len(data) / 15), 10))
+    window = window ** 2
+
+    return window

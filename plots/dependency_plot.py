@@ -7,7 +7,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
 import bokeh.colors
-from calculations.similarity import get_similar_items, get_pdp_items
+from calculations.similarity import get_similar_items, get_pdp_items, get_window_size
 import panel as pn
 import param
 from plots.styling import add_style
@@ -273,14 +273,14 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
     # then smooth the line
-    window = max(1, min(int(len(mean_data) / 15), 10))
-    window = window**2
+    window = get_window_size(mean_data)
     rolling = mean_data[y_col].rolling(window=window, center=False, min_periods=1).agg(
         {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
          'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
          'mean': 'mean'})
 
-    rolling = rolling.rolling(window=window, center=False, min_periods=1).mean()
+    second_window = min(window, 10)
+    rolling = rolling.rolling(window=second_window, center=False, min_periods=1).mean()
 
     mean_data = mean_data.drop(columns=[y_col])
 

@@ -3,9 +3,12 @@ import panel as pn
 import calculations.data_loader as data_loader
 import calculations.item_functions as item_functions
 import calculations.feature_iter as feature_iter
+import calculations.similarity as similarity
 import plots.similar_plot as similar_plot
 import plots.dependency_plot as dependency_plot
 from plots.styling import style_button, style_options
+import plots.tornado_plot as tornado_plot
+import pandas as pd
 
 class DataStore(param.Parameterized):
     """
@@ -18,6 +21,7 @@ class DataStore(param.Parameterized):
     similar_plot = param.ClassSelector(class_=similar_plot.SimilarPlot)
     feature_iter = param.ClassSelector(class_=feature_iter.FeatureIter)
     item_widgets = param.ClassSelector(class_=pn.Column)
+    tornado_plot = param.ClassSelector(class_=tornado_plot.TornadoPlot)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -88,6 +92,13 @@ class DataStore(param.Parameterized):
                                       parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_similar_plot,
                          parameter_names=['item'], onlychanged=False)
+
+        # render tornado plot
+        self.update_tornado_plot()
+        self.feature_iter.param.watch(self.update_tornado_plot,
+                                        parameter_names=['all_selected_cols'], onlychanged=False)
+        self.param.watch(self.update_tornado_plot,
+                            parameter_names=['item'], onlychanged=False)
 
 
     def update_data(self, event):
@@ -165,6 +176,12 @@ class DataStore(param.Parameterized):
         if self.active:
             self.param.update(
                 similar_plot=similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols))
+
+    def update_tornado_plot(self, *params):
+        if self.active:
+            self.param.update(tornado_plot=tornado_plot.TornadoPlot(self.data_loader.data_and_probabilities, self.item,
+                                                                    self.predict_class.value, self.data_loader.columns,
+                                                                    self.feature_iter.all_selected_cols))
 
     def _update_item_self(self) -> item_functions.Item:
         return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
