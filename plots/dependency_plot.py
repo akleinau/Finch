@@ -7,7 +7,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
 import bokeh.colors
-from calculations.similarity import get_similar_items, get_pdp_items, get_window_size
+from calculations.similarity import get_similar_items, get_pdp_items, get_window_size, get_window_items
 import panel as pn
 import param
 from plots.styling import add_style
@@ -27,8 +27,8 @@ class DependencyPlot(Viewer):
 
     def __init__(self, **params):
         super().__init__(**params)
-        self.plot = figure(toolbar_location=None, tools="", width=800)
-        self.density_plot = figure(toolbar_location=None, tools="", width=800, height=200)
+        self.plot = figure(toolbar_location=None, tools="", width=0)
+        self.density_plot = figure(toolbar_location=None, tools="", width=0, height=200)
         self.relative = True
         self.item_style = "grey_line"  # "point", "arrow", "line", "grey_line"
         self.influence_marker = ["color_axis",
@@ -39,7 +39,7 @@ class DependencyPlot(Viewer):
         #colors
         self.color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
                           'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A",
-                          'only_interaction': '#E2B1E7'}
+                          'only_interaction': '#E2B1E7', 'new_feature': '#AAAAAA'}
 
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
                     data_loader: DataLoader, show_process: bool = True):
@@ -55,8 +55,8 @@ class DependencyPlot(Viewer):
         """
 
         if len(all_selected_cols) == 0:
-            self.plot = figure(toolbar_location=None, tools="", width=800)
-            self.density_plot = figure(toolbar_location=None, tools="", width=800, height=200)
+            self.plot = figure(toolbar_location=None, tools="", width=0)
+            self.density_plot = figure(toolbar_location=None, tools="", width=0, height=200)
             self.col = None
         else:
             col = all_selected_cols[0]
@@ -236,11 +236,11 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     if show_process and color_map['only_interaction'] in color_data:
         group_data = color_data[color_map['purple']]
         compare_data = color_data[color_map['only_interaction']]
-    elif color_map['purple'] in color_data:
+    elif not show_process and color_map['purple'] in color_data:
         group_data = color_data[color_map['purple']]
         compare_data = color_data[color_map['grey']]
     else:
-        group_data = color_data[color_map['grey']]
+        group_data = color_data[color_map['purple']]
         compare_data = group_data.copy()
         compare_data['mean'] = 0
 
@@ -304,9 +304,26 @@ def get_filtered_data(color: str, include_cols: list, item: Item, sorted_data: p
     if (color == color_map['grey']) or (color == color_map['light_grey']):
         filtered_data = sorted_data
     elif (color == color_map['purple']) or (color == color_map['light_purple']):
-        filtered_data = get_similar_items(sorted_data, item, include_cols)
+        if len(include_cols) == 0:
+            filtered_data = sorted_data
+        else:
+            filtered_data = get_similar_items(sorted_data, item, include_cols)
     elif color == color_map['only_interaction']:
-        filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+        if len(include_cols) == 1:
+            filtered_data = sorted_data
+        else:
+            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+    elif color == color_map['new_feature']:
+        # first get the prediction of just the newest feature alone
+        last_col = include_cols[-1]
+        single_mean = get_window_items(sorted_data, item, last_col, item.predict_class)[item.predict_class].mean()
+
+        # select, if the line to show should be purple or grey
+        if len(include_cols) == 1:
+            filtered_data = sorted_data
+        else:
+            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+        filtered_data[item.predict_class] = filtered_data[item.predict_class] + single_mean
     else:
         filtered_data = sorted_data[sorted_data["scatter_group"] == color]
     return filtered_data
@@ -468,7 +485,7 @@ def create_contour(chart3, cluster_label, col, color, filtered_data, y_col):
     return color
 
 
-def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict, only_interaction: bool) -> list:
+def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict, show_progress: bool) -> list:
     """
     creates a list with all colors/ lines that will be included
 
@@ -476,29 +493,30 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
     :param item: item_functions.Item
     :param truth: bool
     :param color_map: dict
-    :param only_interaction: bool
+    :param show_progress: bool
     :return: list
     """
 
     colors = []
     ## light grey for truth
-    if truth and len(all_selected_cols) == 1:
-        colors.append(color_map['light_grey'])
+    #if truth and len(all_selected_cols) == 1:
+    #    colors.append(color_map['light_grey'])
 
     ## light purple for neighbor truth
-    if truth and item.type != 'global' and len(all_selected_cols) > 1:
+    if truth and item.type != 'global' and len(all_selected_cols) >= 1:
         colors.append(color_map['light_purple'])
 
     # grey for the standard group
-    colors.append(color_map['grey'])
-
-    # only_interaction
-    if only_interaction and len(all_selected_cols) > 2:
-        colors.append(color_map['only_interaction'])
+    if not show_progress and len(all_selected_cols) > 1:
+        colors.append(color_map['grey'])
 
     # purple for neighbors
-    if item.type != 'global' and len(all_selected_cols) > 1:
-        colors.append(color_map['purple'])
+    colors.append(color_map['purple'])
+
+    # show_progress
+    if show_progress and item.type != 'global' and len(all_selected_cols) > 1:
+        colors.append(color_map['only_interaction'])
+        colors.append(color_map['new_feature'])
 
     return colors
 
@@ -524,6 +542,8 @@ def get_group_label(color: str, color_map: dict) -> str:
         cluster_label = 'Neighborhood ground truth'
     elif color == color_map['only_interaction']:
         cluster_label = 'Previous'
+    elif color == color_map['new_feature']:
+        cluster_label = 'New feature'
     else:
         cluster_label = ''
     return cluster_label

@@ -102,9 +102,11 @@ def get_pdp_items(data, item, col_white_list):
     return data_pdp
 
 def get_window_items(data, item, col, y_col):
-    window = get_window_size(data)
+
     item_col_value = item.data_raw[col].values[0]
     mean_data = data.groupby(col).agg({y_col: 'mean'})
+
+    window = get_window_size(mean_data)
 
     # get the items with an index that is within the window around the item
     item_index = mean_data.index.get_loc(item_col_value)
