@@ -162,10 +162,12 @@ class DependencyPlot(Viewer):
 
     def remove_old(self, plot, simple_next, all_selected_cols):
         if simple_next:
-            keep_colors = self.color_map['grey'] if len(all_selected_cols) == 2 else self.color_map['purple']
+            keep_colors = [self.color_map['grey']]
+            if len(all_selected_cols) > 2:
+                keep_colors.append(self.color_map['purple'])
             plot.renderers = [r for r in plot.renderers if
                               ("prediction" not in r.glyph.tags)
-                              or (r.name == keep_colors)]
+                              or (r.name in keep_colors)]
 
             old_line = plot.select(name=self.color_map['purple'])
             for l in old_line:
@@ -275,7 +277,7 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     if show_process and color_map['previous_prediction'] in color_data:
         group_data = color_data[color_map['purple']]
         compare_data = color_data[color_map['previous_prediction']]
-    elif not show_process and color_map['purple'] in color_data:
+    elif color_map['purple'] in color_data:
         group_data = color_data[color_map['purple']]
         compare_data = color_data[color_map['grey']]
     else:
@@ -444,7 +446,7 @@ def create_line(chart3: figure, alpha: float, cluster_label: str, col: str, colo
         chart3.add_tools(line_hover)
 
     else:
-        if not simple_next or color != colors['previous_prediction']:
+        if not simple_next or color != colors['previous_prediction'] or color != colors['grey']:
             line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
                                legend_label=cluster_label, tags=[color, "prediction"],
                                name=color, line_dash=line_type, alpha=alpha)
@@ -491,7 +493,7 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
 
 
     # show_progress
-    if show_progress and item.type != 'global' and len(all_selected_cols) > 1:
+    if show_progress and item.type != 'global' and len(all_selected_cols) > 2:
         colors.append(color_map['previous_prediction'])
 
     # show additive
