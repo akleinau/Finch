@@ -132,9 +132,6 @@ class DependencyPlot(Viewer):
                 #dummy_for_legend = plot.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
                 #legend_items.append((cluster_label, [dummy_for_legend]))
 
-                if "contour" in chart_type and color == self.color_map['purple']:
-                    color = create_contour(plot, cluster_label, col, color, group_data, y_col)
-
                 if "band" in chart_type and color == self.color_map['purple']:
                     create_band(plot, cluster_label, col, color, group_data)
 
@@ -151,7 +148,7 @@ class DependencyPlot(Viewer):
 
         # add the selected item
         if item.type != 'global':
-            add_item(plot, self.col, item, self.item_style, self.item_x, self.mean, self.y_range,
+            add_item(plot, self.col, item, self.y_range,
                      self.color_map)
 
         # add legend
@@ -383,52 +380,12 @@ def add_axis(chart3: figure, influence_marker: list, y_range_padded: list, color
                                 text_font_size='11pt', text_color="darkred"))
 
 
-def add_item(chart3: figure, col: str, item: Item, item_style: str, item_x: float, mean: float, y_range: list,
+def add_item(chart3: figure, col: str, item: Item, y_range: list,
              colors: dict):
     line_width = 4
-    if (item_style == "absolute_point"):
-        item_scatter = chart3.scatter(item.data_prob_raw[col], item.data_prob_raw[item.predict_class], color='purple',
-                                      size=7, name="selected item",
-                                      legend_label="Item")
-
-        scatter_hover = HoverTool(renderers=[item_scatter], tooltips=[('', '$name')])
-        chart3.add_tools(scatter_hover)
-
-    elif (item_style == "point"):
-        # add the point when only selected cols are used
-        if item.prob_only_selected_cols is not None:
-            chart3.scatter(x=item.data_prob_raw[col], y=item.prob_only_selected_cols - mean, color='purple',
-                           legend_label='influence on item')
-
-    elif (item_style == "arrow"):
-        if item.prob_only_selected_cols is not None:
-            # add the arrow when only selected cols are used
-            color = "mediumblue" if item.prob_only_selected_cols - mean < 0 else "darkred"
-            nh = NormalHead(fill_color=color, line_color=color, size=7)
-            arrow = Arrow(end=nh, x_start=item_x, y_start=0, x_end=item_x, y_end=item.prob_only_selected_cols - mean,
-                          line_color=color, line_width=2)
-            chart3.add_layout(arrow)
-
-    elif (item_style == "line"):
-
-        line_blue = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[0, y_range[1]],
-                                line_width=line_width,
-                                color=colors['positive_color'], alpha=0.5, legend_label="Item",
-                                name=str(item.data_prob_raw[col]),
-                                line_cap='round')
-
-        line_red = chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], 0],
-                               line_width=line_width,
-                               color=colors['negative_color'], alpha=0.5, legend_label="Item",
-                               name=str(item.data_prob_raw[col]),
-                               line_cap='round')
-        itemline_hover = HoverTool(renderers=[line_red, line_blue], tooltips=[(col + " of item", '$name')])
-        chart3.add_tools(itemline_hover)
-
-    elif (item_style == "grey_line"):
-        chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
-                    line_width=line_width, color=colors['selected_color'],
-                    legend_label="Item", line_cap='round')
+    chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
+                line_width=line_width, color=colors['selected_color'],
+                legend_label="Item", line_cap='round')
 
 
 def create_scatter(chart3: figure, col: str, color: str, filtered_data: pd.DataFrame, y_col: str):
@@ -472,33 +429,6 @@ def create_band(chart3: figure, cluster_label: str, col: str, color: str, combin
                         alpha=0.3, name=cluster_label)
     band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
     chart3.add_tools(band_hover)
-
-
-def create_contour(chart3, cluster_label, col, color, filtered_data, y_col):
-    # only use subset of data for performance reasons
-    if len(filtered_data) > 1000:
-        data_subset = filtered_data.sample(n=1000)
-    else:
-        data_subset = filtered_data
-    x, y, z = kde(data_subset[col], data_subset[y_col], 100)
-    # use the color to create a palette
-    rgb = color = tuple(int(color[1:][i:i + 2], 16) for i in (0, 2, 4))  # convert hex to rgb
-    # to bokeh
-    cur_color = bokeh.colors.RGB(*rgb)
-    palette = [cur_color]
-    for i in range(0, 3):
-        new_color = palette[i].copy()
-        new_color.a -= 0.3
-        palette.append(new_color)
-    palette = [c.to_hex() for c in palette]  # convert to hex
-    palette = palette[::-1]  # invert the palette
-    levels = np.linspace(np.min(z), np.max(z), 7)
-    contour = chart3.contour(x, y, z, levels[1:], fill_color=palette, line_color=palette, fill_alpha=0.8)
-    contour.fill_renderer.name = cluster_label
-    # contour.fill_renderer
-    contour_hover = HoverTool(renderers=[contour.fill_renderer], tooltips=[('', '$name')])
-    chart3.add_tools(contour_hover)
-    return color
 
 
 def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict, show_progress: bool) -> list:
@@ -583,25 +513,3 @@ def get_group_col(color: str, item: Item, truth_class: str, color_map: dict) -> 
     else:
         y_col = item.predict_class
     return y_col
-
-
-# for the contours
-def kde(x: pd.Series, y: pd.Series, N: int) -> tuple:
-    """
-    used to calculate the contours
-
-    :param x: pd.Series
-    :param y: pd.Series
-    :param N: int
-    :return: tuple
-    """
-    xmin, xmax = x.min(), x.max()
-    ymin, ymax = y.min(), y.max()
-
-    X, Y = np.mgrid[xmin:xmax:N * 1j, ymin:ymax:N * 1j]
-    positions = np.vstack([X.ravel(), Y.ravel()])
-    values = np.vstack([x, y])
-    kernel = gaussian_kde(values)
-    Z = np.reshape(kernel(positions).T, X.shape)
-
-    return X, Y, Z
