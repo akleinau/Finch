@@ -106,7 +106,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         if i == 1:
             # add divider
-            plot_list.append("## Subgroup (n = " + str(len(similar_item_group)) + "):")
+            plot_list.append("## Neighborhood (n = " + str(len(similar_item_group)) + "):")
 
         plot_list.append(plot)
 
