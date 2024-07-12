@@ -95,8 +95,8 @@ class DataStore(param.Parameterized):
 
         # render tornado plot
         self.update_tornado_plot()
-        #self.feature_iter.param.watch(self.update_tornado_plot,
-        #                                parameter_names=['all_selected_cols'], onlychanged=False)
+        self.feature_iter.param.watch(self.update_tornado_plot,
+                                        parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_tornado_plot,
                             parameter_names=['item'], onlychanged=False)
 

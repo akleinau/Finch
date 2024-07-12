@@ -21,10 +21,11 @@ class TornadoPlot(Viewer):
         #self.dataset = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols)
         self.dataset = get_overview_dataset(data, item, y_col, columns)
         self.plot = tornado_plot(self.dataset, all_selected_cols)
+        self.all_selected_cols = all_selected_cols
 
     @param.depends('plot')
     def __panel__(self):
-        return self.plot
+        return self.plot if len(self.all_selected_cols) == 0 else figure(width=0)
 
 
 
@@ -134,8 +135,6 @@ class InteractTreeSub (InteractTree):
 
 
 def get_overview_dataset(data, item, y_col, columns):
-    print("start calculation")
-
     mean_prob = data[y_col].mean()
     prob_range = data[y_col].max() - data[y_col].min()
     min_value = prob_range * 0.2
@@ -151,7 +150,6 @@ def get_overview_dataset(data, item, y_col, columns):
                 independent_columns.append(col)
 
         deleted_columns = [col for col in columns if col not in independent_columns]
-        print("deleted columns: ", deleted_columns)
     else:
         independent_columns = columns
 
@@ -160,8 +158,6 @@ def get_overview_dataset(data, item, y_col, columns):
     for col in independent_columns:
         # get prediction of the col on its own
         single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - mean_prob
-
-    print(single_dict)
 
     # recursively build a tree for each column
     tree_list = []
@@ -183,8 +179,6 @@ def get_overview_dataset(data, item, y_col, columns):
     dataframe['abs_value'] = dataframe['value'].abs()
     dataframe['positive'] = dataframe['value'].apply(lambda x: 'pos' if x > 0 else 'neg')
     dataframe = dataframe.sort_values(by='abs_value', ascending=False)
-
-    print(dataframe)
 
     if len(dataframe) > 10:
         dataframe = dataframe.iloc[:10]

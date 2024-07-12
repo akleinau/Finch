@@ -210,8 +210,11 @@ class DependencyPlot(Viewer):
         plot.legend.click_policy = "hide"
 
         if item.type != 'global':
-            plot.x_range.start = self.item_x - x_std
-            plot.x_range.end = self.item_x + x_std
+
+            # centers the plot on the item
+            #plot.x_range.start = self.item_x - x_std
+            #plot.x_range.end = self.item_x + x_std
+
             # add the label
             plot.add_layout(
                 Label(x=self.item_x, y=465, y_units="screen", text=col + " = " + str(self.item_x), text_align='center',
@@ -474,16 +477,17 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
     #if truth and len(all_selected_cols) == 1:
     #    colors.append(color_map['light_grey'])
 
-    ## light purple for neighbor truth
-    if truth and item.type != 'global' and len(all_selected_cols) >= 1:
-        colors.append(color_map['light_purple'])
-
     # grey for the standard group
     if not show_progress and len(all_selected_cols) > 1:
         colors.append(color_map['grey'])
 
     # purple for neighbors
     colors.append(color_map['purple'])
+
+    ## light purple for neighbor truth
+    if truth and item.type != 'global' and len(all_selected_cols) >= 1:
+        colors.append(color_map['light_purple'])
+
 
     # show_progress
     if show_progress and item.type != 'global' and len(all_selected_cols) > 1:
