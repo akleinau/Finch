@@ -11,6 +11,7 @@ class FeatureIter(Viewer):
     all_selected_cols = param.List()
     all_selected_cols_final = param.List()
     show_process = param.Boolean()
+    simple_next = param.Boolean()
     widgets = param.ClassSelector(class_=pn.Row)
 
     def __init__(self, columns: list, **params):
@@ -23,7 +24,7 @@ class FeatureIter(Viewer):
         self.col_widget.param.watch(self.add_col, parameter_names=['value'], onlychanged=False)
 
         self.col_display = pn.widgets.RadioButtonGroup(button_style='outline', align="center", stylesheets=[style_options])
-        self.col_display.param.watch(lambda event: self.col_selected(event.new), parameter_names=['value'],
+        self.col_display.param.watch(lambda event: self.col_selected(event), parameter_names=['value'],
                                      onlychanged=False)
 
         self.col_type = 'singular'
@@ -52,16 +53,28 @@ class FeatureIter(Viewer):
             self.all_selected_cols_final.append(event.new)
             self.update_widgets()
 
-    def col_selected(self, col: str):
+    def col_selected(self, event):
         """
         handles the selection of a feature for display
 
-        :param col: str
         """
+
+        col = event.new
+
 
         if self.active:
             self.active = False
+
             if col is not None:
+
+                # make animations smoother
+                if event.old is not None:
+                    old_index = self.all_selected_cols_final.index(event.old)
+                    new_index = self.all_selected_cols_final.index(col)
+                    self.simple_next = new_index == old_index + 1
+                else:
+                    self.simple_next = False
+
                 index = self.all_selected_cols_final.index(col)
                 self.all_selected_cols = self.all_selected_cols_final[:index + 1]
 
@@ -97,6 +110,7 @@ class FeatureIter(Viewer):
 
     def remove_col(self, event):
         if len(self.all_selected_cols_final) > 0:
+            self.simple_next = False
             self.all_selected_cols_final = self.all_selected_cols_final[:-1]
             self.update_widgets()
 
@@ -106,6 +120,8 @@ class FeatureIter(Viewer):
 
         :param columns: list
         """
+
+        self.simple_next = False
         self.columns = columns
         self.all_selected_cols = []
         self.all_selected_cols_final = []
@@ -114,6 +130,7 @@ class FeatureIter(Viewer):
     def final_toggle_changed(self, event):
         if self.active:
             self.active = False
+            self.simple_next = False
             self.show_process = not event.new
             self.all_selected_cols = self.all_selected_cols_final
             self.col_display.value = None

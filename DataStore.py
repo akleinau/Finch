@@ -172,7 +172,8 @@ class DataStore(param.Parameterized):
             self.render_plot.update_plot(self.data_loader.data_and_probabilities, self.feature_iter.all_selected_cols,
                                          self.item,
                                          self.chart_type.value, self.data_loader,
-                                         show_process=self.feature_iter.show_process)
+                                         show_process=self.feature_iter.show_process,
+                                         simple_next = self.feature_iter.simple_next)
 
     def update_similar_plot(self, *params):
         if self.active:
