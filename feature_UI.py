@@ -22,13 +22,16 @@ template.sidebar.append(pn.Column("# Data set", ds.get_file_widgets(), pn.layout
 render_plot = pn.bind(lambda e: e, ds.param.render_plot)
 sim_plot = pn.bind(lambda e: e, ds.param.similar_plot)
 item_data = pn.bind(lambda e: e, ds.param.item)
-tornado_plot = pn.bind(lambda e: e, ds.param.tornado_plot)
+tornado_plot_single = pn.bind(lambda e: e.plot_single, ds.param.tornado_plot)
+tornado_plot_overview = pn.bind(lambda e: e, ds.param.tornado_plot)
 
 # main content
 template.main.append(pn.Column(
     pn.Row(ds.feature_iter, styles=dict(margin="auto")),
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
-    pn.Row(item_data, ds.render_plot, pn.Column(sim_plot, tornado_plot))
+    pn.Row(item_data,ds.render_plot,
+           pn.Column(sim_plot, tornado_plot_single),
+           tornado_plot_overview)
 ))
 
 template.servable()

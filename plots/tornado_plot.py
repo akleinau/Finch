@@ -13,59 +13,64 @@ from panel.viewable import Viewer
 class TornadoPlot(Viewer):
 
 
-    plot = param.ClassSelector(class_=figure)
+    plot_single = param.ClassSelector(class_=figure)
+    plot_overview = param.ClassSelector(class_=figure)
 
     def __init__(self, data, item, y_col, columns, feature_iter):
         all_selected_cols = feature_iter.all_selected_cols
         super().__init__()
         self.remaining_columns = [col for col in columns if col not in all_selected_cols]
-        #self.dataset = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols)
-        self.dataset = get_overview_dataset(data, item, y_col, columns)
-        self.plot = tornado_plot(self.dataset, feature_iter)
+        self.mean_prob = data[y_col].mean()
+
+        # get all singular features
+        single_dict = {}
+        for col in columns:
+            # get prediction of the col on its own
+            single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - self.mean_prob
+
+        self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict, self.mean_prob)
+        self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
+        self.plot_single = tornado_plot(self.dataset_single, feature_iter, "single")
+        self.plot_overview = tornado_plot(self.dataset_overview, feature_iter, "overview")
         self.all_selected_cols = all_selected_cols
         self.feature_iter = feature_iter
 
-    @param.depends('plot')
+    @param.depends('plot_overview')
     def __panel__(self):
-        return self.plot if len(self.all_selected_cols) == 0 else figure(width=0)
+        return self.plot_overview if len(self.all_selected_cols) == 0 else figure(width=0)
 
 
 
-def get_dataset(data, item, y_col, remaining_columns, all_selected_cols):
-
-
-    mean_prob = data[y_col].mean()
+def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_dict, mean_prob):
 
     # get all singular features
     results = []
     for col in remaining_columns:
         columns = all_selected_cols + [col]
 
-        # get prediction of the col on its own
-        single_mean = get_window_items(data, item, col, y_col)[y_col].mean()
+        single_value = single_dict[col]
 
         if len(columns) > 1:
-            # get prediction of the col with the other selected cols
-            similar_items = get_similar_items(data, item, columns)
-            group_mean = get_window_items(similar_items, item, col, y_col)[y_col].mean()
+            first_col = all_selected_cols[0]
 
-            # get prediction of the other selected cols on their own
-            similar_items = get_similar_items(data, item, all_selected_cols)
-            prev_mean = get_window_items(similar_items, item, col, y_col)[y_col].mean()
+            # calculate added value
+            similar_items = get_similar_items(data, item, all_selected_cols[1:])
+            prev_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
+            added_value = single_value + prev_value
+
+            # calculate joined value
+            # get prediction of the col with the other selected cols
+            similar_items = get_similar_items(data, item, columns[1:])
+            joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
 
             # value = single_mean - mean_prob
-            value = np.abs(group_mean - (prev_mean + single_mean - mean_prob))
+            value = np.abs(added_value - joined_value)
 
-            results.append({'feature': col, 'prediction': group_mean, 'value': value})
+            results.append({'feature': col, 'prediction': joined_value, 'value': value})
         else:
-            results.append({'feature': col, 'prediction': single_mean, 'value': single_mean- mean_prob})
+            results.append({'feature': col, 'prediction': single_value, 'value': single_value})
 
-
-
-    dataframe = pd.DataFrame(results).sort_values(by='value', ascending=False)
-    dataframe['abs_value'] = dataframe['value'].abs()
-    dataframe['positive'] = dataframe['value'].apply(lambda x: 'pos' if x > 0 else 'neg')
-    dataframe = dataframe.sort_values(by='abs_value', ascending=True)
+    dataframe = create_dataframe(results)
 
     return dataframe
 
@@ -95,7 +100,7 @@ class InteractTreeRoot (InteractTree):
                 self.nodes.append(InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
 
     def get_nodes(self):
-        nodes = [self]
+        nodes = []
         for node in self.nodes:
             nodes.extend(node.get_nodes())
         return nodes
@@ -136,35 +141,14 @@ class InteractTreeSub (InteractTree):
         return nodes
 
 
-def get_overview_dataset(data, item, y_col, columns):
-    mean_prob = data[y_col].mean()
+def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
     prob_range = data[y_col].max() - data[y_col].min()
     min_value = prob_range * 0.2
 
-    # first, only keep a list of features independent of each other
-    delete_dependent = False
-    if delete_dependent:
-        corr = data[columns].corr()
-        independent_columns = []
-        for col in columns:
-            # check if the column is independent of the other columns
-            if all([abs(corr[col][c]) < 0.7 for c in independent_columns]):
-                independent_columns.append(col)
-
-        deleted_columns = [col for col in columns if col not in independent_columns]
-    else:
-        independent_columns = columns
-
-    # get all singular features
-    single_dict = {}
-    for col in independent_columns:
-        # get prediction of the col on its own
-        single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - mean_prob
-
     # recursively build a tree for each column
     tree_list = []
-    for col in independent_columns:
-        remaining = [c for c in independent_columns if c != col]
+    for col in columns:
+        remaining = [c for c in columns if c != col]
         tree_list.append(InteractTreeRoot(single_dict, col, remaining, mean_prob, data, item, y_col, min_value))
 
     # create a list of all nodes
@@ -177,50 +161,56 @@ def get_overview_dataset(data, item, y_col, columns):
     for node in nodes:
         results.append({'feature': ", ".join(node.columns), 'value': node.value, 'prediction': node.prediction, 'added': node.added, 'prev_value': node.prev_value})
 
-    dataframe = pd.DataFrame(results)
-    dataframe['abs_value'] = dataframe['value'].abs()
-    dataframe['positive'] = dataframe['value'].apply(lambda x: 'pos' if x > 0 else 'neg')
-    dataframe = dataframe.sort_values(by='abs_value', ascending=False)
-
-    if len(dataframe) > 10:
-        dataframe = dataframe.iloc[:10]
-
-    dataframe = dataframe.sort_values(by='abs_value', ascending=True)
+    dataframe = create_dataframe(results)
 
     return dataframe
 
 
+def create_dataframe(results):
+    dataframe = pd.DataFrame(results)
+    dataframe['abs_value'] = dataframe['value'].abs()
+    dataframe['positive'] = dataframe['value'].apply(lambda x: 'pos' if x > 0 else 'neg')
+    dataframe = dataframe.sort_values(by='abs_value', ascending=False)
+    if len(dataframe) > 10:
+        dataframe = dataframe.iloc[:10]
+    dataframe = dataframe.sort_values(by='abs_value', ascending=True)
+    return dataframe
 
-def set_col(data, item_source, feature_iter):
+
+def set_col(data, item_source, feature_iter, type):
     if len(item_source.selected.indices) > 0:
         if len(item_source.selected.indices) > 1:
             item_source.selected.indices = item_source.selected.indices[1:2]
         select = data.iloc[item_source.selected.indices]
         select = select['feature'].values[0]
         select = select.split(', ')
-        feature_iter.set_all_selected_cols(select)
+        if type == 'overview':
+            feature_iter.set_all_selected_cols(select)
+        else:
+            feature_iter.add_col(select[0])
     else:
         feature_iter.set_all_selected_cols(data['feature'])
 
 
-def tornado_plot(data, feature_iter):
+def tornado_plot(data, feature_iter, type):
+
+    width = 400 if type == 'single' else 600
+
     item_source = ColumnDataSource(data=data)
-    #get last item
-    #col[0].value = shap['feature'].values[-1]
-    max_shap = data['value'].max()
-    min_shap = data['value'].min()
 
-    x_range = (-1, 1) if type != 'global' else (0, 1.1*max_shap)
-    if (max_shap > 1 or min_shap < -1):
-        x_range = (min_shap, max_shap)
+    max_shap = data['abs_value'].max()
+    min_shap = data['abs_value'].min()
+    puffer = (max_shap - min_shap) * 0.1
 
-    plot = figure(title="Interaction strength", y_range=data['feature'], x_range=x_range, tools='tap', width=800,
+    x_range = (min_shap - puffer, max_shap)
+
+    plot = figure(title="Interaction strength", y_range=data['feature'], x_range=x_range, tools='tap', width=width,
                   toolbar_location=None)
 
     back_bars_left = plot.hbar(
         y='feature',
         right=plot.x_range.start,
-        fill_color="lavender",
+        fill_color="white",
         line_width=0,
         source=item_source,
         nonselection_fill_alpha=0.0,
@@ -230,7 +220,7 @@ def tornado_plot(data, feature_iter):
     back_bars_right = plot.hbar(
         y='feature',
         right=plot.x_range.end,
-        fill_color="lavender",
+        fill_color="white",
         line_width=0,
         source=item_source,
         nonselection_fill_alpha=0.0,
@@ -239,8 +229,8 @@ def tornado_plot(data, feature_iter):
 
     bars = plot.hbar(
         y='feature',
-        right='value',
-        fill_color=factor_cmap("positive", palette=["#AE0139", "#3801AC"], factors=["pos", "neg"]),
+        right='abs_value',
+        fill_color= "#3801AC",
         fill_alpha=1,
         nonselection_fill_alpha=1,
         line_width=0,
@@ -251,8 +241,7 @@ def tornado_plot(data, feature_iter):
 
     plot = add_style(plot)
 
-    plot.on_event('tap', lambda event: set_col(data, item_source, feature_iter))
-    #set_col(data, item_source, col)
+    plot.on_event('tap', lambda event: set_col(data, item_source, feature_iter, type))
 
     hover = HoverTool(renderers=[back_bars_left, back_bars_right], tooltips=[('@feature', '@value')])
     plot.add_tools(hover)

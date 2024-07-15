@@ -21,7 +21,7 @@ class FeatureIter(Viewer):
         self.active = True
 
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
-        self.col_widget.param.watch(self.add_col, parameter_names=['value'], onlychanged=False)
+        self.col_widget.param.watch(lambda event: self.add_col(event.new), parameter_names=['value'], onlychanged=False)
 
         self.col_display = pn.widgets.RadioButtonGroup(button_style='outline', align="center", stylesheets=[style_options])
         self.col_display.param.watch(lambda event: self.col_selected(event), parameter_names=['value'],
@@ -52,9 +52,9 @@ class FeatureIter(Viewer):
         self.all_selected_cols_final = cols
         self.update_widgets(final=True)
 
-    def add_col(self, event):
-        if event.new != "" and self.active:
-            self.all_selected_cols_final.append(event.new)
+    def add_col(self, col):
+        if col != "" and self.active:
+            self.all_selected_cols_final.append(col)
             self.update_widgets()
 
     def col_selected(self, event):
