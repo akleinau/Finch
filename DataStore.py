@@ -184,7 +184,7 @@ class DataStore(param.Parameterized):
         if self.active:
             self.param.update(tornado_plot=tornado_plot.TornadoPlot(self.data_loader.data_and_probabilities, self.item,
                                                                     self.predict_class.value, self.data_loader.columns,
-                                                                    self.feature_iter.all_selected_cols))
+                                                                    self.feature_iter))
 
     def _update_item_self(self) -> item_functions.Item:
         return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,

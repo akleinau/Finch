@@ -45,7 +45,7 @@ class DependencyPlot(Viewer):
         self.truth_widget = pn.widgets.Toggle(name='show ground truth of the neighborhood', value=False, visible=False,
                                               stylesheets=[style_options])
         self.truth_widget.param.watch(self.truth_changed, parameter_names=['value'], onlychanged=False)
-        additive_name = 'show prediction assuming no interaction between previous features and new feature'
+        additive_name = 'show prediction assuming independence of the new feature'
         self.additive_widget = pn.widgets.Toggle(name=additive_name, value=False, visible=False,
                                                  stylesheets=[style_options])
         self.additive_widget.param.watch(self.additive_changed, parameter_names=['value'], onlychanged=False)
@@ -449,7 +449,7 @@ def create_line(chart3: figure, alpha: float, cluster_label: str, col: str, colo
         if not simple_next or color != colors['previous_prediction'] or color != colors['grey']:
             line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
                                legend_label=cluster_label, tags=[color, "prediction"],
-                               name=color, line_dash=line_type, alpha=alpha)
+                               name=cluster_label, line_dash=line_type, alpha=alpha)
             line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
             chart3.add_tools(line_hover)
 

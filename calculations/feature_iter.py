@@ -48,6 +48,10 @@ class FeatureIter(Viewer):
     def __panel__(self) -> pn.Row:
         return self.widgets
 
+    def set_all_selected_cols(self, cols: list):
+        self.all_selected_cols_final = cols
+        self.update_widgets(final=True)
+
     def add_col(self, event):
         if event.new != "" and self.active:
             self.all_selected_cols_final.append(event.new)
@@ -83,7 +87,7 @@ class FeatureIter(Viewer):
                 self.final_toggle.value = False
             self.active = True
 
-    def update_widgets(self):
+    def update_widgets(self, final=False):
         """
         updates all widgets based on the current state
 
@@ -96,10 +100,16 @@ class FeatureIter(Viewer):
         self.minus_button.visible = len(self.all_selected_cols_final) > 0
         self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget, self.final_toggle)
 
+        if final:
+            self.col_display.visible = True
+            self.col_display.options = self.all_selected_cols_final
+
         self.active = True
 
+        if final:
+            self.final_toggle.value = True
         # this intentionally triggers col_selected
-        if len(self.all_selected_cols_final) > 0:
+        elif len(self.all_selected_cols_final) > 0:
             self.col_display.visible = True
             self.col_display.options = self.all_selected_cols_final
             self.col_display.value = self.all_selected_cols_final[-1]

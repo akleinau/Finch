@@ -15,13 +15,15 @@ class TornadoPlot(Viewer):
 
     plot = param.ClassSelector(class_=figure)
 
-    def __init__(self, data, item, y_col, columns, all_selected_cols):
+    def __init__(self, data, item, y_col, columns, feature_iter):
+        all_selected_cols = feature_iter.all_selected_cols
         super().__init__()
         self.remaining_columns = [col for col in columns if col not in all_selected_cols]
         #self.dataset = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols)
         self.dataset = get_overview_dataset(data, item, y_col, columns)
-        self.plot = tornado_plot(self.dataset, all_selected_cols)
+        self.plot = tornado_plot(self.dataset, feature_iter)
         self.all_selected_cols = all_selected_cols
+        self.feature_iter = feature_iter
 
     @param.depends('plot')
     def __panel__(self):
@@ -189,18 +191,19 @@ def get_overview_dataset(data, item, y_col, columns):
 
 
 
-def set_col(data, item_source, col):
+def set_col(data, item_source, feature_iter):
     if len(item_source.selected.indices) > 0:
         if len(item_source.selected.indices) > 1:
             item_source.selected.indices = item_source.selected.indices[1:2]
         select = data.iloc[item_source.selected.indices]
         select = select['feature'].values[0]
-        col[0].value = select  # col[0], bc the widget had to be wrapped in a list to be changed
+        select = select.split(', ')
+        feature_iter.set_all_selected_cols(select)
     else:
-        col[0].value = ", ".join(data['feature'])
+        feature_iter.set_all_selected_cols(data['feature'])
 
 
-def tornado_plot(data, col):
+def tornado_plot(data, feature_iter):
     item_source = ColumnDataSource(data=data)
     #get last item
     #col[0].value = shap['feature'].values[-1]
@@ -248,7 +251,7 @@ def tornado_plot(data, col):
 
     plot = add_style(plot)
 
-    #plot.on_event('tap', lambda event: set_col(data, item_source, col))
+    plot.on_event('tap', lambda event: set_col(data, item_source, feature_iter))
     #set_col(data, item_source, col)
 
     hover = HoverTool(renderers=[back_bars_left, back_bars_right], tooltips=[('@feature', '@value')])
