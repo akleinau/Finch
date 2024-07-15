@@ -28,6 +28,20 @@ style_button = f"""
     }}
 """
 
+style_truth = f"""    
+    :host(.solid) .bk-btn-group .bk-btn.bk-btn-default.bk-active {{
+        border: 2px dotted #cc98e6;
+        box-shadow: none;
+    }}
+"""
+
+style_additive = f"""    
+    :host(.solid) .bk-btn-group .bk-btn.bk-btn-default.bk-active {{
+        border: 2px dashed #4B0082;
+        box-shadow: none;
+    }}
+"""
+
 def add_style(plot: figure) -> figure:
     """
     add global styling to a plot

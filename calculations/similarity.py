@@ -104,12 +104,19 @@ def get_pdp_items(data, item, col_white_list):
 def get_window_items(data, item, col, y_col):
 
     item_col_value = item.data_raw[col].values[0]
+
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
     window = get_window_size(mean_data)
 
+    # get the closest item index to the item value
+    if item.type == 'custom':
+        # if the item value is not in the data, find the closest value
+        item_index = np.abs(mean_data.index - item_col_value).argmin()
+    else:
+        item_index = mean_data.index.get_loc(item_col_value)
+
     # get the items with an index that is within the window around the item
-    item_index = mean_data.index.get_loc(item_col_value)
     start_index = max(0, item_index - window)
     end_index = item_index + 1
     mean_data = mean_data.iloc[start_index:end_index]

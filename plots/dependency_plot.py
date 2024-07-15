@@ -11,7 +11,7 @@ import bokeh.colors
 from calculations.similarity import get_similar_items, get_pdp_items, get_window_size, get_window_items
 import panel as pn
 import param
-from plots.styling import add_style, style_options
+from plots.styling import add_style, style_options, style_truth, style_additive
 from panel.viewable import Viewer
 from calculations.item_functions import Item
 from calculations.data_loader import DataLoader
@@ -43,11 +43,11 @@ class DependencyPlot(Viewer):
                           'previous_prediction': '#E2B1E7', 'additive_prediction': '#4B0082'}
 
         self.truth_widget = pn.widgets.Toggle(name='show ground truth of the neighborhood', value=False, visible=False,
-                                              stylesheets=[style_options])
+                                              stylesheets=[style_truth], align="end")
         self.truth_widget.param.watch(self.truth_changed, parameter_names=['value'], onlychanged=False)
         additive_name = 'show prediction assuming independence of the new feature'
         self.additive_widget = pn.widgets.Toggle(name=additive_name, value=False, visible=False,
-                                                 stylesheets=[style_options])
+                                                 stylesheets=[style_additive], align="end")
         self.additive_widget.param.watch(self.additive_changed, parameter_names=['value'], onlychanged=False)
 
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
@@ -74,7 +74,7 @@ class DependencyPlot(Viewer):
             self.truth_widget.visible = True
             self.truth_widget.name = 'show ground truth' if len(all_selected_cols) == 1 else \
                 'show ground truth of the neighborhood'
-            self.additive_widget.visible = len(all_selected_cols) > 1
+            self.additive_widget.visible = len(all_selected_cols) > 1 and show_process
 
             col = all_selected_cols[0]
             if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
@@ -95,7 +95,8 @@ class DependencyPlot(Viewer):
 
     @param.depends('density_plot')
     def __panel__(self):
-        return pn.Column(self.truth_widget, self.additive_widget, self.plot, self.density_plot)
+        return pn.Column(pn.Row(self.truth_widget, self.additive_widget, styles=dict(align='end')), self.plot, self.density_plot)
+
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
                                data_loader: DataLoader, previous_prediction: bool = True, simple_next: bool = True) -> figure:
@@ -145,7 +146,7 @@ class DependencyPlot(Viewer):
                     create_band(plot, cluster_label, col, color, group_data)
 
                 if "line" in chart_type:
-                    create_line(plot, alpha, cluster_label, col, color, group_data, self.influence_marker, line_type,
+                    self.create_line(plot, alpha, cluster_label, col, color, group_data, self.influence_marker, line_type,
                                 self.color_map, simple_next)
 
                 if "scatter" in chart_type and color == self.color_map['purple']:
@@ -205,13 +206,13 @@ class DependencyPlot(Viewer):
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
         plot = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
                       x_range=x_range_padded,
-                      width=800, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
+                      width=900, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
         plot.grid.level = "overlay"
         plot.grid.grid_line_color = "black"
         plot.grid.grid_line_alpha = 0.05
-        plot.add_layout(Legend(), 'above')
-        plot.legend.orientation = "horizontal"
-        plot.legend.location = "top"
+        plot.add_layout(Legend(), 'center')
+        plot.legend.orientation = "vertical"
+        plot.legend.location = "top_right"
         plot.legend.click_policy = "hide"
 
         if item.type != 'global':
@@ -222,7 +223,7 @@ class DependencyPlot(Viewer):
 
             # add the label
             plot.add_layout(
-                Label(x=self.item_x, y=465, y_units="screen", text=col + " = " + str(self.item_x), text_align='center',
+                Label(x=self.item_x, y=520, y_units="screen", text=col + " = " + str(self.item_x), text_align='center',
                       text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
 
             add_item(plot, col, item, self.y_range, self.color_map)
@@ -236,7 +237,7 @@ class DependencyPlot(Viewer):
         data = get_data(data_loader)
         similar_item_group = get_similar_items(data, item, all_selected_cols[1:])
 
-        plot = figure(title="data distribution", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=800, height=120,
+        plot = figure(title="data distribution", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900, height=120,
                       x_range=self.plot.x_range, active_scroll="xwheel_zoom",)
         add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
 
@@ -251,15 +252,60 @@ class DependencyPlot(Viewer):
         return plot
 
     def truth_changed(self, event):
-        truth_lines = self.plot.select(tags=[self.color_map['light_purple']])
-        truth_lines.extend(self.plot.select(tags=[self.color_map['light_grey']]))
-        for obj in truth_lines:
-            obj.line_alpha = self.truth_widget.value
+        #truth_lines = self.plot.select(tags=[self.color_map['light_purple']])
+        #truth_lines.extend(self.plot.select(tags=[self.color_map['light_grey']]))
+
+        truth_renderers = [r for r in self.plot.renderers if self.color_map['light_purple'] in r.glyph.tags or self.color_map['light_grey'] in r.glyph.tags]
+
+        for obj in truth_renderers:
+            obj.visible = self.truth_widget.value
 
     def additive_changed(self, event):
-        additive_lines = self.plot.select(tags=[self.color_map['additive_prediction']])
-        for obj in additive_lines:
-            obj.line_alpha = self.additive_widget.value
+        additive_renderers = [r for r in self.plot.renderers if self.color_map['additive_prediction'] in r.glyph.tags]
+
+        for obj in additive_renderers:
+            obj.visible = self.additive_widget.value
+
+    def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str, combined: pd.DataFrame,
+                    influence_marker: list, line_type: str, colors: dict, simple_next: bool):
+        line_width = 3.5 if color == colors['purple'] or color == colors['previous_prediction'] else 3 if color == \
+                                                                                                          colors[
+                                                                                                              'grey'] else 2
+        if (color == colors['purple'] or color == colors['light_purple']) and "colored_lines" in influence_marker:
+            # add a line that is red over 0 and blue below 0
+            # Segment or MultiLine might both be an easier variant for colored lines
+            combined_over_0 = combined[combined['mean'] >= 0]
+            combined_below_0 = combined[combined['mean'] <= 0]
+            line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color=colors['positive_color'],
+                                      line_width=line_width,
+                                      # legend_label=cluster_label,
+                                      name=cluster_label, line_dash=line_type, alpha=alpha)
+            line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color=colors['negative_color'],
+                                       line_width=line_width,
+                                       # legend_label=cluster_label,
+                                       name=cluster_label, line_dash=line_type, alpha=alpha)
+            line_hover = HoverTool(renderers=[line_over_0, line_below_0], tooltips=[('', '$name')])
+            chart3.add_tools(line_hover)
+
+        else:
+            if not simple_next or color != colors['previous_prediction'] or color != colors['grey']:
+                line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
+                                   legend_label=cluster_label, tags=[color, "prediction"],
+                                   name=cluster_label, line_dash=line_type, alpha=alpha)
+                if color == colors['light_grey'] or color == colors['light_purple']:
+                    line.visible = self.truth_widget.value
+                    line.on_change('visible', self.set_truth)
+                if color == colors['additive_prediction']:
+                    line.visible = self.additive_widget.value
+                    line.on_change('visible', self.set_additive)
+                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
+                chart3.add_tools(line_hover)
+
+    def set_truth(self, attr, old, new):
+        self.truth_widget.value = new
+
+    def set_additive(self, attr, old, new):
+        self.additive_widget.value = new
 
 
 def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool):
@@ -414,8 +460,7 @@ def add_item(chart3: figure, col: str, item: Item, y_range: list,
              colors: dict):
     line_width = 4
     chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
-                line_width=line_width, color=colors['selected_color'], tags=["item"],
-                legend_label="Item", line_cap='round', level='overlay')
+                line_width=line_width, color=colors['selected_color'], tags=["item"], line_cap='round', level='overlay')
 
 
 def create_scatter(chart3: figure, col: str, color: str, filtered_data: pd.DataFrame, y_col: str):
@@ -424,34 +469,6 @@ def create_scatter(chart3: figure, col: str, color: str, filtered_data: pd.DataF
                    alpha=alpha, marker='circle', size=3, name="scatter_label",
                    # legend_group="scatter_label"
                    )
-
-
-def create_line(chart3: figure, alpha: float, cluster_label: str, col: str, color: str, combined: pd.DataFrame,
-                influence_marker: list, line_type: str, colors: dict, simple_next: bool):
-    line_width = 3.5 if color == colors['purple'] or color == colors['previous_prediction'] else 3 if color == colors['grey'] else 2
-    if (color == colors['purple'] or color == colors['light_purple']) and "colored_lines" in influence_marker:
-        # add a line that is red over 0 and blue below 0
-        # Segment or MultiLine might both be an easier variant for colored lines
-        combined_over_0 = combined[combined['mean'] >= 0]
-        combined_below_0 = combined[combined['mean'] <= 0]
-        line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color=colors['positive_color'],
-                                  line_width=line_width,
-                                  # legend_label=cluster_label,
-                                  name=cluster_label, line_dash=line_type, alpha=alpha)
-        line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color=colors['negative_color'],
-                                   line_width=line_width,
-                                   # legend_label=cluster_label,
-                                   name=cluster_label, line_dash=line_type, alpha=alpha)
-        line_hover = HoverTool(renderers=[line_over_0, line_below_0], tooltips=[('', '$name')])
-        chart3.add_tools(line_hover)
-
-    else:
-        if not simple_next or color != colors['previous_prediction'] or color != colors['grey']:
-            line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
-                               legend_label=cluster_label, tags=[color, "prediction"],
-                               name=cluster_label, line_dash=line_type, alpha=alpha)
-            line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
-            chart3.add_tools(line_hover)
 
 
 def create_band(chart3: figure, cluster_label: str, col: str, color: str, combined: pd.DataFrame):
@@ -475,9 +492,6 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
     """
 
     colors = []
-    ## light grey for truth
-    if truth and len(all_selected_cols) == 1:
-        colors.append(color_map['light_grey'])
 
     # grey for the standard group
     #if not show_progress or len(all_selected_cols) == 1:
@@ -486,6 +500,10 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
     # purple for neighbors
     if len(all_selected_cols) > 1:
         colors.append(color_map['purple'])
+
+    ## light grey for truth
+    if truth and len(all_selected_cols) == 1:
+        colors.append(color_map['light_grey'])
 
     ## light purple for neighbor truth
     if truth and item.type != 'global' and len(all_selected_cols) > 1:
@@ -506,10 +524,10 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
 def get_group_style(color: str, color_map: dict, show_truth, show_additive) -> tuple:
     if (color == color_map['light_grey']) or (color == color_map['light_purple']):
         line_type = "dotted"
-        alpha = show_truth
+        alpha = 1
     elif (color == color_map['additive_prediction']):
-        line_type = "solid"
-        alpha = show_additive
+        line_type = "dashed"
+        alpha = 1
     else:
         line_type = "solid"
         alpha = 1
@@ -528,7 +546,7 @@ def get_group_label(color: str, color_map: dict) -> str:
     elif color == color_map['previous_prediction']:
         cluster_label = 'Previous prediction'
     elif color == color_map['additive_prediction']:
-        cluster_label = 'w/o interaction'
+        cluster_label = 'assuming independence'
     else:
         cluster_label = ''
     return cluster_label

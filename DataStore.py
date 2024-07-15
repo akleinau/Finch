@@ -133,7 +133,7 @@ class DataStore(param.Parameterized):
         self.item_custom_content.clear()
         self.item_custom_content.append("(missing values will be imputed)")
         for col in self.data_loader.columns:
-            widget = pn.widgets.LiteralInput(name=col, value=None)
+            widget = pn.widgets.LiteralInput(name=col, value=None, )
             widget.param.watch(self.update_item_self, parameter_names=['value'], onlychanged=False)
             self.item_custom_content.append(widget)
 
@@ -159,7 +159,7 @@ class DataStore(param.Parameterized):
 
         #widgets
         second_item = pn.bind(
-            lambda t: self.item_index if t == 'predefined' else self.item_custom_content if t == 'custom' else None,
+            lambda t: pn.Column(self.item_index, self.item) if t == 'predefined' else self.item_custom_content if t == 'custom' else None,
             self.item_type)
         return pn.Column(str_dataset_nr, str_mean_prediction, self.item_type, second_item, pn.layout.Spacer(height=20))
 
