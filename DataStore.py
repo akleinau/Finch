@@ -41,7 +41,8 @@ class DataStore(param.Parameterized):
         self.item_custom_content = pn.Column()
 
         # predict class
-        self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes), width=250)
+        self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes),
+                                               value=self.data_loader.classes[-1], width=250)
         self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value,
                                                         width=250)
         self.predict_class.param.watch(lambda event: self.predict_class_label.param.update(value=event.new),
@@ -117,7 +118,7 @@ class DataStore(param.Parameterized):
 
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
-        predict_class = loader.classes[0]
+        predict_class = loader.classes[-1]
         item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, pn.Column(),
                                    predict_class, predict_class)
 

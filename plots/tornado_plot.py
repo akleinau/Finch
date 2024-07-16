@@ -138,12 +138,15 @@ class TornadoPlot(Viewer):
         return plot
 
     def create_ranked_buttons(self, data, feature_iter):
+        # iterate from behind to get the last 15 entries of data
         buttons = []
-        for i, row in data.iterrows():
+        range = [max(0, len(data) - 15), len(data)]
+
+        for index, row in data.iloc[range[0]:range[1]].iterrows():
             button = pn.widgets.Button(name=row['feature'], button_type='default')
             button.on_click(lambda event: self.ranked_buttons_clicked(event, feature_iter))
             buttons.append(button)
-        return pn.FlexBox(*buttons)
+        return pn.FlexBox(*reversed(buttons))
 
     def ranked_buttons_clicked(self, event, feature_iter):
         self.hide_all()
@@ -218,10 +221,8 @@ def create_dataframe(results):
 
     dataframe['abs_value'] = dataframe['value'].abs()
     dataframe['positive'] = dataframe['value'].apply(lambda x: 'pos' if x > 0 else 'neg')
-    dataframe = dataframe.sort_values(by='abs_value', ascending=False)
-    if len(dataframe) > 10:
-        dataframe = dataframe.iloc[:10]
     dataframe = dataframe.sort_values(by='abs_value', ascending=True)
+    dataframe.reset_index(drop=True, inplace=True)
 
     if "item_value" in dataframe.columns:
         dataframe['feature'] = dataframe['feature'] + " = " + dataframe['item_value'].apply(lambda x: str(round(x, 2)))
