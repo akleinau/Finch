@@ -9,6 +9,7 @@ ds = DataStore.DataStore()
 template = pn.template.MaterialTemplate(
     title="FINCH - Feature Interaction Charts",
     header_background =color,
+    sidebar_width=310,
 )
 
 item_widgets = pn.bind(lambda e: e, ds.param.item_widgets)

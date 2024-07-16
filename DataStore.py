@@ -27,10 +27,10 @@ class DataStore(param.Parameterized):
     def __init__(self, **params):
         super().__init__(**params)
         self.active = True
-        self.file = pn.widgets.FileInput(accept='.csv', name='Upload data')
-        self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network')
-        self.truth_file = pn.widgets.FileInput(accept='.csv', name='Upload truth')
-        self.calculate = pn.widgets.Button(name='Calculate', styles=dict(margin='auto'), stylesheets=[style_button])
+        self.file = pn.widgets.FileInput(accept='.csv', name='Upload data', width=200)
+        self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network', width=200)
+        self.truth_file = pn.widgets.FileInput(accept='.csv', name='Upload truth', width=200)
+        self.calculate = pn.widgets.Button(name='Calculate', styles=dict(margin='auto'), stylesheets=[style_button], button_type='light')
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
 

@@ -28,8 +28,8 @@ class DependencyPlot(Viewer):
 
     def __init__(self, **params):
         super().__init__(**params)
-        self.plot = figure(toolbar_location=None, tools="", width=0)
-        self.density_plot = figure(toolbar_location=None, tools="", width=0, height=200)
+        self.plot = None
+        self.density_plot = None
         self.relative = True
         self.item_style = "grey_line"  # "point", "arrow", "line", "grey_line"
         self.influence_marker = ["color_axis",
@@ -67,8 +67,8 @@ class DependencyPlot(Viewer):
         if len(all_selected_cols) == 0:
             self.truth_widget.visible = False
             self.additive_widget.visible = False
-            self.plot = figure(toolbar_location=None, tools="", width=0)
-            self.density_plot = figure(toolbar_location=None, tools="", width=0, height=200)
+            self.plot = None
+            self.density_plot = None
             self.col = None
         else:
             self.truth_widget.visible = True
