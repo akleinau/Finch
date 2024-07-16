@@ -22,6 +22,7 @@ class DataStore(param.Parameterized):
     feature_iter = param.ClassSelector(class_=feature_iter.FeatureIter)
     item_widgets = param.ClassSelector(class_=pn.Column)
     tornado_plot = param.ClassSelector(class_=tornado_plot.TornadoPlot)
+    add_feature_panel = param.ClassSelector(class_=pn.layout.FloatPanel)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -93,12 +94,18 @@ class DataStore(param.Parameterized):
         self.param.watch(self.update_similar_plot,
                          parameter_names=['item'], onlychanged=False)
 
+        # floatpanel
+        self.add_feature_panel = None
+        self.feature_iter.param.watch(self.set_feature_panel, parameter_names=['show_add'], onlychanged=False)
+
         # render tornado plot
         self.update_tornado_plot()
         self.feature_iter.param.watch(self.update_tornado_plot,
                                         parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_tornado_plot,
                             parameter_names=['item'], onlychanged=False)
+
+
 
 
     def update_data(self, event):
@@ -194,3 +201,11 @@ class DataStore(param.Parameterized):
     def update_item_self(self, *params):
         if self.active:
             self.param.update(item=self._update_item_self())
+
+    def set_feature_panel(self, a):
+        if a.new:
+            self.add_feature_panel = pn.layout.FloatPanel(self.tornado_plot.panel_single, name='Add Feature', margin=20,
+                                                          contained=False, height=800, status="normalized",
+                                                          position="center")
+        else:
+            self.add_feature_panel = None

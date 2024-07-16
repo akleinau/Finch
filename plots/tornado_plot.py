@@ -45,6 +45,10 @@ class TornadoPlot(Viewer):
         return pn.Column("## (advanced) fast selection:", self.ranked_buttons) if len(self.all_selected_cols) == 0 \
             else None
 
+    @param.depends('plot_single')
+    def get_panel_single(self):
+        return self.panel_single if len(self.all_selected_cols) == 0 else None
+
 
 
 def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_dict, mean_prob):

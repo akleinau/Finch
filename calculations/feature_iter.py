@@ -13,6 +13,7 @@ class FeatureIter(Viewer):
     show_process = param.Boolean()
     simple_next = param.Boolean()
     widgets = param.ClassSelector(class_=pn.Row)
+    show_add = param.Boolean()
 
     def __init__(self, columns: list, **params):
         super().__init__(**params)
@@ -22,6 +23,9 @@ class FeatureIter(Viewer):
 
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
         self.col_widget.param.watch(lambda event: self.add_col(event.new), parameter_names=['value'], onlychanged=False)
+        self.add_button = pn.widgets.Button(name='add feature', button_type='primary', align="center", stylesheets=[style_button])
+        self.add_button.on_click(self.show_add_panel)
+
 
         self.col_display = pn.widgets.RadioButtonGroup(button_style='outline', align="center", stylesheets=[style_options])
         self.col_display.param.watch(lambda event: self.col_selected(event), parameter_names=['value'],
@@ -42,7 +46,7 @@ class FeatureIter(Viewer):
         self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center", stylesheets=[style_options])
         self.final_toggle.param.watch(self.final_toggle_changed, parameter_names=['value'], onlychanged=False)
 
-        self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget, self.final_toggle)
+        self.widgets = pn.Row(self.col_display, self.minus_button, self.add_button, self.final_toggle)
 
     @param.depends('widgets')
     def __panel__(self) -> pn.Row:
@@ -54,8 +58,12 @@ class FeatureIter(Viewer):
 
     def add_col(self, col):
         if col != "" and self.active:
+            self.show_add = False
             self.all_selected_cols_final.append(col)
             self.update_widgets()
+
+    def show_add_panel(self, event):
+        self.show_add = True
 
     def col_selected(self, event):
         """
@@ -98,7 +106,7 @@ class FeatureIter(Viewer):
         self.col_widget.options = ["", *self.col_whitelist]
         self.col_widget.value = ""
         self.minus_button.visible = len(self.all_selected_cols_final) > 0
-        self.widgets = pn.Row(self.col_display, self.minus_button, self.col_widget, self.final_toggle)
+        self.widgets = pn.Row(self.col_display, self.minus_button, self.add_button, self.final_toggle)
 
         if final:
             self.col_display.visible = True
