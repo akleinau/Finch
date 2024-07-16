@@ -23,7 +23,8 @@ class FeatureIter(Viewer):
 
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
         self.col_widget.param.watch(lambda event: self.add_col(event.new), parameter_names=['value'], onlychanged=False)
-        self.add_button = pn.widgets.Button(name='add feature', button_type='primary', align="center", stylesheets=[style_button])
+        self.add_button = pn.widgets.Button(name='add feature', button_type='default', align="center",
+                                            stylesheets=[style_button], icon='plus')
         self.add_button.on_click(self.show_add_panel)
 
 
@@ -43,7 +44,8 @@ class FeatureIter(Viewer):
 
         # create final toggle
         self.show_process = True
-        self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center", stylesheets=[style_options])
+        self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center", stylesheets=[style_options],
+                                              button_style="outline")
         self.final_toggle.param.watch(self.final_toggle_changed, parameter_names=['value'], onlychanged=False)
 
         self.widgets = pn.Row(self.col_display, self.minus_button, self.add_button, self.final_toggle)

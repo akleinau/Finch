@@ -30,7 +30,7 @@ class DataStore(param.Parameterized):
         self.file = pn.widgets.FileInput(accept='.csv', name='Upload data', width=200)
         self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network', width=200)
         self.truth_file = pn.widgets.FileInput(accept='.csv', name='Upload truth', width=200)
-        self.calculate = pn.widgets.Button(name='Calculate', styles=dict(margin='auto'), stylesheets=[style_button], button_type='light')
+        self.calculate = pn.widgets.Button(name='Calculate', styles=dict(margin='auto'), stylesheets=[style_button])
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
 
@@ -141,7 +141,7 @@ class DataStore(param.Parameterized):
         self.item_custom_content.clear()
         self.item_custom_content.append("(missing values will be imputed)")
         for col in self.data_loader.columns:
-            widget = pn.widgets.LiteralInput(name=col, value=None, )
+            widget = pn.widgets.LiteralInput(name=col, value=None, width=200)
             widget.param.watch(self.update_item_self, parameter_names=['value'], onlychanged=False)
             self.item_custom_content.append(widget)
 

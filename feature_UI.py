@@ -9,15 +9,21 @@ ds = DataStore.DataStore()
 template = pn.template.MaterialTemplate(
     title="FINCH - Feature Interaction Charts",
     header_background =color,
-    sidebar_width=310,
+    sidebar_width=330,
 )
 
 item_widgets = pn.bind(lambda e: e, ds.param.item_widgets)
 
 # sidebar content
-template.sidebar.append(pn.Column("# Data set", ds.get_file_widgets(), pn.layout.Spacer(),
-                                  "# Target", ds.get_title_widgets(), pn.layout.Spacer(),
-                                  "# Item", item_widgets, styles=dict(margin='auto')))
+
+s1 = ("Data Set", pn.Column(ds.get_file_widgets(), pn.layout.Spacer()))
+s2 = ("Target", pn.Column(ds.get_title_widgets(), pn.layout.Spacer()))
+s3 = ("Item", pn.Column(item_widgets, pn.layout.Spacer()))
+acc = pn.Accordion(s1, s2, s3, styles=dict(margin='auto', width='300px'))
+acc.active = [2]
+acc.toggle = True
+
+template.sidebar.append(acc)
 
 # somehow necessary for reactivity
 render_plot = pn.bind(lambda e: e, ds.param.render_plot)
