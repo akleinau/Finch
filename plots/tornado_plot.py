@@ -72,8 +72,6 @@ class TornadoPlot(Viewer):
             else:
                 select = select.split(' = ')
                 feature_iter.add_col(select[0])
-        else:
-            feature_iter.set_all_selected_cols(data['feature'])
 
 
     def tornado_plot(self, data, feature_iter, type):

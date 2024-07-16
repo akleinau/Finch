@@ -168,13 +168,18 @@ class DependencyPlot(Viewer):
                 keep_colors.append(self.color_map['neighborhood'])
             plot.renderers = [r for r in plot.renderers if
                               ("prediction" not in r.glyph.tags)
-                              or (r.name in keep_colors)]
+                              or any([c in r.glyph.tags for c in keep_colors])]
 
-            old_line = plot.select(name=self.color_map['neighborhood'])
+            # change the current neighborhood line to be the previous prediction line
+            plot.legend.items = [i for i in plot.legend.items if i.label.value != "previous prediction"]
+            old_line = [r for r in plot.renderers if self.color_map['neighborhood'] in r.glyph.tags]
             for l in old_line:
                 # this actually should only  be one line, hopefully
-                l.name = self.color_map['previous_prediction']
+                l.glyph.tags = ["prediction"]
                 l.glyph.line_color = self.color_map['previous_prediction']
+                l.name = "previous prediction"
+                # add to legend
+                plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
 
         else:
             plot.renderers = [r for r in plot.renderers if "prediction" not in r.glyph.tags]
@@ -271,35 +276,20 @@ class DependencyPlot(Viewer):
         line_width = 3.5 if color == colors['neighborhood'] or color == colors['previous_prediction'] else 3 if color == \
                                                                                                           colors[
                                                                                                               'base'] else 2
-        if (color == colors['neighborhood'] or color == colors['neighborhood_truth']) and "colored_lines" in influence_marker:
-            # add a line that is red over 0 and blue below 0
-            # Segment or MultiLine might both be an easier variant for colored lines
-            combined_over_0 = combined[combined['mean'] >= 0]
-            combined_below_0 = combined[combined['mean'] <= 0]
-            line_over_0 = chart3.line(col, 'mean', source=combined_over_0, color=colors['positive_color'],
-                                      line_width=line_width,
-                                      # legend_label=cluster_label,
-                                      name=cluster_label, line_dash=line_type, alpha=alpha)
-            line_below_0 = chart3.line(col, 'mean', source=combined_below_0, color=colors['negative_color'],
-                                       line_width=line_width,
-                                       # legend_label=cluster_label,
-                                       name=cluster_label, line_dash=line_type, alpha=alpha)
-            line_hover = HoverTool(renderers=[line_over_0, line_below_0], tooltips=[('', '$name')])
+        if not simple_next or (color != colors['previous_prediction'] and color != colors['base']):
+            line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
+                               legend_label=cluster_label, tags=[color, "prediction"],
+                               name=cluster_label, line_dash=line_type, alpha=alpha, visible=False)
+            if color == colors['ground_truth'] or color == colors['neighborhood_truth']:
+                line.visible = self.truth_widget.value
+                line.on_change('visible', self.set_truth)
+            elif color == colors['additive_prediction']:
+                line.visible = self.additive_widget.value
+                line.on_change('visible', self.set_additive)
+            else:
+                line.visible = True
+            line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
             chart3.add_tools(line_hover)
-
-        else:
-            if not simple_next or color != colors['previous_prediction'] or color != colors['base']:
-                line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
-                                   legend_label=cluster_label, tags=[color, "prediction"],
-                                   name=cluster_label, line_dash=line_type, alpha=alpha)
-                if color == colors['ground_truth'] or color == colors['neighborhood_truth']:
-                    line.visible = self.truth_widget.value
-                    line.on_change('visible', self.set_truth)
-                if color == colors['additive_prediction']:
-                    line.visible = self.additive_widget.value
-                    line.on_change('visible', self.set_additive)
-                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
-                chart3.add_tools(line_hover)
 
     def set_truth(self, attr, old, new):
         self.truth_widget.value = new
