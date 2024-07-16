@@ -38,9 +38,9 @@ class DependencyPlot(Viewer):
         self.item_x = None
 
         #colors
-        self.color_map = {'grey': '#808080', 'purple': '#A336B0', 'light_grey': '#A0A0A0', 'light_purple': '#cc98e6',
+        self.color_map = {'base': '#606060', 'neighborhood': '#A336B0', 'ground_truth': '#A0A0A0', 'neighborhood_truth': '#cc98e6',
                           'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A",
-                          'previous_prediction': '#E2B1E7', 'additive_prediction': '#4B0082'}
+                          'previous_prediction': '#b6a0c7', 'additive_prediction': '#4B0082'}
 
         self.truth_widget = pn.widgets.Toggle(name='show ground truth of the neighborhood', value=False, visible=False,
                                               stylesheets=[style_truth], align="end")
@@ -142,14 +142,14 @@ class DependencyPlot(Viewer):
                 #dummy_for_legend = plot.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
                 #legend_items.append((cluster_label, [dummy_for_legend]))
 
-                if "band" in chart_type and color == self.color_map['purple']:
+                if "band" in chart_type and color == self.color_map['neighborhood']:
                     create_band(plot, cluster_label, col, color, group_data)
 
                 if "line" in chart_type:
                     self.create_line(plot, alpha, cluster_label, col, color, group_data, self.influence_marker, line_type,
                                 self.color_map, simple_next)
 
-                if "scatter" in chart_type and color == self.color_map['purple']:
+                if "scatter" in chart_type and color == self.color_map['neighborhood']:
                     data = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map)
                     create_scatter(plot, col, color, data, y_col)
 
@@ -163,14 +163,14 @@ class DependencyPlot(Viewer):
 
     def remove_old(self, plot, simple_next, all_selected_cols):
         if simple_next:
-            keep_colors = [self.color_map['grey']]
+            keep_colors = [self.color_map['base']]
             if len(all_selected_cols) > 2:
-                keep_colors.append(self.color_map['purple'])
+                keep_colors.append(self.color_map['neighborhood'])
             plot.renderers = [r for r in plot.renderers if
                               ("prediction" not in r.glyph.tags)
                               or (r.name in keep_colors)]
 
-            old_line = plot.select(name=self.color_map['purple'])
+            old_line = plot.select(name=self.color_map['neighborhood'])
             for l in old_line:
                 # this actually should only  be one line, hopefully
                 l.name = self.color_map['previous_prediction']
@@ -252,10 +252,10 @@ class DependencyPlot(Viewer):
         return plot
 
     def truth_changed(self, event):
-        #truth_lines = self.plot.select(tags=[self.color_map['light_purple']])
-        #truth_lines.extend(self.plot.select(tags=[self.color_map['light_grey']]))
+        #truth_lines = self.plot.select(tags=[self.color_map['neighborhood_truth']])
+        #truth_lines.extend(self.plot.select(tags=[self.color_map['ground_truth']]))
 
-        truth_renderers = [r for r in self.plot.renderers if self.color_map['light_purple'] in r.glyph.tags or self.color_map['light_grey'] in r.glyph.tags]
+        truth_renderers = [r for r in self.plot.renderers if self.color_map['neighborhood_truth'] in r.glyph.tags or self.color_map['ground_truth'] in r.glyph.tags]
 
         for obj in truth_renderers:
             obj.visible = self.truth_widget.value
@@ -268,10 +268,10 @@ class DependencyPlot(Viewer):
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str, combined: pd.DataFrame,
                     influence_marker: list, line_type: str, colors: dict, simple_next: bool):
-        line_width = 3.5 if color == colors['purple'] or color == colors['previous_prediction'] else 3 if color == \
+        line_width = 3.5 if color == colors['neighborhood'] or color == colors['previous_prediction'] else 3 if color == \
                                                                                                           colors[
-                                                                                                              'grey'] else 2
-        if (color == colors['purple'] or color == colors['light_purple']) and "colored_lines" in influence_marker:
+                                                                                                              'base'] else 2
+        if (color == colors['neighborhood'] or color == colors['neighborhood_truth']) and "colored_lines" in influence_marker:
             # add a line that is red over 0 and blue below 0
             # Segment or MultiLine might both be an easier variant for colored lines
             combined_over_0 = combined[combined['mean'] >= 0]
@@ -288,11 +288,11 @@ class DependencyPlot(Viewer):
             chart3.add_tools(line_hover)
 
         else:
-            if not simple_next or color != colors['previous_prediction'] or color != colors['grey']:
+            if not simple_next or color != colors['previous_prediction'] or color != colors['base']:
                 line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
                                    legend_label=cluster_label, tags=[color, "prediction"],
                                    name=cluster_label, line_dash=line_type, alpha=alpha)
-                if color == colors['light_grey'] or color == colors['light_purple']:
+                if color == colors['ground_truth'] or color == colors['neighborhood_truth']:
                     line.visible = self.truth_widget.value
                     line.on_change('visible', self.set_truth)
                 if color == colors['additive_prediction']:
@@ -321,13 +321,13 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     """
 
     if show_process and color_map['previous_prediction'] in color_data:
-        group_data = color_data[color_map['purple']]
+        group_data = color_data[color_map['neighborhood']]
         compare_data = color_data[color_map['previous_prediction']]
-    elif color_map['purple'] in color_data:
-        group_data = color_data[color_map['purple']]
-        compare_data = color_data[color_map['grey']]
+    elif color_map['neighborhood'] in color_data:
+        group_data = color_data[color_map['neighborhood']]
+        compare_data = color_data[color_map['base']]
     else:
-        group_data = color_data[color_map['grey']]
+        group_data = color_data[color_map['base']]
         compare_data = group_data.copy()
         compare_data['mean'] = 0
 
@@ -390,9 +390,9 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
 
     include_cols = all_selected_cols[1:]
 
-    if (color == color_map['grey']) or (color == color_map['light_grey']):
+    if (color == color_map['base']) or (color == color_map['ground_truth']):
         filtered_data = sorted_data
-    elif (color == color_map['purple']) or (color == color_map['light_purple']):
+    elif (color == color_map['neighborhood']) or (color == color_map['neighborhood_truth']):
         filtered_data = get_similar_items(sorted_data, item, include_cols)
     elif color == color_map['previous_prediction']:
         if len(include_cols) == 1:
@@ -495,19 +495,19 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
 
     # grey for the standard group
     #if not show_progress or len(all_selected_cols) == 1:
-    colors.append(color_map['grey'])
+    colors.append(color_map['base'])
 
     # purple for neighbors
     if len(all_selected_cols) > 1:
-        colors.append(color_map['purple'])
+        colors.append(color_map['neighborhood'])
 
     ## light grey for truth
     if truth and len(all_selected_cols) == 1:
-        colors.append(color_map['light_grey'])
+        colors.append(color_map['ground_truth'])
 
     ## light purple for neighbor truth
     if truth and item.type != 'global' and len(all_selected_cols) > 1:
-        colors.append(color_map['light_purple'])
+        colors.append(color_map['neighborhood_truth'])
 
 
     # show_progress
@@ -522,7 +522,7 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
 
 
 def get_group_style(color: str, color_map: dict, show_truth, show_additive) -> tuple:
-    if (color == color_map['light_grey']) or (color == color_map['light_purple']):
+    if (color == color_map['ground_truth']) or (color == color_map['neighborhood_truth']):
         line_type = "dotted"
         alpha = 1
     elif (color == color_map['additive_prediction']):
@@ -535,13 +535,13 @@ def get_group_style(color: str, color_map: dict, show_truth, show_additive) -> t
 
 
 def get_group_label(color: str, color_map: dict) -> str:
-    if color == color_map['grey']:
-        cluster_label = 'Prediction'
-    elif color == color_map['purple']:
+    if color == color_map['base']:
+        cluster_label = 'Base Prediction'
+    elif color == color_map['neighborhood']:
         cluster_label = 'Neighborhood Prediction'
-    elif color == color_map['light_grey']:
+    elif color == color_map['ground_truth']:
         cluster_label = 'Ground truth'
-    elif color == color_map['light_purple']:
+    elif color == color_map['neighborhood_truth']:
         cluster_label = 'Ground truth'
     elif color == color_map['previous_prediction']:
         cluster_label = 'Previous prediction'
@@ -562,7 +562,7 @@ def get_group_col(color: str, item: Item, truth_class: str, color_map: dict) -> 
     :param color_map: dict
     :return: str
     """
-    if (color == color_map['light_grey']) or (color == color_map['light_purple']):
+    if (color == color_map['ground_truth']) or (color == color_map['neighborhood_truth']):
         y_col = truth_class
     else:
         y_col = item.predict_class
