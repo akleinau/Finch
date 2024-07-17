@@ -39,6 +39,8 @@ class DataStore(param.Parameterized):
         self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'],
                                                      value='predefined', button_style='outline', stylesheets=[style_options])
         self.item_index = pn.widgets.EditableIntSlider(name='item index', start=0, end=100, value=26, width=250)
+        self.item_index.param.watch(lambda event: self.set_item_widgets(),
+                                    parameter_names=['value'], onlychanged=False)
         self.item_custom_content = pn.Column()
 
         # predict class
