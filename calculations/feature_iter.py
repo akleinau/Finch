@@ -1,7 +1,7 @@
 import panel as pn
 import param
 from panel.viewable import Viewer
-from plots.styling import style_options, style_button
+from plots.styling import style_options, style_icon
 
 class FeatureIter(Viewer):
     """
@@ -21,10 +21,12 @@ class FeatureIter(Viewer):
         self.columns = columns
         self.active = True
 
+        icon_style = {'border': '2px solid black', 'border-radius': '50px', 'padding': '5px', 'background-color': 'white'}
+
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
         self.col_widget.param.watch(lambda event: self.add_col(event.new), parameter_names=['value'], onlychanged=False)
-        self.add_button = pn.widgets.Button(name='add feature', button_type='default', align="center",
-                                            stylesheets=[style_button], icon='plus')
+        self.add_button = pn.widgets.Button(align="center", icon='plus', name="Add Feature", button_style='outline',
+                                            styles=icon_style, stylesheets=[style_icon])
         self.add_button.on_click(self.show_add_panel)
 
 

@@ -257,19 +257,28 @@ class DependencyPlot(Viewer):
         return plot
 
     def truth_changed(self, event):
-        #truth_lines = self.plot.select(tags=[self.color_map['neighborhood_truth']])
-        #truth_lines.extend(self.plot.select(tags=[self.color_map['ground_truth']]))
-
         truth_renderers = [r for r in self.plot.renderers if self.color_map['neighborhood_truth'] in r.glyph.tags or self.color_map['ground_truth'] in r.glyph.tags]
 
         for obj in truth_renderers:
             obj.visible = self.truth_widget.value
+
+        # update the legend
+        # plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
+        legend_item = [i for i in self.plot.legend.items if i.label.value == "ground truth" or i.label.value == "neighborhood truth"]
+        for l in legend_item:
+            l.visible = self.truth_widget.value
+
 
     def additive_changed(self, event):
         additive_renderers = [r for r in self.plot.renderers if self.color_map['additive_prediction'] in r.glyph.tags]
 
         for obj in additive_renderers:
             obj.visible = self.additive_widget.value
+
+        # update the legend
+        legend_item = [i for i in self.plot.legend.items if i.label.value == "additive prediction"]
+        for l in legend_item:
+            l.visible = self.additive_widget.value
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str, combined: pd.DataFrame,
                     influence_marker: list, line_type: str, colors: dict, simple_next: bool):
@@ -393,8 +402,6 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
         # first get the prediction of just the newest feature alone
         last_col = include_cols[-1]
         single_mean = get_window_items(sorted_data, item, last_col, y_col)[y_col].mean()
-        print(single_mean)
-        # TODO remove mean of all data
 
         # get previous prediction data
         if len(include_cols) == 0:

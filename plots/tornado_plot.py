@@ -33,11 +33,14 @@ class TornadoPlot(Viewer):
             single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - self.mean_prob
 
         self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict, self.mean_prob)
-        self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
         self.plot_single = self.tornado_plot(self.dataset_single, feature_iter, "single")
-        self.panel_single = pn.Column("## Strength of interactions with other features: ", self.plot_single)
-        self.plot_overview = self.tornado_plot(self.dataset_overview, feature_iter, "overview")
-        self.ranked_buttons = self.create_ranked_buttons(self.dataset_overview, feature_iter)
+        self.panel_single = pn.Column("## Strength of interactions with previous features: ", self.plot_single)
+        self.panel_single_first = pn.Column("## Individual Feature Influence: ", self.plot_single)
+        if len(all_selected_cols) == 0:
+            self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
+            self.plot_overview = self.tornado_plot(self.dataset_overview, feature_iter, "overview")
+            self.ranked_buttons = self.create_ranked_buttons(self.dataset_overview, feature_iter)
+
         self.all_selected_cols = all_selected_cols
         self.feature_iter = feature_iter
         self.ranked_buttons_text = "## (advanced) fast selection:"
@@ -49,12 +52,13 @@ class TornadoPlot(Viewer):
 
     @param.depends('ranked_buttons')
     def get_panel_single(self):
-        return self.panel_single if len(self.all_selected_cols) == 0 else None
+        return self.panel_single_first if len(self.all_selected_cols) == 0 else None
 
     def hide_all(self):
         self.all_selected_cols = []
         self.ranked_buttons_text = ""
         self.panel_single = None
+        self.panel_single_first = None
         self.ranked_buttons = pn.FlexBox()
 
     def set_col(self, data, item_source, feature_iter, type):
@@ -190,8 +194,8 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
 
 
 def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
-    prob_range = data[y_col].max() - data[y_col].min()
-    min_value = prob_range * 0.25
+    prob_range = data[y_col].std()
+    min_value = prob_range
 
     # recursively build a tree for each column
     tree_list = []
@@ -284,7 +288,7 @@ class InteractTreeSub (InteractTree):
         #self.raw_value = np.abs(joined_value - added_value)
         #self.value = 0 if min_value/2 >= self.raw_value else (prev.value * prev.count + np.abs(joined_value - added_value)) / self.count
         self.nodes = []
-        if len(self.columns) and difference > min_value:
+        if len(self.columns) and difference > min_value and self.count < 3:
             for col in remaining_columns:
                 remaining = [c for c in remaining_columns if c != col]
                 self.nodes.append(InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))

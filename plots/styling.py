@@ -67,6 +67,12 @@ style_input = f"""
     }}
 """
 
+style_icon = f"""
+    :host(.outline) .bk-btn-group .bk-btn-default {{
+        border: none;
+    }}
+"""
+
 def add_style(plot: figure) -> figure:
     """
     add global styling to a plot
