@@ -1,8 +1,29 @@
 import panel as pn
 import DataStore as DataStore
-from plots.styling import color
+from plots.styling import color, style_sidebar
 
-pn.extension('floatpanel', global_css=[f':root {{ --design-primary-color: {color}; }}'])
+css = f"""
+    :root {{
+        --design-primary-color: {color};
+    }}
+    
+    #sidebar {{
+        background-color: #EEEEEE;
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: 0;
+        margin-right: 0;
+    }}
+    
+    #sidebar .mdc-list {{
+        padding: 0 !important;
+        margin-right: 0;
+        margin-left: 0;
+    }}
+        
+"""
+
+pn.extension('floatpanel', global_css=[css])
 
 ds = DataStore.DataStore()
 
@@ -12,6 +33,7 @@ template = pn.template.MaterialTemplate(
     sidebar_width=330,
 )
 
+
 item_widgets = pn.bind(lambda e: e, ds.param.item_widgets)
 
 # sidebar content
@@ -19,7 +41,8 @@ item_widgets = pn.bind(lambda e: e, ds.param.item_widgets)
 s1 = ("Data Set", pn.Column(ds.get_file_widgets(), pn.layout.Spacer()))
 s2 = ("Target", pn.Column(ds.get_title_widgets(), pn.layout.Spacer()))
 s3 = ("Item", pn.Column(item_widgets, pn.layout.Spacer()))
-acc = pn.Accordion(s1, s2, s3, styles=dict(margin='auto', width='300px'))
+acc = pn.Accordion(s1, s2, s3, styles=dict(margin='0', width='100%', padding='0'), stylesheets=[style_sidebar],
+                   header_background="lightgrey", active_header_background="lightgrey")
 acc.active = [2]
 acc.toggle = True
 

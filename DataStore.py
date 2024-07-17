@@ -6,7 +6,7 @@ import calculations.feature_iter as feature_iter
 import calculations.similarity as similarity
 import plots.similar_plot as similar_plot
 import plots.dependency_plot as dependency_plot
-from plots.styling import style_button, style_options
+from plots.styling import style_button, style_options, style_input
 import plots.tornado_plot as tornado_plot
 import pandas as pd
 
@@ -27,9 +27,10 @@ class DataStore(param.Parameterized):
     def __init__(self, **params):
         super().__init__(**params)
         self.active = True
-        self.file = pn.widgets.FileInput(accept='.csv', name='Upload data', width=200)
-        self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network', width=200)
-        self.truth_file = pn.widgets.FileInput(accept='.csv', name='Upload truth', width=200)
+        white = {'background': 'white'}
+        self.file = pn.widgets.FileInput(accept='.csv', name='Upload data', width=200, styles=white)
+        self.nn_file = pn.widgets.FileInput(accept='.pkl', name='Upload neural network', width=200, styles=white)
+        self.truth_file = pn.widgets.FileInput(accept='.csv', name='Upload truth', width=200, styles=white)
         self.calculate = pn.widgets.Button(name='Calculate', styles=dict(margin='auto'), stylesheets=[style_button])
         self.calculate.on_click(self.update_data)
         self.data_loader = data_loader.DataLoader()
@@ -42,9 +43,9 @@ class DataStore(param.Parameterized):
 
         # predict class
         self.predict_class = pn.widgets.Select(name='prediction', options=list(self.data_loader.classes),
-                                               value=self.data_loader.classes[-1], width=250)
+                                               value=self.data_loader.classes[-1], width=250, stylesheets=[style_input])
         self.predict_class_label = pn.widgets.TextInput(name='prediction label', value=self.predict_class.value,
-                                                        width=250)
+                                                        width=250, stylesheets=[style_input])
         self.predict_class.param.watch(lambda event: self.predict_class_label.param.update(value=event.new),
                                        parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(lambda event: self.set_item_widgets(),
@@ -141,7 +142,7 @@ class DataStore(param.Parameterized):
         self.item_custom_content.clear()
         self.item_custom_content.append("(missing values will be imputed)")
         for col in self.data_loader.columns:
-            widget = pn.widgets.LiteralInput(name=col, value=None, width=200)
+            widget = pn.widgets.LiteralInput(name=col, value=None, width=200, stylesheets=[style_input])
             widget.param.watch(self.update_item_self, parameter_names=['value'], onlychanged=False)
             self.item_custom_content.append(widget)
 

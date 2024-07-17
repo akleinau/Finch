@@ -42,6 +42,31 @@ style_additive = f"""
     }}
 """
 
+style_sidebar = f"""
+    :host(.accordion) {{
+        box-shadow: none;
+        outline: none;
+        border: none;
+        width: 100% !important;
+    }}
+    
+    .accordion {{
+        box-shadow: none;
+        outline: none;
+        border: none;
+        width: 100% !important;
+        margin: 0;
+        border-top: 1px solid darkgrey;
+        background-color: #EEEEEE
+    }}
+"""
+
+style_input = f"""
+    .bk-input {{
+        background-color: white
+    }}
+"""
+
 def add_style(plot: figure) -> figure:
     """
     add global styling to a plot
