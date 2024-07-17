@@ -107,7 +107,7 @@ def get_window_items(data, item, col, y_col):
 
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
-    window = get_window_size(mean_data)
+    window = get_window_size(mean_data) - 1 # -1 because we add one to the end_index
 
     # get the closest item index to the item value
     if item.type == 'custom':

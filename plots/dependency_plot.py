@@ -125,7 +125,7 @@ class DependencyPlot(Viewer):
         color_data = {}
         for i, color in enumerate(colors):
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
-            color_data[color] = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map)
+            color_data[color] = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map, y_col)
             color_data[color] = get_rolling(color_data[color], y_col, col)
 
         for i, color in enumerate(colors):
@@ -150,7 +150,7 @@ class DependencyPlot(Viewer):
                                 self.color_map, simple_next)
 
                 if "scatter" in chart_type and color == self.color_map['neighborhood']:
-                    data = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map)
+                    data = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map, y_col)
                     create_scatter(plot, col, color, data, y_col)
 
         # add influence
@@ -366,7 +366,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
 
 
 def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_data: pd.DataFrame,
-                      color_map: dict) -> pd.DataFrame:
+                      color_map: dict, y_col) -> pd.DataFrame:
     """
     returns the data used for the calculation of the current line
 
@@ -392,17 +392,19 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
     elif color == color_map['additive_prediction']:
         # first get the prediction of just the newest feature alone
         last_col = include_cols[-1]
-        single_mean = get_window_items(sorted_data, item, last_col, item.predict_class)[item.predict_class].mean()
+        single_mean = get_window_items(sorted_data, item, last_col, y_col)[y_col].mean()
+        print(single_mean)
+        # TODO remove mean of all data
 
         # get previous prediction data
         if len(include_cols) == 0:
             filtered_data = sorted_data.copy()
-            filtered_data[item.predict_class] = 0
+            filtered_data[y_col] = 0
         elif len(include_cols) == 1:
             filtered_data = sorted_data.copy()
         else:
             filtered_data = get_similar_items(sorted_data, item, include_cols[:-1]).copy()
-        filtered_data[item.predict_class] = filtered_data[item.predict_class] + single_mean
+        filtered_data[y_col] = filtered_data[y_col] + single_mean
     else:
         filtered_data = sorted_data[sorted_data["scatter_group"] == color]
     return filtered_data

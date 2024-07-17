@@ -166,7 +166,7 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
             first_col = all_selected_cols[0]
 
             # calculate added value
-            similar_items = get_similar_items(data, item, all_selected_cols[1:])
+            similar_items = get_similar_items(data, item, all_selected_cols[1:] + [col])
             prev_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
             added_value = single_value + prev_value
 
@@ -176,7 +176,7 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
             joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
 
             # value = single_mean - mean_prob
-            value = np.abs(added_value - joined_value)
+            value = np.abs(joined_value - added_value)
 
             results.append({'feature': col, 'prediction': joined_value, 'value': value,
                             'item_value': item.data_raw[col].values[0]})
@@ -191,7 +191,7 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
 
 def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
     prob_range = data[y_col].max() - data[y_col].min()
-    min_value = prob_range * 0.2
+    min_value = prob_range * 0.25
 
     # recursively build a tree for each column
     tree_list = []
@@ -279,11 +279,12 @@ class InteractTreeSub (InteractTree):
         self.prev_value = prev_value
         self.columns = prev.columns + [col]
         self.count = len(self.columns)
-        self.value = (prev.value * prev.count + np.abs(joined_value - added_value)) / self.count
+        difference = np.abs(joined_value - added_value)
+        self.value = (prev.value * prev.count + difference) / self.count
         #self.raw_value = np.abs(joined_value - added_value)
         #self.value = 0 if min_value/2 >= self.raw_value else (prev.value * prev.count + np.abs(joined_value - added_value)) / self.count
         self.nodes = []
-        if len(self.columns) and self.value > min_value:
+        if len(self.columns) and difference > min_value:
             for col in remaining_columns:
                 remaining = [c for c in remaining_columns if c != col]
                 self.nodes.append(InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
