@@ -82,7 +82,7 @@ class DependencyPlot(Viewer):
 
             col = all_selected_cols[0]
             if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
-                plot = self.create_figure(col, data, item)
+                plot = self.create_figure(col, data, item, data_loader)
                 add_axis(plot, self.influence_marker, self.y_range_padded, self.color_map)
                 add_background(plot, self.influence_marker, item, self.mean, self.y_range, self.y_range_padded)
                 self.col = col
@@ -188,7 +188,7 @@ class DependencyPlot(Viewer):
         else:
             plot.renderers = [r for r in plot.renderers if "prediction" not in r.glyph.tags]
 
-    def create_figure(self, col: str, data: pd.DataFrame, item: Item) -> figure:
+    def create_figure(self, col: str, data: pd.DataFrame, item: Item, data_loader) -> figure:
         """
         create the basic figure for the dependency plot. It is reused, to keep user interactions (scrolling, etc) constant
 
@@ -222,6 +222,29 @@ class DependencyPlot(Viewer):
         plot.legend.location = "top_right"
         plot.legend.click_policy = "hide"
 
+        y_range_abs = [self.y_range[0] + self.mean, self.y_range[1] + self.mean]
+        plot.extra_y_ranges = {"abs": bokeh.models.Range1d(start=y_range_abs[0], end=y_range_abs[1])}
+        plot.add_layout(LinearAxis(y_range_name="abs", axis_label="value"), 'right')
+
+        # improve the y-axis by adding a % sign and a plus or minus sign
+        if data_loader.type == 'classification':
+            plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(
+                code=""" return (tick > 0 ? '+' : '') + (tick * 100).toFixed(0) + '%'; """)
+
+            # second y-axis for the absolute values
+            plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
+                code=""" return (tick * 100).toFixed(0) + '%'; """)
+
+
+        else:
+            plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(
+                code="""  return (tick > 0 ? '+' : '') + tick; """)
+
+            # second y-axis for the absolute values
+            plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
+                code=""" return tick; """)
+
+        # add item info
         if item.type != 'global':
 
             # centers the plot on the item
