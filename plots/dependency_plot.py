@@ -36,6 +36,7 @@ class DependencyPlot(Viewer):
                                  "colored_background"]  # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
         self.col = None
         self.item_x = None
+        self.truth = False
 
         #colors
         self.color_map = {'base': '#606060', 'neighborhood': '#A336B0', 'ground_truth': '#A0A0A0', 'neighborhood_truth': '#cc98e6',
@@ -64,6 +65,9 @@ class DependencyPlot(Viewer):
         :param simple_next: bool
         """
 
+        self.truth = "truth" in data.columns
+        self.truth_class = "truth_" + item.predict_class[5:]
+
         if len(all_selected_cols) == 0:
             self.truth_widget.visible = False
             self.additive_widget.visible = False
@@ -71,7 +75,7 @@ class DependencyPlot(Viewer):
             self.density_plot = None
             self.col = None
         else:
-            self.truth_widget.visible = True
+            self.truth_widget.visible = self.truth
             self.truth_widget.name = 'show ground truth' if len(all_selected_cols) == 1 else \
                 'show ground truth of the neighborhood'
             self.additive_widget.visible = len(all_selected_cols) > 1 and show_process
@@ -194,8 +198,6 @@ class DependencyPlot(Viewer):
         :return: figure
         """
 
-        self.truth = "truth" in data.columns
-        self.truth_class = "truth_" + item.predict_class[5:]
         self.sorted_data = data.copy().sort_values(by=col)
         self.mean = data[item.predict_class].mean()
         if self.relative:
