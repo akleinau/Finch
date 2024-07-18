@@ -224,12 +224,16 @@ class DependencyPlot(Viewer):
 
         y_range_abs = [self.y_range[0] + self.mean, self.y_range[1] + self.mean]
         plot.extra_y_ranges = {"abs": bokeh.models.Range1d(start=y_range_abs[0], end=y_range_abs[1])}
-        plot.add_layout(LinearAxis(y_range_name="abs", axis_label="value"), 'right')
+        plot.add_layout(LinearAxis(y_range_name="abs", axis_label="prediction"), 'right')
 
         # improve the y-axis by adding a % sign and a plus or minus sign
         if data_loader.type == 'classification':
-            plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(
-                code=""" return (tick > 0 ? '+' : '') + (tick * 100).toFixed(0) + '%'; """)
+            plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(args=dict(mean=self.mean),
+                code=""" 
+                if (tick == 0) {
+                    return 'mean +-0%';
+                }
+                return (tick > 0 ? '+' : '') + (tick * 100).toFixed(0) + '%'; """)
 
             # second y-axis for the absolute values
             plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
@@ -238,7 +242,11 @@ class DependencyPlot(Viewer):
 
         else:
             plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(
-                code="""  return (tick > 0 ? '+' : '') + tick; """)
+                code="""  
+                if (tick == 0) {
+                    return 'mean +-0';
+                }
+                return (tick > 0 ? '+' : '') + tick; """)
 
             # second y-axis for the absolute values
             plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
