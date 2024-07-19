@@ -136,6 +136,12 @@ class DependencyPlot(Viewer):
             # choose right data
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
             group_data = color_data[color]
+
+            # crop the data to the y_range
+            if color == self.color_map['additive_prediction']:
+                group_data['mean'] = group_data['mean'].clip(lower=self.y_range[0], upper=self.y_range[1])
+
+
             alpha, line_type = get_group_style(color, self.color_map, self.truth_widget.value, self.additive_widget.value)
 
             if len(group_data) > 0:
@@ -183,6 +189,7 @@ class DependencyPlot(Viewer):
                 l.glyph.line_color = self.color_map['previous_prediction']
                 l.name = "previous prediction"
                 # add to legend
+                plot.legend.items = [i for i in plot.legend.items if i.label.value != "Neighborhood Prediction"]
                 plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
 
         else:

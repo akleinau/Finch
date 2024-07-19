@@ -64,8 +64,8 @@ class Item(Viewer):
         if self.type == 'global':
             return ""
         if self.data_loader.type == 'regression':
-            return "Prediction: " + "{:.2f}".format(self.prob_class)
-        return "Probability of " + self.pred_class_label + ": " + "{:10.0f}".format(self.prob_class * 100) + "%"
+            return "Instance Prediction: " + "{:.2f}".format(self.prob_class)
+        return "Instance Prediction for " + self.pred_class_label + ": " + "{:10.0f}".format(self.prob_class * 100) + "%"
 
 
 def extract_data_from_custom_content(custom_content: pn.Column, data_loader: DataLoader) -> pd.DataFrame:

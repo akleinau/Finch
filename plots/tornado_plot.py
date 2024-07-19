@@ -194,7 +194,7 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
 
 
 def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
-    prob_range = data[y_col].std()
+    prob_range = 0.5*data[y_col].std()
     min_value = prob_range
 
     # recursively build a tree for each column

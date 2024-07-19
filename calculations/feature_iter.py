@@ -60,6 +60,9 @@ class FeatureIter(Viewer):
         self.all_selected_cols_final = cols
         self.update_widgets(final=True)
 
+    def changed_item(self, *params):
+        self.simple_next = False
+
     def add_col(self, col):
         if col != "" and self.active:
             self.show_add = False

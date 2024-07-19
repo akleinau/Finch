@@ -40,7 +40,7 @@ item_widgets = pn.bind(lambda e: e, ds.param.item_widgets)
 
 s1 = ("Data Set", pn.Column(ds.get_file_widgets(), pn.layout.Spacer()))
 s2 = ("Target", pn.Column(ds.get_title_widgets(), pn.layout.Spacer()))
-s3 = ("Item", pn.Column(item_widgets, pn.layout.Spacer()))
+s3 = ("Instance", pn.Column(item_widgets, pn.layout.Spacer()))
 acc = pn.Accordion(s1, s2, s3, styles=dict(margin='0', width='100%', padding='0'), stylesheets=[style_sidebar],
                    header_background="lightgrey", active_header_background="lightgrey")
 acc.active = [2]
