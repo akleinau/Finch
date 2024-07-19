@@ -8,10 +8,10 @@ class DataLoader(Viewer):
     def __init__(self, file=None, nn_file=None, truth_file=None):
         super().__init__()
         if file is None or nn_file is None:
-            self.data = load_weather_data()
+            self.data = load_bike_data()
             self.columns = [col for col in self.data.columns]
-            self.nn = load_weather_nn()
-            truth = load_weather_truth()
+            self.nn = load_bike_nn()
+            truth = load_bike_truth()
 
         else:
             self.data = load_data(file)
@@ -70,21 +70,21 @@ class DataLoader(Viewer):
         return all_data
 
 
-def load_weather_data() -> pd.DataFrame:
-    file_testdata = open('weather_data/weather_testdata.csv', 'rb')
+def load_bike_data() -> pd.DataFrame:
+    file_testdata = open('bike_data/bike_testdata.csv', 'rb')
     testdata = pd.read_csv(file_testdata)
     return testdata
 
 
-def load_weather_nn() -> pickle:
-    file_nn = open('weather_data/weather_nn.pkl', 'rb')
+def load_bike_nn() -> pickle:
+    file_nn = open('bike_data/bikeREG_nn.pkl', 'rb')
     nn = pickle.load(file_nn)
     file_nn.close()
     return nn
 
 
-def load_weather_truth() -> pd.DataFrame:
-    file_truth = open('weather_data/weather_testtruth.csv', 'rb')
+def load_bike_truth() -> pd.DataFrame:
+    file_truth = open('bike_data/bike_testtruth.csv', 'rb')
     truth = pd.read_csv(file_truth)
     return truth
 
