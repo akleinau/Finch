@@ -8,6 +8,7 @@ import plots.similar_plot as similar_plot
 import plots.dependency_plot as dependency_plot
 from plots.styling import style_button, style_options, style_input
 import plots.tornado_plot as tornado_plot
+import plots.help as help_plot
 import pandas as pd
 
 class DataStore(param.Parameterized):
@@ -23,6 +24,7 @@ class DataStore(param.Parameterized):
     item_widgets = param.ClassSelector(class_=pn.Column)
     tornado_plot = param.ClassSelector(class_=tornado_plot.TornadoPlot)
     add_feature_panel = param.ClassSelector(class_=pn.layout.FloatPanel)
+    help_pane = param.ClassSelector(class_=help_plot.Help)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -56,6 +58,7 @@ class DataStore(param.Parameterized):
         # columns
         self.feature_iter = feature_iter.FeatureIter(self.data_loader.columns)
         self.render_plot = dependency_plot.DependencyPlot()
+        self.help_pane = help_plot.Help()
 
         # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree',

@@ -56,11 +56,13 @@ tornado_plot_single = pn.bind(lambda e: e.get_panel_single, ds.param.tornado_plo
 tornado_plot_overview = pn.bind(lambda e: e, ds.param.tornado_plot)
 ranked_buttons = pn.bind(lambda e: e.ranked_buttons, ds.param.tornado_plot)
 floatpanel = pn.bind(lambda e: e, ds.param.add_feature_panel)
+help = pn.bind(lambda e: e, ds.param.help_pane)
 
 # main content
 template.main.append(pn.Column(
     pn.Row(ds.feature_iter, styles=dict(margin="auto")),
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
+    help,
     pn.Row(ds.render_plot,
            pn.Column(sim_plot, tornado_plot_single, styles=dict(margin_left='20px')), styles=dict(margin='auto')),
     tornado_plot_overview,
