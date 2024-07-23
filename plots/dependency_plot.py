@@ -39,16 +39,16 @@ class DependencyPlot(Viewer):
         self.truth = False
 
         #colors
-        self.color_map = {'base': '#606060', 'neighborhood': '#A336B0', 'ground_truth': '#A0A0A0', 'neighborhood_truth': '#cc98e6',
+        self.color_map = {'base': '#606060', 'neighborhood': '#A336B0', 'ground_truth': '#909090', 'neighborhood_truth': '#aa76c4',
                           'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A",
-                          'previous_prediction': '#b6a0c7', 'additive_prediction': '#4B0082'}
+                          'previous_prediction': '#b6a0c7', 'additive_prediction': '#595bb0'}
 
         self.truth_widget = pn.widgets.Toggle(name='show ground truth of the neighborhood', value=False, visible=False,
-                                              stylesheets=[style_truth], align="end")
+                                              stylesheets=[style_truth], align="end", icon="timeline")
         self.truth_widget.param.watch(self.truth_changed, parameter_names=['value'], onlychanged=False)
         additive_name = 'show prediction assuming independence of the new feature'
         self.additive_widget = pn.widgets.Toggle(name=additive_name, value=False, visible=False,
-                                                 stylesheets=[style_additive], align="end")
+                                                 stylesheets=[style_additive], align="end", icon="timeline")
         self.additive_widget.param.watch(self.additive_changed, parameter_names=['value'], onlychanged=False)
 
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
@@ -302,12 +302,11 @@ class DependencyPlot(Viewer):
         for obj in truth_renderers:
             obj.visible = self.truth_widget.value
 
-        # update the legend
-        # plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
-        legend_item = [i for i in self.plot.legend.items if i.label.value == "ground truth" or i.label.value == "neighborhood truth"]
-        for l in legend_item:
-            l.visible = self.truth_widget.value
-
+            # update the legend
+            # plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
+            legend_item = [i for i in self.plot.legend.items if i.label.value == "Ground truth"]
+            for l in legend_item:
+                l.renderers = [obj]
 
     def additive_changed(self, event):
         additive_renderers = [r for r in self.plot.renderers if self.color_map['additive_prediction'] in r.glyph.tags]
@@ -315,10 +314,10 @@ class DependencyPlot(Viewer):
         for obj in additive_renderers:
             obj.visible = self.additive_widget.value
 
-        # update the legend
-        legend_item = [i for i in self.plot.legend.items if i.label.value == "additive prediction"]
-        for l in legend_item:
-            l.visible = self.additive_widget.value
+            # update the legend
+            legend_item = [i for i in self.plot.legend.items if i.label.value == "assuming independence"]
+            for l in legend_item:
+                l.renderers = [obj]
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str, combined: pd.DataFrame,
                     influence_marker: list, line_type: str, colors: dict, simple_next: bool):
