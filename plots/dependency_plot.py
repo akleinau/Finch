@@ -99,7 +99,7 @@ class DependencyPlot(Viewer):
 
     @param.depends('density_plot')
     def __panel__(self):
-        return pn.Column(pn.Row(self.truth_widget, self.additive_widget, styles=dict(align='end')), self.plot, self.density_plot)
+        return pn.Column(pn.FlexBox(self.truth_widget, self.additive_widget, styles=dict(align='end')), self.plot, self.density_plot)
 
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
@@ -220,7 +220,8 @@ class DependencyPlot(Viewer):
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
         plot = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
                       x_range=x_range_padded,
-                      width=900, toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
+                      sizing_mode='stretch_both', min_width=500, min_height=300,
+                      toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
         plot.grid.level = "overlay"
         plot.grid.grid_line_color = "black"
         plot.grid.grid_line_alpha = 0.05
@@ -282,7 +283,8 @@ class DependencyPlot(Viewer):
         data = get_data(data_loader)
         similar_item_group = get_similar_items(data, item, all_selected_cols[1:])
 
-        plot = figure(title="data distribution", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900, height=120,
+        plot = figure(title="data distribution", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900,
+                      sizing_mode='stretch_both', min_width=500, min_height=100,
                       x_range=self.plot.x_range, active_scroll="xwheel_zoom",)
         add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
 

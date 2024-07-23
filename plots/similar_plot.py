@@ -75,7 +75,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         # create a figure
         x_range = [data[col].min(), data[col].max()]
-        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=80, width=400,
+        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=80, width=300,
                       sizing_mode='fixed', tools='')
 
         if i == 0:
