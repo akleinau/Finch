@@ -62,11 +62,12 @@ help = pn.bind(lambda e: e, ds.param.help_pane)
 template.main.append(pn.Column(
     pn.Row(ds.feature_iter, styles=dict(margin="auto")),
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
-    help,
+    pn.Row(help, styles=dict(width='100%')),
     pn.Row(ds.render_plot,
            pn.Column(sim_plot, tornado_plot_single, styles=dict(margin_left='20px')), styles=dict(margin='auto')),
     tornado_plot_overview,
-    floatpanel
+    floatpanel,
+    styles=dict(width='100%', margin='auto')
 ))
 
 template.servable()

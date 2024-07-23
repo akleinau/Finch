@@ -40,7 +40,7 @@ class DataStore(param.Parameterized):
         # item
         self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'],
                                                      value='predefined', button_style='outline', stylesheets=[style_options])
-        self.item_index = pn.widgets.EditableIntSlider(name='Instance index', start=0, end=100, value=26, width=250)
+        self.item_index = pn.widgets.EditableIntSlider(name='Instance index', start=0, end=100, value=36, width=250)
         self.item_index.param.watch(lambda event: self.set_item_widgets(),
                                     parameter_names=['value_throttled'], onlychanged=False)
         self.item_custom_content = pn.Column()
@@ -100,6 +100,11 @@ class DataStore(param.Parameterized):
         self.feature_iter.param.watch(self.update_similar_plot,
                                       parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_similar_plot,
+                         parameter_names=['item'], onlychanged=False)
+
+        # help
+        self.feature_iter.param.watch(self.update_help, parameter_names=['all_selected_cols'], onlychanged=False)
+        self.param.watch(self.update_help,
                          parameter_names=['item'], onlychanged=False)
 
         # floatpanel
@@ -217,3 +222,6 @@ class DataStore(param.Parameterized):
                                                           position="center")
         else:
             self.add_feature_panel = None
+
+    def update_help(self, *params):
+        self.help_pane.update(self.feature_iter.all_selected_cols, self.item)
