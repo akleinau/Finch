@@ -66,7 +66,7 @@ template.main.append(pn.Column(
     pn.Row(tornado_plot_single, styles=dict(margin='auto')),
     tornado_plot_overview,
     pn.Row(ds.render_plot,
-           pn.Column(sim_plot, styles=dict(margin_left='20px')), styles=dict(margin='auto')),
+           pn.Column(sim_plot, styles=dict(margin_left='20px')), styles=dict(margin='auto', width='100%', padding='10px')),
     floatpanel,
     styles=dict(width='100%', margin='auto')
 ))

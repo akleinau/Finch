@@ -35,7 +35,7 @@ class TornadoPlot(Viewer):
         self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict, self.mean_prob)
         self.plot_single = self.tornado_plot(self.dataset_single, feature_iter, "single")
         self.panel_single = pn.Column("## Strength of interactions with previous features: ", self.plot_single)
-        self.panel_single_first = pn.Column("## Individual Feature Influence: ", self.plot_single)
+        self.panel_single_first = pn.Column("## Choose a feature: \n ranked by influence assuming independence", self.plot_single)
         if len(all_selected_cols) == 0:
             self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
             self.plot_overview = self.tornado_plot(self.dataset_overview, feature_iter, "overview")
