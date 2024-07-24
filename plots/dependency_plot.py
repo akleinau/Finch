@@ -99,11 +99,18 @@ class DependencyPlot(Viewer):
 
     @param.depends('density_plot')
     def __panel__(self):
-        return pn.Column(pn.FlexBox(self.truth_widget, self.additive_widget,
-                                    styles=dict(margin='auto', width='100%'),
-                                    sizing_mode="stretch_width", min_width=500, max_width=1000),
+        return pn.Column(
+                pn.pane.Markdown("## Influence:", styles=dict(margin='auto', width='100%', margin_top='25px'),
+                             sizing_mode='stretch_width', min_width=500, max_width=1000, ),
                         self.plot,
+                        pn.pane.Markdown("### Data distribution:", styles=dict(margin='auto', width='100%'),
+                                          sizing_mode='stretch_width', min_width=500, max_width=1000, ),
                         self.density_plot,
+                        pn.pane.Markdown("### Options:", styles=dict(margin='auto', width='100%', margin_top='15px'),
+                                         sizing_mode='stretch_width', min_width=500, max_width=1000,),
+                        pn.FlexBox(self.truth_widget, self.additive_widget,
+                                   styles=dict(margin='auto', width='100%'),
+                                   sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
                          styles=dict(justify_content='center', margin='auto', width='100%'), align="center")
 
 
@@ -186,16 +193,16 @@ class DependencyPlot(Viewer):
                               or any([c in r.glyph.tags for c in keep_colors])]
 
             # change the current neighborhood line to be the previous prediction line
-            plot.legend.items = [i for i in plot.legend.items if i.label.value != "previous prediction"]
+            plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
             old_line = [r for r in plot.renderers if self.color_map['neighborhood'] in r.glyph.tags]
             for l in old_line:
                 # this actually should only  be one line, hopefully
                 l.glyph.tags = ["prediction"]
                 l.glyph.line_color = self.color_map['previous_prediction']
-                l.name = "previous prediction"
+                l.name = "Previous prediction"
                 # add to legend
                 plot.legend.items = [i for i in plot.legend.items if i.label.value != "Neighborhood Prediction"]
-                plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
+                plot.legend.items.append(LegendItem(label="Previous prediction", renderers=[l]))
 
         else:
             plot.renderers = [r for r in plot.renderers if "prediction" not in r.glyph.tags]
@@ -288,7 +295,7 @@ class DependencyPlot(Viewer):
         data = get_data(data_loader)
         similar_item_group = get_similar_items(data, item, all_selected_cols[1:])
 
-        plot = figure(title="data distribution", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900,
+        plot = figure(title="", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900,
                       sizing_mode='stretch_both', min_width=500, min_height=100, max_width=1000, max_height=300,
                       styles=dict(margin='auto', width='100%'),
                       x_range=self.plot.x_range, active_scroll="xwheel_zoom",)
