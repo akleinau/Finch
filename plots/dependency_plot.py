@@ -100,7 +100,7 @@ class DependencyPlot(Viewer):
     @param.depends('density_plot')
     def __panel__(self):
         return pn.Column(pn.FlexBox(self.truth_widget, self.additive_widget,
-                                    styles=dict(justify_content='center'),
+                                    styles=dict(margin='auto', width='100%'),
                                     sizing_mode="stretch_width", min_width=500, max_width=1000),
                         self.plot,
                         self.density_plot,
@@ -224,7 +224,7 @@ class DependencyPlot(Viewer):
         self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
         plot = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
-                      x_range=x_range_padded,
+                      x_range=x_range_padded, styles=dict(margin='auto', width='100%'),
                       sizing_mode='stretch_both', min_width=500, min_height=300, max_width=1000, max_height=500,
                       toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
         plot.grid.level = "overlay"
@@ -290,6 +290,7 @@ class DependencyPlot(Viewer):
 
         plot = figure(title="data distribution", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900,
                       sizing_mode='stretch_both', min_width=500, min_height=100, max_width=1000, max_height=300,
+                      styles=dict(margin='auto', width='100%'),
                       x_range=self.plot.x_range, active_scroll="xwheel_zoom",)
         add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
 
