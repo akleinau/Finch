@@ -225,7 +225,7 @@ class DependencyPlot(Viewer):
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
         plot = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
                       x_range=x_range_padded, styles=dict(margin='auto', width='100%'),
-                      sizing_mode='stretch_both', min_width=500, min_height=300, max_width=1000, max_height=500,
+                      sizing_mode='stretch_both', min_width=500, min_height=400, max_width=1000, max_height=600,
                       toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
         plot.grid.level = "overlay"
         plot.grid.grid_line_color = "black"
@@ -274,7 +274,7 @@ class DependencyPlot(Viewer):
 
             # add the label
             plot.add_layout(
-                Label(x=self.item_x, y=520, y_units="screen", text=col + " = " + str(self.item_x), text_align='center',
+                Label(x=self.item_x, y=self.y_range[1], text=col + " = " + str(self.item_x), text_align='center',
                       text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
 
             add_item(plot, col, item, self.y_range, self.color_map)
@@ -296,7 +296,7 @@ class DependencyPlot(Viewer):
 
         plot = add_style(plot)
 
-        style_axes(col, item, plot)
+        style_axes_main(all_selected_cols, plot)
 
         # hide legend
         plot.add_layout(Legend(), 'above')
@@ -613,3 +613,13 @@ def get_group_col(color: str, item: Item, truth_class: str, color_map: dict) -> 
     else:
         y_col = item.predict_class
     return y_col
+
+def style_axes_main(all_selected_cols, plot):
+
+    if len(all_selected_cols) > 1:
+        # add the label "standard" and "neighborhood" as y-axis ticks, on -1 and 1
+        plot.yaxis.ticker = [-1, 1]
+        plot.yaxis.major_label_overrides = {-1: 'Base', 1: 'Neighborhood'}
+    else:
+        plot.yaxis.ticker = [-1]
+        plot.yaxis.major_label_overrides = {-1: 'Base'}

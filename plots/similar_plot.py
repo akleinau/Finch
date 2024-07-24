@@ -100,20 +100,21 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
         plot.yaxis.axis_label = col + " = " + "{:.2f}".format(item.data_raw[col].values[0])
         plot.yaxis.axis_label_orientation = "horizontal"
 
-        style_axes(col, item, plot)
+        style_axes(all_selected_cols, plot)
 
         plot.title.visible = False
 
         if i == 1:
             # add divider
-            plot_list.append("## Neighborhood (n = " + str(len(similar_item_group)) + "):")
+            plot_list.append("## Neighborhood: \n using **" + str(len(similar_item_group)) + "** similar instances")
 
         plot_list.append(plot)
 
     return plot_list
 
 
-def style_axes(col, item, plot):
+def style_axes(all_selected_cols, plot):
+
     # hide ticks of the yaxis but not the label
     plot.yaxis.major_tick_line_color = None
     plot.yaxis.minor_tick_line_color = None
