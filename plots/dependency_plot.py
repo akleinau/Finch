@@ -97,8 +97,11 @@ class DependencyPlot(Viewer):
 
     @param.depends('density_plot')
     def __panel__(self):
+        if self.plot is None:
+            return pn.Column()
+
         return pn.Column(
-                pn.pane.Markdown("## Influence:", styles=dict(margin='auto', width='100%', margin_top='25px'),
+                pn.pane.Markdown("## Feature Interaction:", styles=dict(margin='auto', width='100%'),
                              sizing_mode='stretch_width', min_width=500, max_width=1000, ),
                         self.plot,
                         pn.pane.Markdown("### Data distribution:", styles=dict(margin='auto', width='100%'),
@@ -109,7 +112,7 @@ class DependencyPlot(Viewer):
                         pn.FlexBox(self.truth_widget, self.additive_widget,
                                    styles=dict(margin='auto', width='100%'),
                                    sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
-                         styles=dict(justify_content='center', margin='auto', width='100%'), align="center")
+                         styles=dict(margin='auto', width='100%'), align="center")
 
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
@@ -228,7 +231,7 @@ class DependencyPlot(Viewer):
         self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
         self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
-        plot = figure(title="", y_axis_label="influence", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
+        plot = figure(title="", y_axis_label="change in prediction", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
                       x_range=x_range_padded, styles=dict(margin='auto', width='100%'),
                       sizing_mode='stretch_both', min_width=500, min_height=400, max_width=1000, max_height=600,
                       toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)

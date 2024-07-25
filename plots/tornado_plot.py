@@ -48,11 +48,11 @@ class TornadoPlot(Viewer):
     @param.depends('ranked_buttons')
     def __panel__(self):
         return pn.Column(self.ranked_buttons_text, self.ranked_buttons) if len(self.all_selected_cols) == 0 \
-            else None
+            else pn.Column(styles={'height': '0'})
 
     @param.depends('ranked_buttons')
     def get_panel_single(self):
-        return self.panel_single_first if len(self.all_selected_cols) == 0 else None
+        return self.panel_single_first if len(self.all_selected_cols) == 0 else pn.Column(styles={'height': '0'})
 
     def hide_all(self):
         self.all_selected_cols = []
