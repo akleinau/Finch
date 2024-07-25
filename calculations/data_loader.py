@@ -2,6 +2,7 @@ import pickle
 import pandas as pd
 import io
 from panel.viewable import Viewer
+import sklearn
 
 
 class DataLoader(Viewer):

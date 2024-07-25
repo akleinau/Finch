@@ -9,8 +9,6 @@ import param
 import panel as pn
 from panel.viewable import Viewer, Viewable
 from plots.styling import add_style
-from sklearn.neighbors import KernelDensity
-import numpy as np
 
 
 class SimilarPlot(Viewer):

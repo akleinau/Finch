@@ -4,8 +4,6 @@ import time
 from bokeh.plotting import figure
 from bokeh.models import (Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation, Arrow, NormalHead,
                           LinearAxis, LinearColorMapper, ColorBar, Text, Label)
-import numpy as np
-from scipy.stats import gaussian_kde
 import pandas as pd
 import bokeh.colors
 from calculations.similarity import get_similar_items, get_pdp_items, get_window_size, get_window_items
