@@ -29,7 +29,7 @@ ds = DataStore.DataStore()
 
 template = pn.template.MaterialTemplate(
     title="FINCH - Feature Interaction Charts",
-    logo="https://github.com/akleinau/images/blob/b73e7d450648a70008dbc44f32eb297afb089713/finch_logo.png?raw=true",
+    logo="https://github.com/akleinau/Finch/blob/d7be6ce2306b34ef40dd572ed079b7e1b43047a3/logo.png?raw=true",
     header_background =color,
     sidebar_width=300,
 )
