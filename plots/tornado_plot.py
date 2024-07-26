@@ -170,7 +170,10 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
             first_col = all_selected_cols[0]
 
             # calculate added value
-            similar_items = get_similar_items(data, item, all_selected_cols[1:] + [col])
+            if len(columns) > 2:
+                similar_items = get_similar_items(data, item, all_selected_cols[1:] + [col])
+            else:
+                similar_items = data
             prev_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
             added_value = single_value + prev_value
 
