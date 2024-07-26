@@ -9,6 +9,7 @@ import plots.dependency_plot as dependency_plot
 from plots.styling import style_button, style_options, style_input
 import plots.tornado_plot as tornado_plot
 import plots.help as help_plot
+import plots.overview_plot as overview_plot
 import pandas as pd
 
 class DataStore(param.Parameterized):
@@ -25,6 +26,7 @@ class DataStore(param.Parameterized):
     tornado_plot = param.ClassSelector(class_=tornado_plot.TornadoPlot)
     add_feature_panel = param.ClassSelector(class_=pn.layout.FloatPanel)
     help_pane = param.ClassSelector(class_=help_plot.Help)
+    overview_plot = param.ClassSelector(class_=overview_plot.OverviewPlot)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -59,6 +61,7 @@ class DataStore(param.Parameterized):
         self.feature_iter = feature_iter.FeatureIter(self.data_loader.columns)
         self.render_plot = dependency_plot.DependencyPlot()
         self.help_pane = help_plot.Help()
+        self.overview_plot = overview_plot.OverviewPlot()
 
         # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree',
@@ -116,6 +119,12 @@ class DataStore(param.Parameterized):
         self.feature_iter.param.watch(self.update_tornado_plot,
                                         parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_tornado_plot,
+                            parameter_names=['item'], onlychanged=False)
+
+        self.update_overview_plot()
+        self.feature_iter.param.watch(self.update_overview_plot,
+                                        parameter_names=['all_selected_cols'], onlychanged=False)
+        self.param.watch(self.update_overview_plot,
                             parameter_names=['item'], onlychanged=False)
 
 
@@ -225,3 +234,6 @@ class DataStore(param.Parameterized):
 
     def update_help(self, *params):
         self.help_pane.update(self.feature_iter.all_selected_cols, self.item)
+
+    def update_overview_plot(self, *params):
+        self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value, self.data_loader.columns, self.feature_iter)
