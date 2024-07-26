@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import CustomJS
+from bokeh.models import CustomJS, BoxAnnotation
 import param
 
 from plots.styling import add_style
@@ -26,11 +26,13 @@ class OverviewPlot(Viewer):
     def __panel__(self) -> Viewable:
         if len(self.ranked_plots.objects) == 0:
             return pn.Column()
-        return pn.Column(#"# Choose a feature: ",
+        return pn.Column("## Feature Overview: ",
                          pn.Row(
                              pn.pane.Markdown("**mean prediction per feature value**", styles=dict(color='#606060')),
                                 pn.pane.Markdown("**selected item**", styles=dict(color='#19b57A')),
                                 #pn.pane.Markdown("**mean prediction**", styles=dict(color='#A0A0A0')),
+                                #pn.pane.Markdown("**positive influence**", styles=dict(color='#AE0139')),
+                                #pn.pane.Markdown("**negative influence**", styles=dict(color='#3801AC')),
                                 ),
                          self.ranked_plots)
 
@@ -95,10 +97,15 @@ def create_plot(data: pd.DataFrame, item: pd.DataFrame, y_col: str, col: str, y_
     plot = figure(title=title, x_axis_label=col, y_axis_label=y_col, width=250, height=200,
                   toolbar_location=None, y_range=y_range)
 
+    # background
+    #plot.background_fill_color = "#FAFAFA"
+    plot.add_layout(BoxAnnotation(bottom=y_range[0], top=mean_prob, fill_color='#E6EDFF', level='underlay'))
+    plot.add_layout(BoxAnnotation(bottom=mean_prob, top=y_range[1], fill_color='#FFE6FF', level='underlay'))
+
     rolling = get_rolling(data, y_col, col)
 
     # mean line
-    #plot.line(x=[data[col].min(), data[col].max()], y=[mean_prob, mean_prob], line_width=1, color='#A0A0A0', alpha=0.5)
+    plot.line(x=[data[col].min(), data[col].max()], y=[mean_prob, mean_prob], line_width=1, color='#A0A0A0', alpha=0.5)
 
     # line
     plot.line(x=col, y='mean', source=rolling, color='#606060', line_width=3)
@@ -110,11 +117,28 @@ def create_plot(data: pd.DataFrame, item: pd.DataFrame, y_col: str, col: str, y_
     # add interaction
     plot.on_event('tap', lambda event: set_col(col, feature_iter))
 
+    # influence band
+    group_data = rolling
+    compare_data = group_data.copy()
+    compare_data['mean'] = mean_prob
+
+    # combine group_data and purple_data to visualize the area between them
+    combined = group_data.join(compare_data, lsuffix='_p', rsuffix='_g', how='outer')
+
+    ## fill the missing values with the previous value
+    combined = combined.interpolate()
+    combined.reset_index(inplace=True)
+    # create two bands, a positive and a negative one
+    combined['max'] = combined[['mean_g', 'mean_p']].max(axis=1)
+    combined['min'] = combined[['mean_g', 'mean_p']].min(axis=1)
+    plot.varea(x=col, y1='mean_g', y2='max', source=combined, fill_color='#AE0139',
+                 fill_alpha=0.4, level='underlay', tags=["prediction"])
+    plot.varea(x=col, y1='mean_g', y2='min', source=combined, fill_color='#3801AC',
+                 fill_alpha=0.4, level='underlay', tags=["prediction"])
+
 
     plot = add_style(plot)
 
-    # background color
-    plot.background_fill_color = "#FAFAFA"
 
     # hide all axes ticks
     plot.xaxis.ticker = []

@@ -53,7 +53,7 @@ class Help(Viewer):
     def __panel__(self):
         if self.len_selected_cols == 0 and not self.never_show_overview:
             obj = pn.Card(pn.Row(self.overview_text, self.close_button_overview),
-                          styles=dict(margin='auto', width='100%', background='#EEEEEE',
+                          styles=dict(margin='auto', width='100%', background='#F0F8FF',
                                    border='1px solid darkgrey', margin_bottom='5px'),
                           hide_header=True, sizing_mode='stretch_width')
         elif self.len_selected_cols == 1 and not self.never_show_base:

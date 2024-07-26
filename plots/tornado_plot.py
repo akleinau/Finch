@@ -43,7 +43,7 @@ class TornadoPlot(Viewer):
 
         self.all_selected_cols = all_selected_cols
         self.feature_iter = feature_iter
-        self.ranked_buttons_text = "## (advanced) fast selection:"
+        self.ranked_buttons_text = "## (advanced) fast interaction selection:"
 
     @param.depends('ranked_buttons')
     def __panel__(self):
