@@ -12,7 +12,6 @@ from plots.styling import add_style
 
 
 class OverviewPlot(Viewer):
-
     ranked_plots = param.ClassSelector(class_=pn.FlexBox)
     all_selected_cols = param.List()
 
@@ -28,11 +27,11 @@ class OverviewPlot(Viewer):
         return pn.Column("## Feature Overview: ",
                          pn.Row(
                              pn.pane.Markdown("**mean prediction per feature value**", styles=dict(color='#606060')),
-                                pn.pane.Markdown("**selected item**", styles=dict(color='#19b57A')),
-                                #pn.pane.Markdown("**mean prediction**", styles=dict(color='#A0A0A0')),
-                                #pn.pane.Markdown("**positive influence**", styles=dict(color='#AE0139')),
-                                #pn.pane.Markdown("**negative influence**", styles=dict(color='#3801AC')),
-                                ),
+                             pn.pane.Markdown("**selected item**", styles=dict(color='#19b57A')),
+                             # pn.pane.Markdown("**mean prediction**", styles=dict(color='#A0A0A0')),
+                             # pn.pane.Markdown("**positive influence**", styles=dict(color='#AE0139')),
+                             # pn.pane.Markdown("**negative influence**", styles=dict(color='#3801AC')),
+                         ),
                          self.ranked_plots)
 
     def update(self, data, item, y_col, columns, feature_iter):
@@ -48,7 +47,6 @@ class OverviewPlot(Viewer):
         """
 
         ranked_plots = pn.FlexBox()
-
 
         if len(feature_iter.all_selected_cols) == 0:
 
@@ -97,7 +95,7 @@ def create_plot(data: pd.DataFrame, item: pd.DataFrame, y_col: str, col: str, y_
                   toolbar_location=None, y_range=y_range)
 
     # background
-    #plot.background_fill_color = "#FAFAFA"
+    # plot.background_fill_color = "#FAFAFA"
     plot.add_layout(BoxAnnotation(bottom=y_range[0], top=mean_prob, fill_color='#E6EDFF', level='underlay'))
     plot.add_layout(BoxAnnotation(bottom=mean_prob, top=y_range[1], fill_color='#FFE6FF', level='underlay'))
 
@@ -111,7 +109,7 @@ def create_plot(data: pd.DataFrame, item: pd.DataFrame, y_col: str, col: str, y_
 
     # item
     plot.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
-                line_width=2, color='#19b57A', tags=["item"], line_cap='round', level='overlay', alpha=0.5)
+              line_width=2, color='#19b57A', tags=["item"], line_cap='round', level='overlay', alpha=0.5)
 
     # add interaction
     plot.on_event('tap', lambda event: set_col(col, feature_iter))
@@ -131,13 +129,11 @@ def create_plot(data: pd.DataFrame, item: pd.DataFrame, y_col: str, col: str, y_
     combined['max'] = combined[['mean_g', 'mean_p']].max(axis=1)
     combined['min'] = combined[['mean_g', 'mean_p']].min(axis=1)
     plot.varea(x=col, y1='mean_g', y2='max', source=combined, fill_color='#AE0139',
-                 fill_alpha=0.4, level='underlay', tags=["prediction"])
+               fill_alpha=0.4, level='underlay', tags=["prediction"])
     plot.varea(x=col, y1='mean_g', y2='min', source=combined, fill_color='#3801AC',
-                 fill_alpha=0.4, level='underlay', tags=["prediction"])
-
+               fill_alpha=0.4, level='underlay', tags=["prediction"])
 
     plot = add_style(plot)
-
 
     # hide all axes ticks
     plot.xaxis.ticker = []
@@ -148,6 +144,7 @@ def create_plot(data: pd.DataFrame, item: pd.DataFrame, y_col: str, col: str, y_
     plot.title.align = 'center'
 
     return plot
+
 
 def set_col(col: str, feature_iter: FeatureIter):
     """

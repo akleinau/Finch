@@ -11,8 +11,6 @@ from plots.styling import add_style
 
 
 class TornadoPlot(Viewer):
-
-
     plot_single = param.ClassSelector(class_=figure)
     panel_single = param.ClassSelector(class_=pn.Column)
     plot_overview = param.ClassSelector(class_=figure)
@@ -31,10 +29,12 @@ class TornadoPlot(Viewer):
             # get prediction of the col on its own
             single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - self.mean_prob
 
-        self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict, self.mean_prob)
+        self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict,
+                                          self.mean_prob)
         self.plot_single = self.tornado_plot(self.dataset_single, feature_iter, "single")
         self.panel_single = pn.Column("## Interaction strength with selected features: ", self.plot_single)
-        self.panel_single_first = pn.Column("## Choose a feature: \n ranked by influence, assuming independence", self.plot_single)
+        self.panel_single_first = pn.Column("## Choose a feature: \n ranked by influence, assuming independence",
+                                            self.plot_single)
         if len(all_selected_cols) == 0:
             self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
             self.plot_overview = self.tornado_plot(self.dataset_overview, feature_iter, "overview")
@@ -75,7 +75,6 @@ class TornadoPlot(Viewer):
             else:
                 select = select.split(' = ')
                 feature_iter.add_col(select[0])
-
 
     def tornado_plot(self, data, feature_iter, type):
 
@@ -118,7 +117,7 @@ class TornadoPlot(Viewer):
         bars = plot.hbar(
             y='feature',
             right='abs_value',
-            fill_color= "#381eaa",
+            fill_color="#381eaa",
             fill_alpha=1,
             nonselection_fill_alpha=1,
             line_width=0,
@@ -134,7 +133,7 @@ class TornadoPlot(Viewer):
         hover = HoverTool(renderers=[back_bars_left, back_bars_right], tooltips=[('', '@feature')])
 
         # hide x axis
-        #plot.xaxis.visible = False
+        # plot.xaxis.visible = False
 
         plot.add_tools(hover)
 
@@ -157,7 +156,6 @@ class TornadoPlot(Viewer):
 
 
 def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_dict, mean_prob):
-
     # get all singular features
     results = []
     for col in remaining_columns:
@@ -196,7 +194,7 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
 
 
 def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
-    prob_range = 0.5*data[y_col].std()
+    prob_range = 0.5 * data[y_col].std()
     min_value = prob_range
 
     # recursively build a tree for each column
@@ -220,6 +218,7 @@ def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
 
     return dataframe
 
+
 def create_dataframe(results):
     dataframe = pd.DataFrame(results)
     if len(dataframe) == 0:
@@ -235,6 +234,7 @@ def create_dataframe(results):
 
     return dataframe
 
+
 class InteractTree:
     value = 0
     prediction = 0
@@ -244,7 +244,7 @@ class InteractTree:
     count = 0
 
 
-class InteractTreeRoot (InteractTree):
+class InteractTreeRoot(InteractTree):
 
     def __init__(self, single_dict, col, remaining_columns, mean_prob, data, item, y_col, min_value):
         self.value = np.abs(single_dict[col])
@@ -257,7 +257,8 @@ class InteractTreeRoot (InteractTree):
         if self.value > min_value:
             for col in remaining_columns:
                 remaining = [c for c in remaining_columns if c != col]
-                self.nodes.append(InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
+                self.nodes.append(
+                    InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
 
     def get_nodes(self):
         nodes = []
@@ -266,7 +267,7 @@ class InteractTreeRoot (InteractTree):
         return nodes
 
 
-class InteractTreeSub (InteractTree):
+class InteractTreeSub(InteractTree):
     def __init__(self, single_dict, prev, col, remaining_columns, mean_prob, data, item, y_col, min_value):
         # calculate added value
         single_value = single_dict[col]
@@ -287,13 +288,14 @@ class InteractTreeSub (InteractTree):
         self.count = len(self.columns)
         difference = np.abs(joined_value - added_value)
         self.value = (prev.value * prev.count + difference) / self.count
-        #self.raw_value = np.abs(joined_value - added_value)
-        #self.value = 0 if min_value/2 >= self.raw_value else (prev.value * prev.count + np.abs(joined_value - added_value)) / self.count
+        # self.raw_value = np.abs(joined_value - added_value)
+        # self.value = 0 if min_value/2 >= self.raw_value else (prev.value * prev.count + np.abs(joined_value - added_value)) / self.count
         self.nodes = []
         if len(self.columns) and difference > min_value and self.count < 3:
             for col in remaining_columns:
                 remaining = [c for c in remaining_columns if c != col]
-                self.nodes.append(InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
+                self.nodes.append(
+                    InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
 
     def get_nodes(self):
         nodes = [self]

@@ -88,9 +88,9 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
         add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
 
         # add the mean of the data and of similar_item_group as lines
-        #data_mean = data[col].mean()
-        #similar_item_group_mean = similar_item_group[col].mean()
-        #plot.line([data_mean, data_mean], [0, 2], color='grey', line_width=2, alpha=0.9, legend_label='Standard mean')
+        # data_mean = data[col].mean()
+        # similar_item_group_mean = similar_item_group[col].mean()
+        # plot.line([data_mean, data_mean], [0, 2], color='grey', line_width=2, alpha=0.9, legend_label='Standard mean')
         # plot.line([similar_item_group_mean, similar_item_group_mean], [0, 2], color='#9932CC', line_width=2)
 
         plot = add_style(plot)
@@ -112,7 +112,6 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
 
 def style_axes(all_selected_cols, plot):
-
     # hide ticks of the yaxis but not the label
     plot.yaxis.major_tick_line_color = None
     plot.yaxis.minor_tick_line_color = None
@@ -129,8 +128,8 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
         plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
                      color=color_similar, legend_label='Neighborhood')
 
-    plot.line([item.data_prob_raw[col],item.data_prob_raw[col]], [-2, 2], color=color_item,
-                line_width=4, legend_label='Item')
+    plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
+              line_width=4, legend_label='Item')
 
 
 def get_data(data_loader):

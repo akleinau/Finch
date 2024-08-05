@@ -73,6 +73,7 @@ style_icon = f"""
     }}
 """
 
+
 def add_style(plot: figure) -> figure:
     """
     add global styling to a plot

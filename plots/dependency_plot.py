@@ -33,8 +33,9 @@ class DependencyPlot(Viewer):
         self.item_x = None
         self.truth = False
 
-        #colors
-        self.color_map = {'base': '#606060', 'neighborhood': '#A336B0', 'ground_truth': '#909090', 'neighborhood_truth': '#aa76c4',
+        # colors
+        self.color_map = {'base': '#606060', 'neighborhood': '#A336B0', 'ground_truth': '#909090',
+                          'neighborhood_truth': '#aa76c4',
                           'positive_color': '#AE0139', 'negative_color': '#3801AC', 'selected_color': "#19b57A",
                           'previous_prediction': '#b6a0c7', 'additive_prediction': '#595bb0'}
 
@@ -98,22 +99,22 @@ class DependencyPlot(Viewer):
             return pn.Column()
 
         return pn.Column(
-                pn.pane.Markdown("## Feature Interaction:", styles=dict(margin='auto', width='100%'),
+            pn.pane.Markdown("## Feature Interaction:", styles=dict(margin='auto', width='100%'),
                              sizing_mode='stretch_width', min_width=500, max_width=1000, ),
-                        self.plot,
-                        pn.pane.Markdown("### Data distribution:", styles=dict(margin='auto', width='100%'),
-                                          sizing_mode='stretch_width', min_width=500, max_width=1000, ),
-                        self.density_plot,
-                        pn.pane.Markdown("### Options:", styles=dict(margin='auto', width='100%', margin_top='15px'),
-                                         sizing_mode='stretch_width', min_width=500, max_width=1000,),
-                        pn.FlexBox(self.truth_widget, self.additive_widget,
-                                   styles=dict(margin='auto', width='100%'),
-                                   sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
-                         styles=dict(margin='auto', width='100%'), align="center")
-
+            self.plot,
+            pn.pane.Markdown("### Data distribution:", styles=dict(margin='auto', width='100%'),
+                             sizing_mode='stretch_width', min_width=500, max_width=1000, ),
+            self.density_plot,
+            pn.pane.Markdown("### Options:", styles=dict(margin='auto', width='100%', margin_top='15px'),
+                             sizing_mode='stretch_width', min_width=500, max_width=1000, ),
+            pn.FlexBox(self.truth_widget, self.additive_widget,
+                       styles=dict(margin='auto', width='100%'),
+                       sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
+            styles=dict(margin='auto', width='100%'), align="center")
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
-                               data_loader: DataLoader, previous_prediction: bool = True, simple_next: bool = True) -> figure:
+                               data_loader: DataLoader, previous_prediction: bool = True,
+                               simple_next: bool = True) -> figure:
         """
         creates dependency plot
 
@@ -139,7 +140,8 @@ class DependencyPlot(Viewer):
         color_data = {}
         for i, color in enumerate(colors):
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
-            color_data[color] = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map, y_col)
+            color_data[color] = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map,
+                                                  y_col)
             color_data[color] = get_rolling(color_data[color], y_col, col)
 
         for i, color in enumerate(colors):
@@ -151,23 +153,24 @@ class DependencyPlot(Viewer):
             if color == self.color_map['additive_prediction']:
                 group_data['mean'] = group_data['mean'].clip(lower=self.y_range[0], upper=self.y_range[1])
 
-
-            alpha, line_type = get_group_style(color, self.color_map, self.truth_widget.value, self.additive_widget.value)
+            alpha, line_type = get_group_style(color, self.color_map, self.truth_widget.value,
+                                               self.additive_widget.value)
 
             if len(group_data) > 0:
                 # choose right label
                 cluster_label = get_group_label(color, self.color_map)
 
                 # add legend items
-                #dummy_for_legend = plot.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
-                #legend_items.append((cluster_label, [dummy_for_legend]))
+                # dummy_for_legend = plot.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
+                # legend_items.append((cluster_label, [dummy_for_legend]))
 
                 if "band" in chart_type and color == self.color_map['neighborhood']:
                     create_band(plot, cluster_label, col, color, group_data)
 
                 if "line" in chart_type:
-                    self.create_line(plot, alpha, cluster_label, col, color, group_data, self.influence_marker, line_type,
-                                self.color_map, simple_next)
+                    self.create_line(plot, alpha, cluster_label, col, color, group_data, self.influence_marker,
+                                     line_type,
+                                     self.color_map, simple_next)
 
                 if "scatter" in chart_type and color == self.color_map['neighborhood']:
                     data = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map, y_col)
@@ -228,7 +231,8 @@ class DependencyPlot(Viewer):
         self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
         self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
-        plot = figure(title="", y_axis_label="change in prediction", tools="tap, xpan, xwheel_zoom", y_range=self.y_range_padded,
+        plot = figure(title="", y_axis_label="change in prediction", tools="tap, xpan, xwheel_zoom",
+                      y_range=self.y_range_padded,
                       x_range=x_range_padded, styles=dict(margin='auto', width='100%'),
                       sizing_mode='stretch_both', min_width=500, min_height=400, max_width=1000, max_height=600,
                       toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
@@ -247,7 +251,7 @@ class DependencyPlot(Viewer):
         # improve the y-axis by adding a % sign and a plus or minus sign
         if data_loader.type == 'classification':
             plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(args=dict(mean=self.mean),
-                code=""" 
+                                                                         code=""" 
                 if (tick == 0) {
                     return 'mean +-0%';
                 }
@@ -272,10 +276,9 @@ class DependencyPlot(Viewer):
 
         # add item info
         if item.type != 'global':
-
             # centers the plot on the item
-            #plot.x_range.start = self.item_x - x_std
-            #plot.x_range.end = self.item_x + x_std
+            # plot.x_range.start = self.item_x - x_std
+            # plot.x_range.end = self.item_x + x_std
 
             # add the label
             plot.add_layout(
@@ -296,7 +299,7 @@ class DependencyPlot(Viewer):
         plot = figure(title="", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900,
                       sizing_mode='stretch_both', min_width=500, min_height=100, max_width=1000, max_height=300,
                       styles=dict(margin='auto', width='100%'),
-                      x_range=self.plot.x_range, active_scroll="xwheel_zoom",)
+                      x_range=self.plot.x_range, active_scroll="xwheel_zoom", )
         add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
 
         plot = add_style(plot)
@@ -310,7 +313,9 @@ class DependencyPlot(Viewer):
         return plot
 
     def truth_changed(self, event):
-        truth_renderers = [r for r in self.plot.renderers if self.color_map['neighborhood_truth'] in r.glyph.tags or self.color_map['ground_truth'] in r.glyph.tags]
+        truth_renderers = [r for r in self.plot.renderers if
+                           self.color_map['neighborhood_truth'] in r.glyph.tags or self.color_map[
+                               'ground_truth'] in r.glyph.tags]
 
         for obj in truth_renderers:
             obj.visible = self.truth_widget.value
@@ -332,11 +337,12 @@ class DependencyPlot(Viewer):
             for l in legend_item:
                 l.renderers = [obj]
 
-    def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str, combined: pd.DataFrame,
+    def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str,
+                    combined: pd.DataFrame,
                     influence_marker: list, line_type: str, colors: dict, simple_next: bool):
         line_width = 3.5 if color == colors['neighborhood'] or color == colors['previous_prediction'] else 3 if color == \
-                                                                                                          colors[
-                                                                                                              'base'] else 2
+                                                                                                                colors[
+                                                                                                                    'base'] else 2
         if not simple_next or (color != colors['previous_prediction'] and color != colors['base']):
             line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
                                legend_label=cluster_label, tags=[color, "prediction"],
@@ -407,7 +413,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     :return: pd.Dataframe
     """
 
-    #first get mean per value of the col
+    # first get mean per value of the col
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
     # then smooth the line
@@ -545,7 +551,7 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
     colors = []
 
     # grey for the standard group
-    #if not show_progress or len(all_selected_cols) == 1:
+    # if not show_progress or len(all_selected_cols) == 1:
     colors.append(color_map['base'])
 
     # purple for neighbors
@@ -559,7 +565,6 @@ def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict
     ## light purple for neighbor truth
     if truth and item.type != 'global' and len(all_selected_cols) > 1:
         colors.append(color_map['neighborhood_truth'])
-
 
     # show_progress
     if show_progress and item.type != 'global' and len(all_selected_cols) > 2:
@@ -619,8 +624,8 @@ def get_group_col(color: str, item: Item, truth_class: str, color_map: dict) -> 
         y_col = item.predict_class
     return y_col
 
-def style_axes_main(all_selected_cols, plot):
 
+def style_axes_main(all_selected_cols, plot):
     if len(all_selected_cols) > 1:
         # add the label "standard" and "neighborhood" as y-axis ticks, on -1 and 1
         plot.yaxis.ticker = [-1, 1]

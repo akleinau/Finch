@@ -41,7 +41,8 @@ class DataStore(param.Parameterized):
 
         # item
         self.item_type = pn.widgets.RadioButtonGroup(name='item type', options=['predefined', 'custom'],
-                                                     value='predefined', button_style='outline', stylesheets=[style_options])
+                                                     value='predefined', button_style='outline',
+                                                     stylesheets=[style_options])
         self.item_index = pn.widgets.EditableIntSlider(name='Instance index', start=0, end=100, value=36, width=250)
         self.item_index.param.watch(lambda event: self.set_item_widgets(),
                                     parameter_names=['value_throttled'], onlychanged=False)
@@ -88,7 +89,8 @@ class DataStore(param.Parameterized):
         self.init_item_custom_content()
 
         # render dependency plot
-        self.feature_iter.param.watch(self.update_render_plot, parameter_names=['all_selected_cols', 'show_process'], onlychanged=False)
+        self.feature_iter.param.watch(self.update_render_plot, parameter_names=['all_selected_cols', 'show_process'],
+                                      onlychanged=False)
         self.param.watch(self.update_render_plot, parameter_names=['item'], onlychanged=False)
         self.predict_class.param.watch(self.update_render_plot, parameter_names=['value'], onlychanged=False)
         self.graph_type.param.watch(self.update_render_plot,
@@ -117,18 +119,15 @@ class DataStore(param.Parameterized):
         # render tornado plot
         self.update_tornado_plot()
         self.feature_iter.param.watch(self.update_tornado_plot,
-                                        parameter_names=['all_selected_cols'], onlychanged=False)
+                                      parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_tornado_plot,
-                            parameter_names=['item'], onlychanged=False)
+                         parameter_names=['item'], onlychanged=False)
 
         self.update_overview_plot()
         self.feature_iter.param.watch(self.update_overview_plot,
-                                        parameter_names=['all_selected_cols'], onlychanged=False)
+                                      parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_overview_plot,
-                            parameter_names=['item'], onlychanged=False)
-
-
-
+                         parameter_names=['item'], onlychanged=False)
 
     def update_data(self, event):
         """
@@ -140,7 +139,8 @@ class DataStore(param.Parameterized):
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[-1]
-        item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value, pn.Column(),
+        item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value,
+                                   pn.Column(),
                                    predict_class, predict_class)
 
         self.predict_class.param.update(options=loader.classes, value=predict_class)
@@ -177,7 +177,7 @@ class DataStore(param.Parameterized):
         return pn.Column(self.predict_class, self.predict_class_label, styles=dict(padding_top='10px'))
 
     def _set_item_widgets(self, data=None, y_class=None) -> pn.Column:
-        #texts
+        # texts
         if data is None:
             data = self.data_loader.data_and_probabilities
         if y_class is None:
@@ -186,9 +186,10 @@ class DataStore(param.Parameterized):
         mean = data[y_class].mean()
         str_mean_prediction = "Mean prediction: " + "{:.2f}".format(mean)
 
-        #widgets
+        # widgets
         second_item = pn.bind(
-            lambda t: pn.Column(self.item_index, self.item) if t == 'predefined' else self.item_custom_content if t == 'custom' else None,
+            lambda t: pn.Column(self.item_index,
+                                self.item) if t == 'predefined' else self.item_custom_content if t == 'custom' else None,
             self.item_type)
         return pn.Column(str_dataset_nr, str_mean_prediction, self.item_type, second_item, pn.layout.Spacer(height=20))
 
@@ -202,7 +203,7 @@ class DataStore(param.Parameterized):
                                          self.item,
                                          self.chart_type.value, self.data_loader,
                                          show_process=self.feature_iter.show_process,
-                                         simple_next = self.feature_iter.simple_next)
+                                         simple_next=self.feature_iter.simple_next)
 
     def update_similar_plot(self, *params):
         if self.active:
@@ -236,4 +237,5 @@ class DataStore(param.Parameterized):
         self.help_pane.update(self.feature_iter.all_selected_cols, self.item)
 
     def update_overview_plot(self, *params):
-        self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value, self.data_loader.columns, self.feature_iter)
+        self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
+                                  self.data_loader.columns, self.feature_iter)

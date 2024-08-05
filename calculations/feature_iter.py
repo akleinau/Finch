@@ -23,7 +23,8 @@ class FeatureIter(Viewer):
         self.columns = columns
         self.active = True
 
-        icon_style = {'border': '2px solid black', 'border-radius': '50px', 'padding': '5px', 'background-color': 'white'}
+        icon_style = {'border': '2px solid black', 'border-radius': '50px', 'padding': '5px',
+                      'background-color': 'white'}
 
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
         self.col_widget.param.watch(lambda event: self.add_col(event.new), parameter_names=['value'], onlychanged=False)
@@ -31,8 +32,8 @@ class FeatureIter(Viewer):
                                             styles=icon_style, stylesheets=[style_icon])
         self.add_button.on_click(self.show_add_panel)
 
-
-        self.col_display = pn.widgets.RadioButtonGroup(button_style='outline', align="center", stylesheets=[style_options])
+        self.col_display = pn.widgets.RadioButtonGroup(button_style='outline', align="center",
+                                                       stylesheets=[style_options])
         self.col_display.param.watch(lambda event: self.col_selected(event), parameter_names=['value'],
                                      onlychanged=False)
 
@@ -81,7 +82,6 @@ class FeatureIter(Viewer):
         """
 
         col = event.new
-
 
         if self.active:
             self.active = False

@@ -47,7 +47,7 @@ class Item(Viewer):
     @param.depends('data_reduced')
     def __panel__(self) -> pd.DataFrame:
 
-        return self.data_reduced #['value'].apply(lambda x: "{:.2f}".format(x))
+        return self.data_reduced  # ['value'].apply(lambda x: "{:.2f}".format(x))
 
     def prediction_string(self) -> pn.pane.Str:
         return pn.pane.Str(self.pred_class_str, sizing_mode="stretch_width", align="center",
@@ -66,7 +66,8 @@ class Item(Viewer):
             return ""
         if self.data_loader.type == 'regression':
             return "Instance Prediction: " + "{:.2f}".format(self.prob_class)
-        return "Instance Prediction for " + self.pred_class_label + ": " + "{:10.0f}".format(self.prob_class * 100) + "%"
+        return "Instance Prediction for " + self.pred_class_label + ": " + "{:10.0f}".format(
+            self.prob_class * 100) + "%"
 
 
 def extract_data_from_custom_content(custom_content: pn.Column, data_loader: DataLoader) -> pd.DataFrame:

@@ -31,10 +31,9 @@ ds = DataStore.DataStore()
 template = pn.template.MaterialTemplate(
     title="FINCH - Feature Interaction Charts",
     logo="https://github.com/akleinau/Finch/blob/d7be6ce2306b34ef40dd572ed079b7e1b43047a3/logo.png?raw=true",
-    header_background =color,
+    header_background=color,
     sidebar_width=300,
 )
-
 
 item_widgets = pn.bind(lambda e: e, ds.param.item_widgets)
 
@@ -69,7 +68,8 @@ template.main.append(pn.Column(
     overview_plot,
     tornado_plot_overview,
     pn.Row(ds.render_plot,
-           pn.Column(sim_plot, styles=dict(margin_left='20px')), styles=dict(margin='auto', width='100%', padding='10px')),
+           pn.Column(sim_plot, styles=dict(margin_left='20px')),
+           styles=dict(margin='auto', width='100%', padding='10px')),
     floatpanel,
     styles=dict(width='100%', margin='auto')
 ))
