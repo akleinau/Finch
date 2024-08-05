@@ -1,19 +1,16 @@
-import itertools
-import time
-
-from bokeh.plotting import figure
-from bokeh.models import (Band, ColumnDataSource, HoverTool, Legend, LegendItem, BoxAnnotation, Arrow, NormalHead,
-                          LinearAxis, LinearColorMapper, ColorBar, Text, Label)
-import pandas as pd
 import bokeh.colors
-from calculations.similarity import get_similar_items, get_pdp_items, get_window_size, get_window_items
+import pandas as pd
 import panel as pn
 import param
-from plots.styling import add_style, style_options, style_truth, style_additive
+from bokeh.models import (Band, HoverTool, Legend, LegendItem, BoxAnnotation, LinearAxis, Label)
+from bokeh.plotting import figure
 from panel.viewable import Viewer
-from calculations.item_functions import Item
+
 from calculations.data_loader import DataLoader
-from plots.similar_plot import get_data, add_scatter, style_axes
+from calculations.item_functions import Item
+from calculations.similarity import get_similar_items, get_window_size, get_window_items
+from plots.similar_plot import get_data, add_scatter
+from plots.styling import add_style, style_truth, style_additive
 
 
 class DependencyPlot(Viewer):

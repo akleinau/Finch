@@ -1,8 +1,8 @@
-import pickle
-import pandas as pd
 import io
+import pickle
+
+import pandas as pd
 from panel.viewable import Viewer
-import sklearn
 
 
 class DataLoader(Viewer):

@@ -1,15 +1,14 @@
-import numpy as np
 import pandas as pd
-from bokeh.plotting import figure
-from bokeh.models import CustomJS, BoxAnnotation
-import param
-
-from plots.styling import add_style
-from panel.viewable import Viewer, Viewable
-from plots.dependency_plot import get_rolling, add_item
-from calculations.similarity import get_window_items
-from calculations.feature_iter import FeatureIter
 import panel as pn
+import param
+from bokeh.models import BoxAnnotation
+from bokeh.plotting import figure
+from panel.viewable import Viewer, Viewable
+
+from calculations.feature_iter import FeatureIter
+from calculations.similarity import get_window_items
+from plots.dependency_plot import get_rolling
+from plots.styling import add_style
 
 
 class OverviewPlot(Viewer):

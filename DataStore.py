@@ -1,16 +1,16 @@
-import param
 import panel as pn
+import param
+
 import calculations.data_loader as data_loader
-import calculations.item_functions as item_functions
 import calculations.feature_iter as feature_iter
-import calculations.similarity as similarity
-import plots.similar_plot as similar_plot
+import calculations.item_functions as item_functions
 import plots.dependency_plot as dependency_plot
-from plots.styling import style_button, style_options, style_input
-import plots.tornado_plot as tornado_plot
 import plots.help as help_plot
 import plots.overview_plot as overview_plot
-import pandas as pd
+import plots.similar_plot as similar_plot
+import plots.tornado_plot as tornado_plot
+from plots.styling import style_button, style_options, style_input
+
 
 class DataStore(param.Parameterized):
     """

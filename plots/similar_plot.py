@@ -1,13 +1,13 @@
+import panel as pn
+import param
 from bokeh.models import Legend
 from bokeh.plotting import figure
 from bokeh.transform import jitter
-from bokeh.layouts import column, layout, Spacer
-from calculations.similarity import get_similar_items
-from calculations.item_functions import Item
+from panel.viewable import Viewer
+
 from calculations.data_loader import DataLoader
-import param
-import panel as pn
-from panel.viewable import Viewer, Viewable
+from calculations.item_functions import Item
+from calculations.similarity import get_similar_items
 from plots.styling import add_style
 
 

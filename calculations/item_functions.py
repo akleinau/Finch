@@ -1,7 +1,8 @@
 import pandas as pd
 import panel as pn
-from panel.viewable import Viewer
 import param
+from panel.viewable import Viewer
+
 from calculations.data_loader import DataLoader
 
 

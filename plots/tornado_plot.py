@@ -1,14 +1,13 @@
 import numpy as np
 import pandas as pd
-from bokeh.plotting import figure
-from bokeh.transform import factor_cmap
-from bokeh.models import ColumnDataSource, HoverTool
-import param
-
-from plots.styling import add_style
-from calculations.similarity import get_window_items, get_similar_items
-from panel.viewable import Viewer
 import panel as pn
+import param
+from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.plotting import figure
+from panel.viewable import Viewer
+
+from calculations.similarity import get_window_items, get_similar_items
+from plots.styling import add_style
 
 
 class TornadoPlot(Viewer):

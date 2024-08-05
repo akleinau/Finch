@@ -1,4 +1,5 @@
 import panel as pn
+
 import DataStore as DataStore
 from plots.styling import color, style_sidebar
 
