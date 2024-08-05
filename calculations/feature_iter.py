@@ -104,9 +104,11 @@ class FeatureIter(Viewer):
                 self.final_toggle.value = False
             self.active = True
 
-    def update_widgets(self, final=False):
+    def update_widgets(self, final: bool = False):
         """
         updates all widgets based on the current state
+
+        :param final: bool
 
         """
 
@@ -135,7 +137,7 @@ class FeatureIter(Viewer):
             self.col_display.visible = False
             self.all_selected_cols = []
 
-    def remove_col(self, event):
+    def remove_col(self, *params):
         if len(self.all_selected_cols_final) > 0:
             self.simple_next = False
             self.all_selected_cols_final = self.all_selected_cols_final[:-1]
@@ -155,6 +157,12 @@ class FeatureIter(Viewer):
         self.update_widgets()
 
     def final_toggle_changed(self, event):
+        """
+        handles the final toggle
+
+        :param event: Event
+        """
+
         if self.active:
             self.active = False
             self.simple_next = False

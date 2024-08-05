@@ -11,6 +11,11 @@ from plots.styling import add_style
 
 
 class TornadoPlot(Viewer):
+    """
+    Class to create the tornado plot anbd buttons for the interaction strengths
+    """
+
+
     plot_single = param.ClassSelector(class_=figure)
     panel_single = param.ClassSelector(class_=pn.Column)
     plot_overview = param.ClassSelector(class_=figure)
@@ -61,6 +66,10 @@ class TornadoPlot(Viewer):
         self.ranked_buttons = pn.FlexBox()
 
     def set_col(self, data, item_source, feature_iter, type):
+        """
+        adds the clicked on feature to the selected features
+        """
+
         if len(item_source.selected.indices) > 0:
 
             self.hide_all()
@@ -140,6 +149,10 @@ class TornadoPlot(Viewer):
         return plot
 
     def create_ranked_buttons(self, data, feature_iter):
+        """
+        displays a fast selection of buttons for the most important feature interactions
+        """
+
         # iterate from behind to get the last 15 entries of data
         buttons = []
         range = [max(0, len(data) - 15), len(data)]
@@ -156,6 +169,11 @@ class TornadoPlot(Viewer):
 
 
 def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_dict, mean_prob):
+    """
+    creates the dataset for the tornado plot, containing all single features and the interaction strength
+    """
+
+
     # get all singular features
     results = []
     for col in remaining_columns:
@@ -194,6 +212,10 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
 
 
 def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
+    """
+    creates the dataset for the overview plot, containing the most important feature interactions
+    """
+
     prob_range = 0.5 * data[y_col].std()
     min_value = prob_range
 
@@ -220,6 +242,10 @@ def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
 
 
 def create_dataframe(results):
+    """
+    creates a dataframe with some additional info from the results
+    """
+
     dataframe = pd.DataFrame(results)
     if len(dataframe) == 0:
         return dataframe

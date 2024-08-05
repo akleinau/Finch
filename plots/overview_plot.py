@@ -43,6 +43,7 @@ class OverviewPlot(Viewer):
         :param y_col: str
         :param columns: list
         :param all_selected_cols: list
+        :param feature_iter: FeatureIter
         :return:
         """
 

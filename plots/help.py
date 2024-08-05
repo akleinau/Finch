@@ -1,6 +1,7 @@
 import panel as pn
 import param
 from panel.viewable import Viewer
+from calculations.item_functions import Item
 
 
 class Help(Viewer):
@@ -85,7 +86,7 @@ class Help(Viewer):
         self.never_show_overview = True
         self.len_selected_cols = 0  # trigger update
 
-    def update(self, all_selected_cols, item):
+    def update(self, all_selected_cols: list, item: Item):
         if len(all_selected_cols) > 1:
             str_here = " - here: instances with "
             for col in all_selected_cols[1:]:

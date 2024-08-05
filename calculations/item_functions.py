@@ -105,11 +105,21 @@ def get_item_prediction(data: pd.DataFrame, index: int) -> str:
     return data.iloc[index]['prediction']
 
 
-def get_prob_only_selected_cols(nn, all_selected_cols, means, item, pred_label):
+def get_prob_only_selected_cols(nn , all_selected_cols: list, means: pd.DataFrame, item: pd.DataFrame, pred_label: str):
+    """
+    calculates the probability of the prediction for the selected columns only
+
+    :param nn: the model
+    :param all_selected_cols: list
+    :param means: pd.DataFrame
+    :param item: pd.DataFrame
+    :param pred_label: str
+    """
+
     item_df = pd.DataFrame(item['value'].values, index=item['feature'].values).T
     new_item = means.copy()
 
-    # replace the values of the selected columns with the the item values, rest stays at mean
+    # replace the values of the selected columns with the item values, rest stays at mean
     for col in all_selected_cols:
         new_item[col] = item_df[col].iloc[0]
 
@@ -119,7 +129,6 @@ def get_prob_only_selected_cols(nn, all_selected_cols, means, item, pred_label):
     prediction = predict(new_item)
     classes = nn.classes_ if hasattr(nn, 'classes_') else ['Y']
     prediction = pd.DataFrame(prediction, columns=[str(a) for a in classes])
-    # print(prediction)
-    index = str(pred_label[5:])
+    index = str(pred_label[5:]) # remove 'prob_' from the label
 
     return prediction[index][0]

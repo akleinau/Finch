@@ -98,7 +98,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
         plot.yaxis.axis_label = col + " = " + "{:.2f}".format(item.data_raw[col].values[0])
         plot.yaxis.axis_label_orientation = "horizontal"
 
-        style_axes(all_selected_cols, plot)
+        style_axes(plot)
 
         plot.title.visible = False
 
@@ -111,7 +111,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
     return plot_list
 
 
-def style_axes(all_selected_cols, plot):
+def style_axes(plot):
     # hide ticks of the yaxis but not the label
     plot.yaxis.major_tick_line_color = None
     plot.yaxis.minor_tick_line_color = None

@@ -168,8 +168,7 @@ class DependencyPlot(Viewer):
                     create_band(plot, cluster_label, col, color, group_data)
 
                 if "line" in chart_type:
-                    self.create_line(plot, alpha, cluster_label, col, color, group_data, self.influence_marker,
-                                     line_type,
+                    self.create_line(plot, alpha, cluster_label, col, color, group_data, line_type,
                                      self.color_map, simple_next)
 
                 if "scatter" in chart_type and color == self.color_map['neighborhood']:
@@ -184,7 +183,15 @@ class DependencyPlot(Viewer):
 
         return plot
 
-    def remove_old(self, plot, simple_next, all_selected_cols):
+    def remove_old(self, plot: figure, simple_next: bool, all_selected_cols: list):
+        """
+        removes the old lines from the plot
+
+        :param plot: figure
+        :param simple_next: bool
+        :param all_selected_cols: list
+        """
+
         if simple_next:
             keep_colors = [self.color_map['base']]
             if len(all_selected_cols) > 2:
@@ -208,13 +215,14 @@ class DependencyPlot(Viewer):
         else:
             plot.renderers = [r for r in plot.renderers if "prediction" not in r.glyph.tags]
 
-    def create_figure(self, col: str, data: pd.DataFrame, item: Item, data_loader) -> figure:
+    def create_figure(self, col: str, data: pd.DataFrame, item: Item, data_loader: DataLoader) -> figure:
         """
         create the basic figure for the dependency plot. It is reused, to keep user interactions (scrolling, etc) constant
 
         :param col: str
         :param data: pd.DataFrame
         :param item: Item
+        :param data_loader: DataLoader
         :return: figure
         """
 
@@ -289,7 +297,18 @@ class DependencyPlot(Viewer):
 
         return plot
 
-    def create_density_plot(self, col, item, data_loader, all_selected_cols):
+    def create_density_plot(self, col: str, item: Item, data_loader: DataLoader, all_selected_cols: list) -> figure:
+        """
+        creates the density plot for the selected feature, similar to "similar_plot.py"
+
+        :param col: str
+        :param item: Item
+        :param data_loader: DataLoader
+        :param all_selected_cols: list
+        :return: figure
+        """
+
+
         color_similar = "#A336C0"
         color_item = "#19b57A"
 
@@ -312,7 +331,11 @@ class DependencyPlot(Viewer):
 
         return plot
 
-    def truth_changed(self, event):
+    def truth_changed(self, *params):
+        """
+        changes the visibility of the truth lines and updates the legend
+        """
+
         truth_renderers = [r for r in self.plot.renderers if
                            self.color_map['neighborhood_truth'] in r.glyph.tags or self.color_map[
                                'ground_truth'] in r.glyph.tags]
@@ -326,7 +349,11 @@ class DependencyPlot(Viewer):
             for l in legend_item:
                 l.renderers = [obj]
 
-    def additive_changed(self, event):
+    def additive_changed(self, *params):
+        """
+        changes the visibility of the additive lines and updates the legend
+        """
+
         additive_renderers = [r for r in self.plot.renderers if self.color_map['additive_prediction'] in r.glyph.tags]
 
         for obj in additive_renderers:
@@ -338,8 +365,7 @@ class DependencyPlot(Viewer):
                 l.renderers = [obj]
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str,
-                    combined: pd.DataFrame,
-                    influence_marker: list, line_type: str, colors: dict, simple_next: bool):
+                    combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool):
         line_width = 3.5 if color == colors['neighborhood'] or color == colors['previous_prediction'] else 3 if color == \
                                                                                                                 colors[
                                                                                                                     'base'] else 2
@@ -581,7 +607,7 @@ def get_group_style(color: str, color_map: dict, show_truth, show_additive) -> t
     if (color == color_map['ground_truth']) or (color == color_map['neighborhood_truth']):
         line_type = "dotted"
         alpha = 1
-    elif (color == color_map['additive_prediction']):
+    elif color == color_map['additive_prediction']:
         line_type = "dashed"
         alpha = 1
     else:
