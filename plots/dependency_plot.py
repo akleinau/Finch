@@ -10,7 +10,7 @@ from calculations.data_loader import DataLoader
 from calculations.item_functions import Item
 from calculations.similarity import get_similar_items, get_window_size, get_window_items
 from plots.similar_plot import get_data, add_scatter
-from plots.styling import add_style, style_truth, style_additive
+from plots.styling import add_style, style_truth, style_additive, style_options
 
 
 class DependencyPlot(Viewer):
@@ -46,6 +46,13 @@ class DependencyPlot(Viewer):
         self.additive_widget = pn.widgets.Toggle(name=additive_name, value=False, visible=False,
                                                  stylesheets=[style_additive], align="end", icon="timeline")
         self.additive_widget.param.watch(self.additive_changed, parameter_names=['value'], onlychanged=False)
+        self.normal_widget = pn.widgets.Toggle(name='show normal influence', value=True, visible=True,
+                                                  align="end", icon="timeline")
+        self.normal_widget.param.watch(self.normal_changed, parameter_names=['value'], onlychanged=False)
+
+        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['previous prediction', 'ground truth', 'additive prediction'], value='previous prediction',
+                                                         button_style='outline', stylesheets=[style_options])
+        self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
 
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
                     data_loader: DataLoader, show_process: bool = True, simple_next: bool = True):
@@ -63,6 +70,13 @@ class DependencyPlot(Viewer):
 
         self.truth = "truth" in data.columns
         self.truth_class = "truth_" + item.predict_class[5:]
+
+        toggle_options = ['previous prediction']
+        if len(all_selected_cols) >= 1:
+            toggle_options.append('ground truth')
+        if len(all_selected_cols) > 1 and show_process:
+            toggle_options.append('additive prediction')
+        self.toggle_widget.options = toggle_options
 
         if len(all_selected_cols) == 0:
             self.truth_widget.visible = False
@@ -92,6 +106,7 @@ class DependencyPlot(Viewer):
                                                         show_process, simple_next)
 
             self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
+            self.toggle_widget.value = 'previous prediction'
 
     @param.depends('density_plot')
     def __panel__(self):
@@ -107,9 +122,11 @@ class DependencyPlot(Viewer):
             self.density_plot,
             pn.pane.Markdown("### Options:", styles=dict(margin='auto', width='100%', margin_top='15px'),
                              sizing_mode='stretch_width', min_width=500, max_width=1000, ),
-            pn.FlexBox(self.truth_widget, self.additive_widget,
-                       styles=dict(margin='auto', width='100%'),
-                       sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
+            pn.FlexBox(
+                pn.pane.Markdown("show difference to...", styles=dict(font_size='15px')),
+                self.toggle_widget,
+               styles=dict(margin='auto', width='100%'),
+               sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
             styles=dict(margin='auto', width='100%'), align="center")
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
@@ -176,7 +193,11 @@ class DependencyPlot(Viewer):
                     create_scatter(plot, col, color, data, y_col)
 
         # add influence
-        create_influence_band(plot, col, color_data, self.color_map, previous_prediction)
+        create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "normal")
+        if len(all_selected_cols) >= 1:
+            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "truth")
+        if self.color_map['additive_prediction'] in color_data:
+            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "additive")
 
         # add legend
         plot.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
@@ -205,7 +226,7 @@ class DependencyPlot(Viewer):
             old_line = [r for r in plot.renderers if self.color_map['neighborhood'] in r.glyph.tags]
             for l in old_line:
                 # this actually should only  be one line, hopefully
-                l.glyph.tags = ["prediction"]
+                l.glyph.tags = ["prediction", self.color_map['previous_prediction']]
                 l.glyph.line_color = self.color_map['previous_prediction']
                 l.name = "Previous prediction"
                 # add to legend
@@ -214,6 +235,7 @@ class DependencyPlot(Viewer):
 
         else:
             plot.renderers = [r for r in plot.renderers if "prediction" not in r.glyph.tags]
+            plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
 
     def create_figure(self, col: str, data: pd.DataFrame, item: Item, data_loader: DataLoader) -> figure:
         """
@@ -340,14 +362,20 @@ class DependencyPlot(Viewer):
                            self.color_map['neighborhood_truth'] in r.glyph.tags or self.color_map[
                                'ground_truth'] in r.glyph.tags]
 
+        line = None
         for obj in truth_renderers:
             obj.visible = self.truth_widget.value
 
-            # update the legend
-            # plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
-            legend_item = [i for i in self.plot.legend.items if i.label.value == "Ground truth"]
-            for l in legend_item:
-                l.renderers = [obj]
+            # save the line for the legend
+            if obj.glyph.__class__.__name__ == 'Line':
+                line = obj
+
+        # update the legend
+        # plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
+        legend_item = [i for i in self.plot.legend.items if i.label.value == "Ground truth"]
+        for l in legend_item:
+            l.renderers = [line]
+            l.visible = self.truth_widget.value
 
     def additive_changed(self, *params):
         """
@@ -356,13 +384,70 @@ class DependencyPlot(Viewer):
 
         additive_renderers = [r for r in self.plot.renderers if self.color_map['additive_prediction'] in r.glyph.tags]
 
+        line = None
         for obj in additive_renderers:
             obj.visible = self.additive_widget.value
 
+            # save the line for the legend
+            if obj.glyph.__class__.__name__ == 'Line':
+                line = obj
+
+        if line is not None:
             # update the legend
             legend_item = [i for i in self.plot.legend.items if i.label.value == "assuming independence"]
             for l in legend_item:
-                l.renderers = [obj]
+                l.renderers = [line]
+                l.visible = self.additive_widget.value
+
+    def prev_line_changed(self, show_line: bool):
+
+        prev_renderers = [r for r in self.plot.renderers if self.color_map['previous_prediction'] in r.glyph.tags]
+
+        if len(prev_renderers) > 0:
+
+            line = None
+            for obj in prev_renderers:
+                obj.visible = show_line
+
+                # save the line for the legend
+                if obj.glyph.__class__.__name__ == 'Line':
+                    line = obj
+
+            # update the legend
+            legend_item = [i for i in self.plot.legend.items if i.label.value == "Previous prediction"]
+            for l in legend_item:
+                if line is not None:
+                    l.renderers = [line]
+                l.visible = show_line
+
+    def normal_changed(self, *params):
+
+        normal_renderers = [r for r in self.plot.renderers if "influence_normal" in r.glyph.tags]
+
+        for obj in normal_renderers:
+            obj.visible = self.normal_widget.value
+
+
+    def toggle_changed(self, *params):
+        """
+        changes the visibility of the truth lines and updates the legend
+        """
+
+        if self.toggle_widget.value == "ground truth":
+            self.truth_widget.value = True
+            self.additive_widget.value = False
+            self.normal_widget.value = False
+            self.prev_line_changed(False)
+        elif self.toggle_widget.value == "additive prediction":
+            self.truth_widget.value = False
+            self.additive_widget.value = True
+            self.normal_widget.value = False
+            self.prev_line_changed(True)
+        else:
+            self.truth_widget.value = False
+            self.additive_widget.value = False
+            self.normal_widget.value = True
+            self.prev_line_changed(True)
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str,
                     combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool):
@@ -391,7 +476,7 @@ class DependencyPlot(Viewer):
         self.additive_widget.value = new
 
 
-def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool):
+def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool, type: str):
     """
     creates the influence band in red and blue, highlighting the last influence changes
 
@@ -403,16 +488,30 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     :return:
     """
 
-    if show_process and color_map['previous_prediction'] in color_data:
+    if type == "truth":
+        if color_map['neighborhood'] in color_data:
+            group_data = color_data[color_map['neighborhood_truth']]
+            compare_data = color_data[color_map['neighborhood']]
+        else:
+            group_data = color_data[color_map['ground_truth']]
+            compare_data = color_data[color_map['base']]
+
+    elif type == "additive":
         group_data = color_data[color_map['neighborhood']]
-        compare_data = color_data[color_map['previous_prediction']]
-    elif color_map['neighborhood'] in color_data:
-        group_data = color_data[color_map['neighborhood']]
-        compare_data = color_data[color_map['base']]
+        compare_data = color_data[color_map['additive_prediction']]
+
     else:
-        group_data = color_data[color_map['base']]
-        compare_data = group_data.copy()
-        compare_data['mean'] = 0
+
+        if show_process and color_map['previous_prediction'] in color_data:
+            group_data = color_data[color_map['neighborhood']]
+            compare_data = color_data[color_map['previous_prediction']]
+        elif color_map['neighborhood'] in color_data:
+            group_data = color_data[color_map['neighborhood']]
+            compare_data = color_data[color_map['base']]
+        else:
+            group_data = color_data[color_map['base']]
+            compare_data = group_data.copy()
+            compare_data['mean'] = 0
 
     # combine group_data and purple_data to visualize the area between them
     combined = group_data.join(compare_data, lsuffix='_p', rsuffix='_g', how='outer')
@@ -423,10 +522,21 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     # create two bands, a positive and a negative one
     combined['max'] = combined[['mean_g', 'mean_p']].max(axis=1)
     combined['min'] = combined[['mean_g', 'mean_p']].min(axis=1)
+
+    tags = ["prediction"]
+    visible = False
+    if type == "truth":
+        tags.append(color_map['neighborhood_truth'])
+    elif type == "additive":
+        tags.append(color_map['additive_prediction'])
+    else:
+        tags.append("influence_normal")
+        visible = True
+
     chart3.varea(x=col, y1='mean_g', y2='max', source=combined, fill_color=color_map['positive_color'],
-                 fill_alpha=0.4, level='underlay', tags=["prediction"])
+                 fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
     chart3.varea(x=col, y1='mean_g', y2='min', source=combined, fill_color=color_map['negative_color'],
-                 fill_alpha=0.4, level='underlay', tags=["prediction"])
+                 fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
 
 
 def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
