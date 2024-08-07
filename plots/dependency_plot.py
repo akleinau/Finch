@@ -26,9 +26,6 @@ class DependencyPlot(Viewer):
         self.plot = None
         self.density_plot = None
         self.relative = True
-        self.item_style = "grey_line"  # "point", "arrow", "line", "grey_line"
-        self.influence_marker = ["color_axis",
-                                 "colored_background"]  # "colored_lines", "colored_background", "color_axis", "selective_colored_background"
         self.col = None
         self.item_x = None
         self.truth = False
@@ -50,9 +47,18 @@ class DependencyPlot(Viewer):
                                                   align="end", icon="timeline")
         self.normal_widget.param.watch(self.normal_changed, parameter_names=['value'], onlychanged=False)
 
-        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['previous prediction', 'ground truth', 'additive prediction'], value='previous prediction',
+        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['previous prediction', 'ground truth',
+                                                                  'independence prediction'],
+                                                         value='previous prediction',
                                                          button_style='outline', stylesheets=[style_options])
         self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
+
+        self.toggle_dict = {
+            'previous prediction': '',
+            'ground truth': '(ground truth of the neighborhood)',
+            'independence prediction': '(assuming independence of the new feature)'
+        }
+        self.toggle_help = pn.pane.Markdown(self.toggle_dict[self.toggle_widget.value], styles=dict(margin_left='10px', font_size='15px'))
 
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
                     data_loader: DataLoader, show_process: bool = True, simple_next: bool = True):
@@ -75,7 +81,7 @@ class DependencyPlot(Viewer):
         if len(all_selected_cols) >= 1:
             toggle_options.append('ground truth')
         if len(all_selected_cols) > 1 and show_process:
-            toggle_options.append('additive prediction')
+            toggle_options.append('independence prediction')
         self.toggle_widget.options = toggle_options
 
         if len(all_selected_cols) == 0:
@@ -93,8 +99,8 @@ class DependencyPlot(Viewer):
             col = all_selected_cols[0]
             if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
                 plot = self.create_figure(col, data, item, data_loader)
-                add_axis(plot, self.influence_marker, self.y_range_padded, self.color_map)
-                add_background(plot, self.influence_marker, item, self.mean, self.y_range, self.y_range_padded)
+                add_axis(plot, self.y_range_padded, self.color_map)
+                add_background(plot, self.y_range_padded)
                 self.col = col
                 plot = add_style(plot)
                 self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, chart_type, data_loader,
@@ -125,6 +131,7 @@ class DependencyPlot(Viewer):
             pn.FlexBox(
                 pn.pane.Markdown("show difference to...", styles=dict(font_size='15px')),
                 self.toggle_widget,
+                self.toggle_help,
                styles=dict(margin='auto', width='100%'),
                sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
             styles=dict(margin='auto', width='100%'), align="center")
@@ -177,20 +184,9 @@ class DependencyPlot(Viewer):
                 # choose right label
                 cluster_label = get_group_label(color, self.color_map)
 
-                # add legend items
-                # dummy_for_legend = plot.line(x=[1, 1], y=[1, 1], line_width=15, color=color, name='dummy_for_legend')
-                # legend_items.append((cluster_label, [dummy_for_legend]))
+                self.create_line(plot, alpha, cluster_label, col, color, group_data, line_type,
+                                 self.color_map, simple_next)
 
-                if "band" in chart_type and color == self.color_map['neighborhood']:
-                    create_band(plot, cluster_label, col, color, group_data)
-
-                if "line" in chart_type:
-                    self.create_line(plot, alpha, cluster_label, col, color, group_data, line_type,
-                                     self.color_map, simple_next)
-
-                if "scatter" in chart_type and color == self.color_map['neighborhood']:
-                    data = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map, y_col)
-                    create_scatter(plot, col, color, data, y_col)
 
         # add influence
         create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "normal")
@@ -330,7 +326,6 @@ class DependencyPlot(Viewer):
         :return: figure
         """
 
-
         color_similar = "#A336C0"
         color_item = "#19b57A"
 
@@ -438,7 +433,7 @@ class DependencyPlot(Viewer):
             self.additive_widget.value = False
             self.normal_widget.value = False
             self.prev_line_changed(False)
-        elif self.toggle_widget.value == "additive prediction":
+        elif self.toggle_widget.value == "independence prediction":
             self.truth_widget.value = False
             self.additive_widget.value = True
             self.normal_widget.value = False
@@ -448,6 +443,8 @@ class DependencyPlot(Viewer):
             self.additive_widget.value = False
             self.normal_widget.value = True
             self.prev_line_changed(True)
+
+        self.toggle_help.object = self.toggle_dict[self.toggle_widget.value]
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str,
                     combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool):
@@ -611,42 +608,26 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
     return filtered_data
 
 
-def add_background(chart3: figure, influence_marker: list, item: Item, mean: float, y_range: list,
-                   y_range_padded: list):
-    if "colored_background" in influence_marker:
-        # color the background, blue below 0, red above 0
-        chart3.add_layout(BoxAnnotation(bottom=y_range_padded[0], top=0, fill_color='#E6EDFF', level='underlay'))
-        chart3.add_layout(BoxAnnotation(bottom=0, top=y_range_padded[1], fill_color='#FFE6FF', level='underlay'))
-    if "selective_colored_background" in influence_marker:
-        # color the background, blue below 0, red above 0
-        if (item.prob_only_selected_cols - mean) < 0:
-            chart3.add_layout(BoxAnnotation(bottom=y_range[0], top=0, fill_color='#AAAAFF'))
-        else:
-            chart3.add_layout(BoxAnnotation(bottom=0, top=y_range[1], fill_color='#FFAAAA'))
+def add_background(chart3: figure, y_range_padded: list):
+    # color the background, blue below 0, red above 0
+    chart3.add_layout(BoxAnnotation(bottom=y_range_padded[0], top=0, fill_color='#E6EDFF', level='underlay'))
+    chart3.add_layout(BoxAnnotation(bottom=0, top=y_range_padded[1], fill_color='#FFE6FF', level='underlay'))
 
 
-def add_axis(chart3: figure, influence_marker: list, y_range_padded: list, colors: dict):
-    if "color_axis" in influence_marker:
-        angle = 0  # np.pi / 2
-        chart3.add_layout(
-            Label(x=25, x_units="screen", y=0.5 * y_range_padded[1], text="+", text_align='center',
-                  text_baseline='middle', text_font_size='30pt', text_color=colors['positive_color'], angle=angle))
-        chart3.add_layout(
-            Label(x=25, x_units="screen", y=0.5 * y_range_padded[0], text="-", text_align='center',
-                  text_baseline='middle', text_font_size='30pt', text_color=colors['negative_color'], angle=angle))
-        chart3.add_layout(
-            BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=0, bottom=y_range_padded[0],
-                          fill_color=colors['negative_color'], fill_alpha=1))
-        chart3.add_layout(
-            BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=y_range_padded[1], bottom=0,
-                          fill_color=colors['positive_color'], fill_alpha=1))
-    else:
-        chart3.add_layout(Label(x=20, x_units="screen", y=1.1 * y_range_padded[1], text="positive", text_align='left',
-                                text_baseline='top',
-                                text_font_size='11pt', text_color="mediumblue"))
-        chart3.add_layout(Label(x=20, x_units="screen", y=1.1 * y_range_padded[0], text="negative", text_align='left',
-                                text_baseline='bottom',
-                                text_font_size='11pt', text_color="darkred"))
+def add_axis(chart3: figure, y_range_padded: list, colors: dict):
+    angle = 0  # np.pi / 2
+    chart3.add_layout(
+        Label(x=25, x_units="screen", y=0.5 * y_range_padded[1], text="+", text_align='center',
+              text_baseline='middle', text_font_size='30pt', text_color=colors['positive_color'], angle=angle))
+    chart3.add_layout(
+        Label(x=25, x_units="screen", y=0.5 * y_range_padded[0], text="-", text_align='center',
+              text_baseline='middle', text_font_size='30pt', text_color=colors['negative_color'], angle=angle))
+    chart3.add_layout(
+        BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=0, bottom=y_range_padded[0],
+                      fill_color=colors['negative_color'], fill_alpha=1))
+    chart3.add_layout(
+        BoxAnnotation(left=0, left_units="screen", right=10, right_units="screen", top=y_range_padded[1], bottom=0,
+                      fill_color=colors['positive_color'], fill_alpha=1))
 
 
 def add_item(chart3: figure, col: str, item: Item, y_range: list,
@@ -654,22 +635,6 @@ def add_item(chart3: figure, col: str, item: Item, y_range: list,
     line_width = 4
     chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
                 line_width=line_width, color=colors['selected_color'], tags=["item"], line_cap='round', level='overlay')
-
-
-def create_scatter(chart3: figure, col: str, color: str, filtered_data: pd.DataFrame, y_col: str):
-    alpha = 0.3
-    chart3.scatter(col, y_col, color=color, source=filtered_data,
-                   alpha=alpha, marker='circle', size=3, name="scatter_label",
-                   # legend_group="scatter_label"
-                   )
-
-
-def create_band(chart3: figure, cluster_label: str, col: str, color: str, combined: pd.DataFrame):
-    band = chart3.varea(x=col, y1='lower', y2='upper', source=combined,
-                        fill_color=color,
-                        alpha=0.3, name=cluster_label)
-    band_hover = HoverTool(renderers=[band], tooltips=[('', '$name')])
-    chart3.add_tools(band_hover)
 
 
 def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict, show_progress: bool) -> list:
