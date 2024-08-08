@@ -206,8 +206,7 @@ class DataStore(param.Parameterized):
     def update_render_plot(self, *params):
         if self.active:
             self.render_plot.update_plot(self.data_loader.data_and_probabilities, self.feature_iter.all_selected_cols,
-                                         self.item,
-                                         self.chart_type.value, self.data_loader,
+                                         self.item, self.data_loader, self.feature_iter,
                                          show_process=self.feature_iter.show_process,
                                          simple_next=self.feature_iter.simple_next)
 
@@ -232,8 +231,8 @@ class DataStore(param.Parameterized):
 
     def set_feature_panel(self, a):
         if a.new:
-            self.add_feature_panel = pn.layout.FloatPanel(self.tornado_plot.panel_single, name='Add Feature', margin=20,
-                                                          contained=False, height=800, status="normalized",
+            self.add_feature_panel = pn.layout.FloatPanel(self.overview_plot.ranked_plots, name='Add Feature', margin=20,
+                                                          contained=False, height=800, status="normalized", width=1000,
                                                           position="center")
         else:
             self.add_feature_panel = None
@@ -243,7 +242,7 @@ class DataStore(param.Parameterized):
 
     def update_overview_plot(self, *params):
         self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
-                                  self.feature_iter, self.recommendation)
+                                  self.feature_iter, self.recommendation, self.data_loader)
 
     def update_recommendation_item(self, *params):
         self.recommendation.update_item(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,

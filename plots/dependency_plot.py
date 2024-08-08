@@ -7,6 +7,7 @@ from bokeh.plotting import figure
 from panel.viewable import Viewer
 
 from calculations.data_loader import DataLoader
+from calculations.feature_iter import FeatureIter
 from calculations.item_functions import Item
 from calculations.similarity import get_similar_items, get_window_size, get_window_items
 from plots.similar_plot import get_data, add_scatter
@@ -21,7 +22,7 @@ class DependencyPlot(Viewer):
     plot = param.ClassSelector(class_=figure)
     density_plot = param.ClassSelector(class_=figure)
 
-    def __init__(self, **params):
+    def __init__(self, simple:bool, **params):
         super().__init__(**params)
         self.plot = None
         self.density_plot = None
@@ -29,6 +30,7 @@ class DependencyPlot(Viewer):
         self.col = None
         self.item_x = None
         self.truth = False
+        self.simple = simple
 
         # colors
         self.color_map = {'base': '#606060', 'neighborhood': '#A336B0', 'ground_truth': '#909090',
@@ -60,15 +62,14 @@ class DependencyPlot(Viewer):
         }
         self.toggle_help = pn.pane.Markdown(self.toggle_dict[self.toggle_widget.value], styles=dict(margin_left='10px', font_size='15px'))
 
-    def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item, chart_type: list,
-                    data_loader: DataLoader, show_process: bool = True, simple_next: bool = True):
+    def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item,
+                    data_loader: DataLoader, feature_iter: FeatureIter, show_process: bool = True, simple_next: bool = True):
         """
         updates the plot with the new data
 
         :param data: pd.DataFrame
         :param all_selected_cols: list
         :param item: calculations.item_functions.Item
-        :param chart_type: list
         :param data_loader: calculations.data_loader.DataLoader
         :param show_process: bool
         :param simple_next: bool
@@ -99,16 +100,20 @@ class DependencyPlot(Viewer):
             col = all_selected_cols[0]
             if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
                 plot = self.create_figure(col, data, item, data_loader)
-                add_axis(plot, self.y_range_padded, self.color_map)
+                if not self.simple:
+                    add_axis(plot, self.y_range_padded, self.color_map)
                 add_background(plot, self.y_range_padded)
                 self.col = col
                 plot = add_style(plot)
-                self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, chart_type, data_loader,
+                if self.simple:
+                    last = all_selected_cols[-1]
+                    plot.on_event('tap', lambda event: set_col(last, feature_iter))
+                self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, data_loader,
                                                         show_process, False)
                 self.item_x = item.data_prob_raw[col]
             else:
                 self.remove_old(self.plot, simple_next, all_selected_cols)
-                self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, chart_type, data_loader,
+                self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, data_loader,
                                                         show_process, simple_next)
 
             self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
@@ -136,7 +141,7 @@ class DependencyPlot(Viewer):
                sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
             styles=dict(margin='auto', width='100%'), align="center")
 
-    def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item, chart_type: list,
+    def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item,
                                data_loader: DataLoader, previous_prediction: bool = True,
                                simple_next: bool = True) -> figure:
         """
@@ -145,7 +150,6 @@ class DependencyPlot(Viewer):
         :param plot: figure
         :param all_selected_cols: list
         :param item: calculations.item_functions.Item
-        :param chart_type: list
         :param data_loader: calculations.data_loader.DataLoader
         :param previous_prediction: bool
         :param simple_next: bool
@@ -153,6 +157,11 @@ class DependencyPlot(Viewer):
         """
 
         col = all_selected_cols[0]
+        if self.simple:
+            last = all_selected_cols[-1]
+            plot.title = f"{last} = {item.data_prob_raw[col]}"
+            plot.xaxis.axis_label = last
+            plot.title.align = 'center'
 
         # add the "standard probability" line
         plot.line(x=[self.x_range[0], self.x_range[1]], y=[0, 0], line_width=1.5, color='#A0A0A0', alpha=1)
@@ -257,11 +266,17 @@ class DependencyPlot(Viewer):
         self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
         self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
-        plot = figure(title="", y_axis_label="change in prediction", tools="tap, xpan, xwheel_zoom",
-                      y_range=self.y_range_padded,
-                      x_range=x_range_padded, styles=dict(margin='auto', width='100%'),
-                      sizing_mode='stretch_both', min_width=500, min_height=400, max_width=1000, max_height=600,
-                      toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
+        if self.simple:
+            item_value = item.data_prob_raw[col]
+            title = f"{col} = {item_value}"
+            plot = figure(title=title, y_axis_label="prediction", y_range=self.y_range_padded, x_range=x_range_padded,
+                          width=250, height=200, toolbar_location=None, x_axis_label=col)
+        else:
+            plot = figure(title="", y_axis_label="change in prediction", tools="tap, xpan, xwheel_zoom",
+                          y_range=self.y_range_padded,
+                          x_range=x_range_padded, styles=dict(margin='auto', width='100%'),
+                          sizing_mode='stretch_both', min_width=500, min_height=400, max_width=1000, max_height=600,
+                          toolbar_location=None, active_scroll="xwheel_zoom", x_axis_label=col)
         plot.grid.level = "overlay"
         plot.grid.grid_line_color = "black"
         plot.grid.grid_line_alpha = 0.05
@@ -271,47 +286,66 @@ class DependencyPlot(Viewer):
         plot.legend.click_policy = "hide"
 
         y_range_abs = [self.y_range[0] + self.mean, self.y_range[1] + self.mean]
-        plot.extra_y_ranges = {"abs": bokeh.models.Range1d(start=y_range_abs[0], end=y_range_abs[1])}
-        plot.add_layout(LinearAxis(y_range_name="abs", axis_label="prediction"), 'right')
+        if not self.simple:
+            plot.extra_y_ranges = {"abs": bokeh.models.Range1d(start=y_range_abs[0], end=y_range_abs[1])}
+            plot.add_layout(LinearAxis(y_range_name="abs", axis_label="prediction"), 'right')
 
-        # improve the y-axis by adding a % sign and a plus or minus sign
-        if data_loader.type == 'classification':
-            plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(args=dict(mean=self.mean),
-                                                                         code=""" 
-                if (tick == 0) {
-                    return 'mean +-0%';
-                }
-                return (tick > 0 ? '+' : '') + (tick * 100).toFixed(0) + '%'; """)
+            # improve the y-axis by adding a % sign and a plus or minus sign
+            if data_loader.type == 'classification':
+                plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(args=dict(mean=self.mean),
+                                                                             code=""" 
+                    if (tick == 0) {
+                        return 'mean +-0%';
+                    }
+                    return (tick > 0 ? '+' : '') + (tick * 100).toFixed(0) + '%'; """)
 
-            # second y-axis for the absolute values
-            plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
-                code=""" return (tick * 100).toFixed(0) + '%'; """)
+                # second y-axis for the absolute values
+                plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
+                    code=""" return (tick * 100).toFixed(0) + '%'; """)
 
 
-        else:
-            plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(
-                code="""  
-                if (tick == 0) {
-                    return 'mean +-0';
-                }
-                return (tick > 0 ? '+' : '') + tick; """)
+            else:
+                plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(
+                    code="""  
+                    if (tick == 0) {
+                        return 'mean +-0';
+                    }
+                    return (tick > 0 ? '+' : '') + tick; """)
 
-            # second y-axis for the absolute values
-            plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
-                code=""" return tick; """)
+                # second y-axis for the absolute values
+                plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
+                    code=""" return tick; """)
 
         # add item info
         if item.type != 'global':
-            # centers the plot on the item
-            # plot.x_range.start = self.item_x - x_std
-            # plot.x_range.end = self.item_x + x_std
 
-            # add the label
-            plot.add_layout(
-                Label(x=self.item_x, y=self.y_range[1], text=col + " = " + str(self.item_x), text_align='center',
-                      text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
+            if self.simple:
+                # centers the plot on the item
+                plot.x_range.start = self.item_x - x_std
+                plot.x_range.end = self.item_x + x_std
+
+            if not self.simple:
+                # add the label
+                plot.add_layout(
+                    Label(x=self.item_x, y=self.y_range[1], text=col + " = " + str(self.item_x), text_align='center',
+                          text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
 
             add_item(plot, col, item, self.y_range, self.color_map)
+
+        # remove stuff for simple
+        if self.simple:
+            plot = add_style(plot)
+
+            # hide all axes ticks
+            plot.xaxis.ticker = []
+            plot.yaxis.ticker = []
+            plot.yaxis.axis_label_text_font_size = '10pt'
+
+            # center title
+            plot.title.align = 'center'
+
+            # remove the legend
+            plot.legend.visible = False
 
         return plot
 
@@ -734,3 +768,13 @@ def style_axes_main(all_selected_cols, plot):
     else:
         plot.yaxis.ticker = [-1]
         plot.yaxis.major_label_overrides = {-1: 'Base'}
+
+def set_col(col: str, feature_iter: FeatureIter):
+    """
+    sets the column to the FeatureIter
+
+    :param col: str
+    :param feature_iter: FeatureIter
+    """
+
+    feature_iter.add_col(col)

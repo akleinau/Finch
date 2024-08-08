@@ -135,7 +135,7 @@ def create_dataframe(results):
     dataframe.reset_index(drop=True, inplace=True)
 
     if "item_value" in dataframe.columns:
-        dataframe['feature'] = dataframe['feature'] + " = " + dataframe['item_value'].apply(lambda x: str(round(x, 2)))
+        dataframe['feature_name'] = dataframe['feature'] + " = " + dataframe['item_value'].apply(lambda x: str(round(x, 2)))
 
     return dataframe
 
