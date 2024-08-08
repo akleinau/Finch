@@ -22,26 +22,19 @@ class TornadoPlot(Viewer):
     ranked_buttons = param.ClassSelector(class_=pn.FlexBox)
     all_selected_cols = param.List()
 
-    def __init__(self, data, item, y_col, columns, feature_iter):
+    def __init__(self, columns, feature_iter, recommendation, **params):
         all_selected_cols = feature_iter.all_selected_cols
         super().__init__()
         self.remaining_columns = [col for col in columns if col not in all_selected_cols]
-        self.mean_prob = data[y_col].mean()
 
-        # get all singular features
-        single_dict = {}
-        for col in columns:
-            # get prediction of the col on its own
-            single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - self.mean_prob
 
-        self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict,
-                                          self.mean_prob)
+        self.dataset_single = recommendation.dataset_single
         self.plot_single = self.tornado_plot(self.dataset_single, feature_iter, "single")
         self.panel_single = pn.Column("## Interaction strength with selected features: ", self.plot_single)
         self.panel_single_first = pn.Column("## Choose a feature: \n ranked by influence, assuming independence",
                                             self.plot_single)
         if len(all_selected_cols) == 0:
-            self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
+            self.dataset_overview = recommendation.dataset_overview
             self.plot_overview = self.tornado_plot(self.dataset_overview, feature_iter, "overview")
             self.ranked_buttons = self.create_ranked_buttons(self.dataset_overview, feature_iter)
 
@@ -168,163 +161,3 @@ class TornadoPlot(Viewer):
         feature_iter.set_all_selected_cols(event.obj.name.split(', '))
 
 
-def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_dict, mean_prob):
-    """
-    creates the dataset for the tornado plot, containing all single features and the interaction strength
-    """
-
-
-    # get all singular features
-    results = []
-    for col in remaining_columns:
-        columns = all_selected_cols + [col]
-
-        single_value = single_dict[col]
-
-        if len(columns) > 1:
-            first_col = all_selected_cols[0]
-
-            # calculate added value
-            if len(columns) > 2:
-                similar_items = get_similar_items(data, item, all_selected_cols[1:] + [col])
-            else:
-                similar_items = data
-            prev_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
-            added_value = single_value + prev_value
-
-            # calculate joined value
-            # get prediction of the col with the other selected cols
-            similar_items = get_similar_items(data, item, columns[1:])
-            joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
-
-            # value = single_mean - mean_prob
-            value = np.abs(joined_value - added_value)
-
-            results.append({'feature': col, 'prediction': joined_value, 'value': value,
-                            'item_value': item.data_raw[col].values[0]})
-        else:
-            results.append({'feature': col, 'prediction': single_value, 'value': single_value,
-                            'item_value': item.data_raw[col].values[0]})
-
-    dataframe = create_dataframe(results)
-
-    return dataframe
-
-
-def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
-    """
-    creates the dataset for the overview plot, containing the most important feature interactions
-    """
-
-    prob_range = 0.5 * data[y_col].std()
-    min_value = prob_range
-
-    # recursively build a tree for each column
-    tree_list = []
-    for col in columns:
-        remaining = [c for c in columns if c != col]
-        tree_list.append(InteractTreeRoot(single_dict, col, remaining, mean_prob, data, item, y_col, min_value))
-
-    # create a list of all nodes
-    nodes = []
-    for tree in tree_list:
-        nodes.extend(tree.get_nodes())
-
-    # create a dataframe from the nodes
-    results = []
-    for node in nodes:
-        results.append({'feature': ", ".join(node.columns), 'value': node.value, 'prediction': node.prediction,
-                        'added': node.added, 'prev_value': node.prev_value})
-
-    dataframe = create_dataframe(results)
-
-    return dataframe
-
-
-def create_dataframe(results):
-    """
-    creates a dataframe with some additional info from the results
-    """
-
-    dataframe = pd.DataFrame(results)
-    if len(dataframe) == 0:
-        return dataframe
-
-    dataframe['abs_value'] = dataframe['value'].abs()
-    dataframe['positive'] = dataframe['value'].apply(lambda x: 'pos' if x > 0 else 'neg')
-    dataframe = dataframe.sort_values(by='abs_value', ascending=True)
-    dataframe.reset_index(drop=True, inplace=True)
-
-    if "item_value" in dataframe.columns:
-        dataframe['feature'] = dataframe['feature'] + " = " + dataframe['item_value'].apply(lambda x: str(round(x, 2)))
-
-    return dataframe
-
-
-class InteractTree:
-    value = 0
-    prediction = 0
-    added = 0
-    prev_value = 0
-    columns = []
-    count = 0
-
-
-class InteractTreeRoot(InteractTree):
-
-    def __init__(self, single_dict, col, remaining_columns, mean_prob, data, item, y_col, min_value):
-        self.value = np.abs(single_dict[col])
-        self.prediction = single_dict[col]
-        self.added = single_dict[col]
-        self.prev_value = 0
-        self.count = 1
-        self.columns = [col]
-        self.nodes = []
-        if self.value > min_value:
-            for col in remaining_columns:
-                remaining = [c for c in remaining_columns if c != col]
-                self.nodes.append(
-                    InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
-
-    def get_nodes(self):
-        nodes = []
-        for node in self.nodes:
-            nodes.extend(node.get_nodes())
-        return nodes
-
-
-class InteractTreeSub(InteractTree):
-    def __init__(self, single_dict, prev, col, remaining_columns, mean_prob, data, item, y_col, min_value):
-        # calculate added value
-        single_value = single_dict[col]
-        prev_value = prev.prediction
-        added_value = single_value + prev_value
-
-        # calculate joined value
-        # get prediction of the col with the other selected cols
-        first_col = prev.columns[0]
-        similar_items = get_similar_items(data, item, [col] + prev.columns[1:])
-        joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
-
-        # set all values
-        self.prediction = joined_value
-        self.added = added_value
-        self.prev_value = prev_value
-        self.columns = prev.columns + [col]
-        self.count = len(self.columns)
-        difference = np.abs(joined_value - added_value)
-        self.value = (prev.value * prev.count + difference) / self.count
-        # self.raw_value = np.abs(joined_value - added_value)
-        # self.value = 0 if min_value/2 >= self.raw_value else (prev.value * prev.count + np.abs(joined_value - added_value)) / self.count
-        self.nodes = []
-        if len(self.columns) and difference > min_value and self.count < 3:
-            for col in remaining_columns:
-                remaining = [c for c in remaining_columns if c != col]
-                self.nodes.append(
-                    InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
-
-    def get_nodes(self):
-        nodes = [self]
-        for node in self.nodes:
-            nodes.extend(node.get_nodes())
-        return nodes

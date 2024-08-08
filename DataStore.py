@@ -4,6 +4,7 @@ import param
 import calculations.data_loader as data_loader
 import calculations.feature_iter as feature_iter
 import calculations.item_functions as item_functions
+import calculations.recommendation as recommendation
 import plots.dependency_plot as dependency_plot
 import plots.help as help_plot
 import plots.overview_plot as overview_plot
@@ -27,6 +28,7 @@ class DataStore(param.Parameterized):
     add_feature_panel = param.ClassSelector(class_=pn.layout.FloatPanel)
     help_pane = param.ClassSelector(class_=help_plot.Help)
     overview_plot = param.ClassSelector(class_=overview_plot.OverviewPlot)
+    recommendation = param.ClassSelector(class_=recommendation.Recommendation)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -60,9 +62,10 @@ class DataStore(param.Parameterized):
 
         # columns
         self.feature_iter = feature_iter.FeatureIter(self.data_loader.columns)
-        self.render_plot = dependency_plot.DependencyPlot()
+        self.render_plot = dependency_plot.DependencyPlot(simple=False)
         self.help_pane = help_plot.Help()
         self.overview_plot = overview_plot.OverviewPlot()
+        self.recommendation = recommendation.Recommendation()
 
         # customization widgets
         self.cluster_type = pn.widgets.Select(name='cluster_type', options=['Relative Decision Tree', 'Decision Tree',
@@ -116,18 +119,21 @@ class DataStore(param.Parameterized):
         self.add_feature_panel = None
         self.feature_iter.param.watch(self.set_feature_panel, parameter_names=['show_add'], onlychanged=False)
 
+        # render recommendations
+        self.update_recommendation_item()
+        self.feature_iter.param.watch(self.update_recommendation_selected_cols,
+                                        parameter_names=['all_selected_cols'], onlychanged=False)
+        self.param.watch(self.update_recommendation_item,
+                            parameter_names=['item'], onlychanged=False)
+
         # render tornado plot
         self.update_tornado_plot()
-        self.feature_iter.param.watch(self.update_tornado_plot,
-                                      parameter_names=['all_selected_cols'], onlychanged=False)
-        self.param.watch(self.update_tornado_plot,
-                         parameter_names=['item'], onlychanged=False)
+        self.recommendation.param.watch(self.update_tornado_plot,
+                                        parameter_names=['dataset_single'], onlychanged=False)
 
         self.update_overview_plot()
-        self.feature_iter.param.watch(self.update_overview_plot,
-                                      parameter_names=['all_selected_cols'], onlychanged=False)
-        self.param.watch(self.update_overview_plot,
-                         parameter_names=['item'], onlychanged=False)
+        self.recommendation.param.watch(self.update_overview_plot,
+                                        parameter_names=['dataset_overview', 'dataset_single'], onlychanged=False)
 
     def update_data(self, event):
         """
@@ -212,9 +218,8 @@ class DataStore(param.Parameterized):
 
     def update_tornado_plot(self, *params):
         if self.active:
-            self.param.update(tornado_plot=tornado_plot.TornadoPlot(self.data_loader.data_and_probabilities, self.item,
-                                                                    self.predict_class.value, self.data_loader.columns,
-                                                                    self.feature_iter))
+            self.param.update(tornado_plot=tornado_plot.TornadoPlot(self.data_loader.columns,
+                                                                    self.feature_iter, self.recommendation))
 
     def _update_item_self(self) -> item_functions.Item:
         return item_functions.Item(self.data_loader, self.data_loader.data_and_probabilities, self.item_type.value,
@@ -238,4 +243,11 @@ class DataStore(param.Parameterized):
 
     def update_overview_plot(self, *params):
         self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
-                                  self.data_loader.columns, self.feature_iter)
+                                  self.feature_iter, self.recommendation)
+
+    def update_recommendation_item(self, *params):
+        self.recommendation.update_item(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
+                                        self.data_loader.columns, self.feature_iter.all_selected_cols)
+
+    def update_recommendation_selected_cols(self, *params):
+        self.recommendation.update_selected_cols(self.feature_iter.all_selected_cols)

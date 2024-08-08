@@ -34,7 +34,7 @@ class OverviewPlot(Viewer):
                          ),
                          self.ranked_plots)
 
-    def update(self, data, item, y_col, columns, feature_iter):
+    def update(self, data, item, y_col, feature_iter, recommendation):
         """
         updates the plot with the new data
 
@@ -54,10 +54,7 @@ class OverviewPlot(Viewer):
             mean_prob = data[y_col].mean()
 
             # get all singular features
-            single_dict = {}
-            for col in columns:
-                # get prediction of the col on its own
-                single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - mean_prob
+            single_dict = recommendation.single_dict
 
             # sort the features by their impact
             sorted_single_dict = dict(sorted(single_dict.items(), key=lambda i: i[1], reverse=True))
