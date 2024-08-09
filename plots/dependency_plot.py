@@ -49,16 +49,16 @@ class DependencyPlot(Viewer):
                                                   align="end", icon="timeline")
         self.normal_widget.param.watch(self.normal_changed, parameter_names=['value'], onlychanged=False)
 
-        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['previous prediction', 'ground truth',
-                                                                  'independence prediction'],
-                                                         value='previous prediction',
+        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['change in prediction', 'ground truth',
+                                                                  'interaction effect'],
+                                                         value='change in prediction',
                                                          button_style='outline', stylesheets=[style_options])
         self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
 
         self.toggle_dict = {
-            'previous prediction': '',
+            'change in prediction': '',
             'ground truth': '(ground truth of the neighborhood)',
-            'independence prediction': '(assuming independence of the new feature)'
+            'interaction effect': '(highlight interaction effect)'
         }
         self.toggle_help = pn.pane.Markdown(self.toggle_dict[self.toggle_widget.value], styles=dict(margin_left='10px', font_size='15px'))
 
@@ -78,11 +78,11 @@ class DependencyPlot(Viewer):
         self.truth = "truth" in data.columns
         self.truth_class = "truth_" + item.predict_class[5:]
 
-        toggle_options = ['previous prediction']
+        toggle_options = ['change in prediction']
         if len(all_selected_cols) >= 1:
             toggle_options.append('ground truth')
         if len(all_selected_cols) > 1 and show_process:
-            toggle_options.append('independence prediction')
+            toggle_options.append('interaction effect')
         self.toggle_widget.options = toggle_options
 
         if len(all_selected_cols) == 0:
@@ -117,7 +117,7 @@ class DependencyPlot(Viewer):
                                                         show_process, simple_next)
 
             self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
-            self.toggle_widget.value = 'previous prediction'
+            self.toggle_widget.value = 'change in prediction'
 
     @param.depends('density_plot')
     def __panel__(self):
@@ -321,8 +321,8 @@ class DependencyPlot(Viewer):
 
             if self.simple:
                 # centers the plot on the item
-                plot.x_range.start = self.item_x - x_std
-                plot.x_range.end = self.item_x + x_std
+                plot.x_range.start = self.item_x - 0.5*x_std
+                plot.x_range.end = self.item_x + 0.5*x_std
 
             if not self.simple:
                 # add the label
@@ -423,7 +423,7 @@ class DependencyPlot(Viewer):
 
         if line is not None:
             # update the legend
-            legend_item = [i for i in self.plot.legend.items if i.label.value == "assuming independence"]
+            legend_item = [i for i in self.plot.legend.items if i.label.value == "only main effect"]
             for l in legend_item:
                 l.renderers = [line]
                 l.visible = self.additive_widget.value
@@ -467,7 +467,7 @@ class DependencyPlot(Viewer):
             self.additive_widget.value = False
             self.normal_widget.value = False
             self.prev_line_changed(False)
-        elif self.toggle_widget.value == "independence prediction":
+        elif self.toggle_widget.value == "interaction effect":
             self.truth_widget.value = False
             self.additive_widget.value = True
             self.normal_widget.value = False
@@ -737,7 +737,7 @@ def get_group_label(color: str, color_map: dict) -> str:
     elif color == color_map['previous_prediction']:
         cluster_label = 'Previous prediction'
     elif color == color_map['additive_prediction']:
-        cluster_label = 'assuming independence'
+        cluster_label = 'only main effect'
     else:
         cluster_label = ''
     return cluster_label

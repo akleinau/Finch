@@ -21,9 +21,9 @@ class OverviewPlot(Viewer):
 
         self.ranked_plots = pn.FlexBox()
         self.dps = []
-        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['previous prediction',
-                                                                  'independence prediction'],
-                                                         value='previous prediction',
+        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['change in prediction',
+                                                                  'interaction effect'],
+                                                         value='change in prediction',
                                                          button_style='outline', stylesheets=[style_options])
         self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
 
@@ -49,8 +49,8 @@ class OverviewPlot(Viewer):
 
     def add_feature_view(self):
         return pn.Column(
-            "## Add feature: ",
-            pn.Row("show difference to... ", self.toggle_widget),
+            "(ranked by strongest interaction effect at item value)",
+            self.toggle_widget,
             self.ranked_plots,
         )
 
@@ -67,6 +67,7 @@ class OverviewPlot(Viewer):
         :return:
         """
         self.all_selected_cols = feature_iter.all_selected_cols
+        self.toggle_widget.value = "change in prediction"
 
         ranked_plots = pn.FlexBox()
         dps = []
@@ -77,7 +78,7 @@ class OverviewPlot(Viewer):
             col = row['feature']
             dp = dependency_plot.DependencyPlot(simple=True)
             dp.update_plot(data, self.all_selected_cols + [col], item, data_loader, feature_iter, True, False)
-            #dp.toggle_widget.value = "independence prediction"
+            #dp.toggle_widget.value = "interaction effect"
 
             dps.append(dp)
             ranked_plots.append(dp.plot)
