@@ -103,6 +103,10 @@ class DataStore(param.Parameterized):
         self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
                                              onlychanged=False)
 
+        # this just makes sure that the transition from overview to dependency plot is smoother
+        self.feature_iter.param.watch(self.clear_overview_plot,
+                                        parameter_names=['all_selected_cols'], onlychanged=False)
+
         # render similar plot
         self.update_similar_plot()
         self.feature_iter.param.watch(self.update_similar_plot,
@@ -118,6 +122,7 @@ class DataStore(param.Parameterized):
         # floatpanel
         self.add_feature_panel = None
         self.feature_iter.param.watch(self.set_feature_panel, parameter_names=['show_add'], onlychanged=False)
+
 
         # render recommendations
         self.update_recommendation_item()
@@ -231,7 +236,7 @@ class DataStore(param.Parameterized):
 
     def set_feature_panel(self, a):
         if a.new:
-            self.add_feature_panel = pn.layout.FloatPanel(self.overview_plot.ranked_plots, name='Add Feature', margin=20,
+            self.add_feature_panel = pn.layout.FloatPanel(self.overview_plot.add_feature_view(), name='Add Feature', margin=20,
                                                           contained=False, height=800, status="normalized", width=1000,
                                                           position="center")
         else:
@@ -243,6 +248,9 @@ class DataStore(param.Parameterized):
     def update_overview_plot(self, *params):
         self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
                                   self.feature_iter, self.recommendation, self.data_loader)
+
+    def clear_overview_plot(self, *params):
+        self.overview_plot.hide_all()
 
     def update_recommendation_item(self, *params):
         self.recommendation.update_item(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,

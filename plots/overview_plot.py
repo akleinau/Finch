@@ -8,7 +8,7 @@ from panel.viewable import Viewer, Viewable
 from calculations.feature_iter import FeatureIter
 from calculations.similarity import get_window_items
 from plots.dependency_plot import get_rolling
-from plots.styling import add_style
+from plots.styling import add_style, style_options
 import plots.dependency_plot as dependency_plot
 
 
@@ -20,6 +20,13 @@ class OverviewPlot(Viewer):
         super().__init__()
 
         self.ranked_plots = pn.FlexBox()
+        self.dps = []
+        self.toggle_widget = pn.widgets.RadioButtonGroup(options=['previous prediction',
+                                                                  'independence prediction'],
+                                                         value='previous prediction',
+                                                         button_style='outline', stylesheets=[style_options])
+        self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
+
         self.all_selected_cols = []
 
     @param.depends('ranked_plots')
@@ -40,6 +47,13 @@ class OverviewPlot(Viewer):
         else:
             return pn.Column()
 
+    def add_feature_view(self):
+        return pn.Column(
+            "## Add feature: ",
+            pn.Row("show difference to... ", self.toggle_widget),
+            self.ranked_plots,
+        )
+
     def update(self, data, item, y_col, feature_iter, recommendation, data_loader):
         """
         updates the plot with the new data
@@ -55,6 +69,7 @@ class OverviewPlot(Viewer):
         self.all_selected_cols = feature_iter.all_selected_cols
 
         ranked_plots = pn.FlexBox()
+        dps = []
 
         # go through each row of the dataset recommendation.dataset_single
         for index, row in recommendation.dataset_single.iterrows():
@@ -64,10 +79,26 @@ class OverviewPlot(Viewer):
             dp.update_plot(data, self.all_selected_cols + [col], item, data_loader, feature_iter, True, False)
             #dp.toggle_widget.value = "independence prediction"
 
-            plot = dp.plot
-            ranked_plots.append(plot)
+            dps.append(dp)
+            ranked_plots.append(dp.plot)
 
         #reverse the order
         ranked_plots.objects = ranked_plots.objects[::-1]
 
         self.ranked_plots = ranked_plots
+        self.dps = dps
+
+    def toggle_changed(self, event):
+
+        ranked_plots = pn.FlexBox()
+        for dp in self.dps:
+            dp.toggle_widget.value = event.new
+            ranked_plots.append(dp.plot)
+
+        ranked_plots.objects = ranked_plots.objects[::-1]
+        self.ranked_plots = ranked_plots
+
+    def hide_all(self):
+        self.all_selected_cols = []
+        self.ranked_plots = pn.FlexBox()
+        self.dps = []

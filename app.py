@@ -65,11 +65,11 @@ template.main.append(pn.Column(
     pn.Row(ds.feature_iter, styles=dict(margin="auto")),
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
     pn.Row(help, styles=dict(width='100%')),
-    overview_plot,
-    tornado_plot_overview,
     pn.Row(ds.render_plot,
            pn.Column(sim_plot, styles=dict(margin_left='20px')),
            styles=dict(margin='auto', width='100%', padding='10px')),
+    overview_plot,
+    tornado_plot_overview,
     floatpanel,
     styles=dict(width='100%', margin='auto')
 ))

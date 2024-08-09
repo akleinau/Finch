@@ -29,7 +29,7 @@ class FeatureIter(Viewer):
         self.col_widget = pn.widgets.Select(name='add', options=["", *columns], value="")
         self.col_widget.param.watch(lambda event: self.add_col(event.new), parameter_names=['value'], onlychanged=False)
         self.add_button = pn.widgets.Button(align="center", icon='plus', name="Add Feature", button_style='outline',
-                                            styles=icon_style, stylesheets=[style_icon])
+                                            styles=icon_style, stylesheets=[style_icon], visible=False)
         self.add_button.on_click(self.show_add_panel)
 
         self.col_display = pn.widgets.RadioButtonGroup(button_style='outline', align="center",
@@ -50,7 +50,7 @@ class FeatureIter(Viewer):
         # create final toggle
         self.show_process = True
         self.final_toggle = pn.widgets.Toggle(name='Final', value=False, align="center", stylesheets=[style_options],
-                                              button_style="outline")
+                                              button_style="outline", visible=False)
         self.final_toggle.param.watch(self.final_toggle_changed, parameter_names=['value'], onlychanged=False)
 
         self.widgets = pn.Row(self.col_display, self.minus_button, self.add_button, self.final_toggle)
@@ -117,6 +117,8 @@ class FeatureIter(Viewer):
         self.col_widget.options = ["", *self.col_whitelist]
         self.col_widget.value = ""
         self.minus_button.visible = len(self.all_selected_cols_final) > 0
+        self.add_button.visible = len(self.all_selected_cols_final) != 0
+        self.final_toggle.visible = len(self.all_selected_cols_final) != 0
         self.widgets = pn.Row(self.col_display, self.minus_button, self.add_button, self.final_toggle)
 
         if final:
