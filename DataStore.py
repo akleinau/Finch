@@ -147,23 +147,25 @@ class DataStore(param.Parameterized):
         :param event
         """
 
-        # intentionally trigger visualization updates, etc
-        self.feature_iter.load_new_columns([])
+        # intentionally not trigger anything
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[-1]
+
         item = item_functions.Item(loader, loader.data_and_probabilities, "predefined", self.item_index.value,
                                    pn.Column(),
                                    predict_class, predict_class)
 
         self.predict_class.param.update(options=loader.classes, value=predict_class)
+        self.feature_iter.load_new_columns(loader.columns, simple=True)
         self.param.update(data_loader=loader, item=item)
         self.init_item_custom_content()
         self.item_widgets = self._set_item_widgets()
+
         self.active = True
 
         # intentionally trigger visualization updates, etc
-        self.feature_iter.load_new_columns(loader.columns)
+        self.param.update(data_loader=loader, item=item)
 
 
     def init_item_custom_content(self):
@@ -244,18 +246,22 @@ class DataStore(param.Parameterized):
             self.add_feature_panel = None
 
     def update_help(self, *params):
-        self.help_pane.update(self.feature_iter.all_selected_cols, self.item)
+        if self.active:
+            self.help_pane.update(self.feature_iter.all_selected_cols, self.item)
 
     def update_overview_plot(self, *params):
-        self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
-                                  self.feature_iter, self.recommendation, self.data_loader)
+        if self.active:
+            self.overview_plot.update(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
+                                      self.feature_iter, self.recommendation, self.data_loader)
 
     def clear_overview_plot(self, *params):
         self.overview_plot.hide_all()
 
     def update_recommendation_item(self, *params):
-        self.recommendation.update_item(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
-                                        self.data_loader.columns, self.feature_iter.all_selected_cols)
+        if self.active:
+            self.recommendation.update_item(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
+                                            self.data_loader.columns, self.feature_iter.all_selected_cols)
 
     def update_recommendation_selected_cols(self, *params):
-        self.recommendation.update_selected_cols(self.feature_iter.all_selected_cols)
+        if self.active:
+            self.recommendation.update_selected_cols(self.feature_iter.all_selected_cols)

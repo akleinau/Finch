@@ -145,18 +145,21 @@ class FeatureIter(Viewer):
             self.all_selected_cols_final = self.all_selected_cols_final[:-1]
             self.update_widgets()
 
-    def load_new_columns(self, columns: list):
+    def load_new_columns(self, columns: list, simple: bool = False):
         """
         loads new columns when a new data set is loaded
 
         :param columns: list
+        :param simple: bool
         """
 
+        self.active = simple
         self.simple_next = False
         self.columns = columns
         self.all_selected_cols = []
         self.all_selected_cols_final = []
         self.update_widgets()
+        self.active = True
 
     def final_toggle_changed(self, event):
         """

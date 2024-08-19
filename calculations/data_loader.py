@@ -14,16 +14,43 @@ class DataLoader(Viewer):
             truth = load_bike_truth()
 
         else:
-            self.data = load_data(file)
-            self.nn = load_nn(nn_file)
+            error = False
+            try:
+                self.data = load_data(file)
+            except:
+                print("Could not load data. Reverting to bike dataset.")
+                error = True
+
+            try:
+                self.nn = load_nn(nn_file)
+            except:
+                print("Could not load neural network. Reverting to bike dataset.")
+                error = True
+
             truth = None
             if truth_file is not None:
-                truth = load_data(truth_file)
+                try:
+                    truth = load_data(truth_file)
+                except:
+                    print("Could not load truth data.")
+
+            if error:
+                self.data = load_bike_data()
+                self.nn = load_bike_nn()
+                truth = load_bike_truth()
 
         nn_columns = [name for name in self.nn.feature_names_in_]
+
+        # only keep columns that are in the model
         for column in self.data.columns:
             if column not in nn_columns:
                 self.data.drop(column, axis=1, inplace=True)
+
+        # make sure all columns exist
+        for column in nn_columns:
+            if column not in self.data.columns:
+                print("Column", column, "not found in data. Adding column with zeros.")
+                self.data[column] = 0
 
         self.columns = nn_columns
 
