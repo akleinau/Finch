@@ -199,7 +199,7 @@ class DependencyPlot(Viewer):
 
         # add influence
         create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "normal")
-        if len(all_selected_cols) >= 1:
+        if len(all_selected_cols) >= 1 and self.truth:
             create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "truth")
         if self.color_map['additive_prediction'] in color_data:
             create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "additive")

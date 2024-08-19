@@ -147,6 +147,8 @@ class DataStore(param.Parameterized):
         :param event
         """
 
+        # intentionally trigger visualization updates, etc
+        self.feature_iter.load_new_columns([])
         self.active = False
         loader = data_loader.DataLoader(self.file.value, self.nn_file.value, self.truth_file.value)
         predict_class = loader.classes[-1]
@@ -163,7 +165,6 @@ class DataStore(param.Parameterized):
         # intentionally trigger visualization updates, etc
         self.feature_iter.load_new_columns(loader.columns)
 
-        self.update_tornado_plot()
 
     def init_item_custom_content(self):
         """

@@ -10,17 +10,22 @@ class DataLoader(Viewer):
         super().__init__()
         if file is None or nn_file is None:
             self.data = load_bike_data()
-            self.columns = [col for col in self.data.columns]
             self.nn = load_bike_nn()
             truth = load_bike_truth()
 
         else:
             self.data = load_data(file)
             self.nn = load_nn(nn_file)
-            self.columns = [col for col in self.data.columns]
             truth = None
             if truth_file is not None:
                 truth = load_data(truth_file)
+
+        nn_columns = [name for name in self.nn.feature_names_in_]
+        for column in self.data.columns:
+            if column not in nn_columns:
+                self.data.drop(column, axis=1, inplace=True)
+
+        self.columns = nn_columns
 
         self.type = 'classification' if hasattr(self.nn, 'classes_') else 'regression'
 
