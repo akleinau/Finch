@@ -1,4 +1,4 @@
-season,yr,mnth,hr,holiday,weekday,workingday,weathersit,temp,atemp,hum,windspeed
+season,year,month,hour,holiday,weekday,workingday,weather_situation,temperature,feeling_temperature,humidity,windspeed
 2,0,5,5,0,6,0,1,0.56,0.5303,0.88,0.2239
 4,0,10,4,0,3,1,1,0.44,0.4394,0.88,0.0
 4,1,10,19,0,4,1,1,0.44,0.4394,0.51,0.1343
