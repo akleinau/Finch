@@ -79,7 +79,7 @@ class DependencyPlot(Viewer):
         self.truth_class = "truth_" + item.predict_class[5:]
 
         toggle_options = ['change in prediction']
-        if len(all_selected_cols) >= 1:
+        if len(all_selected_cols) >= 1 and self.truth:
             toggle_options.append('ground truth')
         if len(all_selected_cols) > 1 and show_process:
             toggle_options.append('interaction effect')
@@ -159,7 +159,7 @@ class DependencyPlot(Viewer):
         col = all_selected_cols[0]
         if self.simple:
             last = all_selected_cols[-1]
-            plot.title = f"{last} = {item.data_prob_raw[col]}"
+            plot.title = f"{last} = {item.data_prob_raw[last]:.2f}"
             plot.xaxis.axis_label = last
             plot.title.align = 'center'
 
@@ -268,7 +268,7 @@ class DependencyPlot(Viewer):
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
         if self.simple:
             item_value = item.data_prob_raw[col]
-            title = f"{col} = {item_value}"
+            title = f"{col} = {item_value:.2f}"
             plot = figure(title=title, y_axis_label="prediction", y_range=self.y_range_padded, x_range=x_range_padded,
                           width=250, height=200, toolbar_location=None, x_axis_label=col)
         else:
@@ -321,8 +321,8 @@ class DependencyPlot(Viewer):
 
             if self.simple:
                 # centers the plot on the item
-                plot.x_range.start = self.item_x - 0.5*x_std
-                plot.x_range.end = self.item_x + 0.5*x_std
+                plot.x_range.start = self.item_x - x_std
+                plot.x_range.end = self.item_x + x_std
 
             if not self.simple:
                 # add the label
@@ -478,7 +478,8 @@ class DependencyPlot(Viewer):
             self.normal_widget.value = True
             self.prev_line_changed(True)
 
-        self.toggle_help.object = self.toggle_dict[self.toggle_widget.value]
+        if self.toggle_widget.value is not None:
+            self.toggle_help.object = self.toggle_dict[self.toggle_widget.value]
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str,
                     combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool):

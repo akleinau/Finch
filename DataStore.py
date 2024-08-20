@@ -166,6 +166,7 @@ class DataStore(param.Parameterized):
 
         # intentionally trigger visualization updates, etc
         self.param.update(data_loader=loader, item=item)
+        self.update_recommendation_item()
 
 
     def init_item_custom_content(self):

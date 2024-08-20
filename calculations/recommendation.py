@@ -195,8 +195,11 @@ class InteractTreeSub(InteractTree):
         self.value = (prev.value * prev.count + difference) / self.count
         # self.raw_value = np.abs(joined_value - added_value)
         # self.value = 0 if min_value/2 >= self.raw_value else (prev.value * prev.count + np.abs(joined_value - added_value)) / self.count
+
+        max_depth = 3 if len(prev.columns) + len(remaining_columns) < 15 else 2
+
         self.nodes = []
-        if len(self.columns) and difference > min_value and self.count < 3:
+        if len(self.columns) and difference > min_value and self.count < max_depth:
             for col in remaining_columns:
                 remaining = [c for c in remaining_columns if c != col]
                 self.nodes.append(
