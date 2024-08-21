@@ -40,7 +40,7 @@ class Recommendation(Viewer):
         self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict,
                                           self.mean_prob)
 
-        self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
+        #self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
 
     def update_selected_cols(self, all_selected_cols):
         self.remaining_columns = [col for col in self.columns if col not in all_selected_cols]
