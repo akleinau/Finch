@@ -80,7 +80,7 @@ class TornadoPlot(Viewer):
 
     def tornado_plot(self, data, feature_iter, type):
 
-        if len(data) == 0:
+        if data is None or len(data) == 0:
             return figure()
 
         width = 350 if type == 'single' else 600
@@ -145,6 +145,9 @@ class TornadoPlot(Viewer):
         """
         displays a fast selection of buttons for the most important feature interactions
         """
+
+        if data is None or len(data) == 0:
+            return pn.FlexBox()
 
         # iterate from behind to get the last 15 entries of data
         buttons = []
