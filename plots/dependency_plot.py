@@ -270,7 +270,7 @@ class DependencyPlot(Viewer):
             item_value = item.data_prob_raw[col]
             title = f"{col} = {item_value:.2f}"
             plot = figure(title=title, y_axis_label="prediction", y_range=self.y_range_padded, x_range=x_range_padded,
-                          width=250, height=200, toolbar_location=None, x_axis_label=col)
+                          width=250, height=200, toolbar_location=None, x_axis_label=col, tools="tap")
         else:
             plot = figure(title="", y_axis_label="change in prediction", tools="tap, xpan, xwheel_zoom",
                           y_range=self.y_range_padded,
@@ -487,9 +487,13 @@ class DependencyPlot(Viewer):
                                                                                                                 colors[
                                                                                                                     'base'] else 2
         if not simple_next or (color != colors['previous_prediction'] and color != colors['base']):
-            line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
+            if len(combined) > 1:
+                line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
                                legend_label=cluster_label, tags=[color, "prediction"],
                                name=cluster_label, line_dash=line_type, alpha=alpha, visible=False)
+            else:
+                line = chart3.scatter(col, 'mean', source=combined, color=color, size=10, legend_label=cluster_label,
+                                     tags=[color, "prediction"], name=cluster_label, alpha=alpha, visible=False)
             if color == colors['ground_truth'] or color == colors['neighborhood_truth']:
                 line.visible = self.truth_widget.value
                 line.on_change('visible', self.set_truth)
@@ -549,7 +553,7 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     combined = group_data.join(compare_data, lsuffix='_p', rsuffix='_g', how='outer')
 
     ## fill the missing values with the previous value
-    combined = combined.interpolate()
+    combined = combined.interpolate(method="index")
     combined.reset_index(inplace=True)
 
     # create two bands, a positive and a negative one
@@ -607,7 +611,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
                 new_item = combined.iloc[i].copy()
                 a =  abs(combined['mean'].iloc[i]) / (abs(combined['mean'].iloc[i]) + abs(combined['mean'].iloc[i+1]))
                 new_item['mean'] = 0
-                new_item[col] = combined[col].iloc[i] + a * (combined[col].iloc[i+1] - combined[col].iloc[i])
+                new_item[col] = round(combined[col].iloc[i] + a * (combined[col].iloc[i+1] - combined[col].iloc[i]), 2)
                 new_items.append(new_item)
 
             combined = pd.concat([combined, pd.DataFrame(new_items)], ignore_index=True)

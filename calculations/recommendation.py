@@ -95,6 +95,10 @@ def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
     creates the dataset for the overview plot, containing the most important feature interactions
     """
 
+    # if the data set size is too big, only take a sample
+    if len(data) > 1000:
+        data = data.copy().sample(1000)
+
     prob_range = 0.5 * data[y_col].std()
     min_value = prob_range
 

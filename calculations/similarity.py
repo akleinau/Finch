@@ -111,11 +111,8 @@ def get_window_items(data, item, col, y_col):
     window = get_window_size(mean_data) - 1  # -1 because we add one to the end_index
 
     # get the closest item index to the item value
-    if item.type == 'custom':
-        # if the item value is not in the data, find the closest value
-        item_index = np.abs(mean_data.index - item_col_value).argmin()
-    else:
-        item_index = mean_data.index.get_loc(item_col_value)
+    # if the item value is not in the data, find the closest value
+    item_index = np.abs(mean_data.index - item_col_value).argmin()
 
     # get the items with an index that is within the window around the item
     start_index = max(0, item_index - window)
