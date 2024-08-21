@@ -551,10 +551,12 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     ## fill the missing values with the previous value
     combined = combined.interpolate()
     combined.reset_index(inplace=True)
+
     # create two bands, a positive and a negative one
     combined['max'] = combined[['mean_g', 'mean_p']].max(axis=1)
     combined['min'] = combined[['mean_g', 'mean_p']].min(axis=1)
 
+    # tags are needed to display/ hide the influence bands when the user toggles the visibility
     tags = ["prediction"]
     visible = False
     if type == "truth":
@@ -587,9 +589,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     # then smooth the line
     window = get_window_size(mean_data)
     rolling = mean_data[y_col].rolling(window=window, center=False, min_periods=1).agg(
-        {'lower': lambda ev: ev.quantile(.25, interpolation='lower'),
-         'upper': lambda ev: ev.quantile(.75, interpolation='higher'),
-         'mean': 'mean'})
+        {'mean': 'mean'})
 
     second_window = min(window, 10)
     rolling = rolling.rolling(window=second_window, center=False, min_periods=1).mean()
@@ -597,6 +597,23 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     mean_data = mean_data.drop(columns=[y_col])
 
     combined = pd.concat([mean_data, rolling], axis=1)
+
+    # if there are only few values in the data, find where they cross 0 and add a middle value
+    if len(combined) < 30:
+        for i in range(len(combined) - 1):
+            combined = combined.reset_index()
+            new_items = []
+            if combined['mean'].iloc[i] * combined['mean'].iloc[i+1] < 0:
+                new_item = combined.iloc[i].copy()
+                a =  abs(combined['mean'].iloc[i]) / (abs(combined['mean'].iloc[i]) + abs(combined['mean'].iloc[i+1]))
+                new_item['mean'] = 0
+                new_item[col] = combined[col].iloc[i] + a * (combined[col].iloc[i+1] - combined[col].iloc[i])
+                new_items.append(new_item)
+
+            combined = pd.concat([combined, pd.DataFrame(new_items)], ignore_index=True)
+            combined = combined.sort_values(by=col)
+            combined = combined.set_index(col)
+
     return combined
 
 
