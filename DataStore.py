@@ -87,6 +87,10 @@ class DataStore(param.Parameterized):
                                              onlychanged=False)
         self.item_type.param.watch(self.update_item_self, parameter_names=['value'],
                                    onlychanged=False)
+        self.predefined_to_custom_button = pn.widgets.Button(name='Change', button_type='primary',
+                                                             icon='brush', button_style='outline',
+                                                             styles=dict(margin='auto', margin_top='10px'))
+        self.predefined_to_custom_button.on_click(lambda event: self.predefined_to_custom())
         self.item_widgets = self._set_item_widgets()
         self.param.watch(self.feature_iter.changed_item, parameter_names=['item'], onlychanged=False)
         self.init_item_custom_content()
@@ -169,15 +173,20 @@ class DataStore(param.Parameterized):
         self.update_tornado_plot()
 
 
-    def init_item_custom_content(self):
+    def init_item_custom_content(self, item=None):
         """
-        initializes the custom content input fields
+        initializes the custom content input fields. If item is provided, the values are filled in
+
+        :param item: item_functions.Item
         """
+
+        item_data = None if item is None else item.data_raw
 
         self.item_custom_content.clear()
         self.item_custom_content.append("(missing values will be imputed)")
         for col in self.data_loader.columns:
-            widget = pn.widgets.LiteralInput(name=col, value=None, width=200, stylesheets=[style_input])
+            value = None if item_data is None else item_data[col].values[0]
+            widget = pn.widgets.LiteralInput(name=col, value=value, width=200, stylesheets=[style_input])
             widget.param.watch(self.update_item_self, parameter_names=['value'], onlychanged=False)
             self.item_custom_content.append(widget)
 
@@ -204,13 +213,19 @@ class DataStore(param.Parameterized):
         # widgets
         second_item = pn.bind(
             lambda t: pn.Column(self.item_index,
-                                self.item) if t == 'predefined' else self.item_custom_content if t == 'custom' else None,
+                                self.item, self.predefined_to_custom_button) if t == 'predefined'
+                        else self.item_custom_content if t == 'custom'
+                        else None,
             self.item_type)
         return pn.Column(str_dataset_nr, str_mean_prediction, self.item_type, second_item, pn.layout.Spacer(height=20))
 
     def set_item_widgets(self, data=None, y_class=None):
         if self.active:
             self.param.update(item_widgets=self._set_item_widgets(data, y_class))
+
+    def predefined_to_custom(self):
+        self.init_item_custom_content(self.item)
+        self.item_type.value = 'custom'
 
     def update_render_plot(self, *params):
         if self.active:
