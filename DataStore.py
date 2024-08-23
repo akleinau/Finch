@@ -9,7 +9,7 @@ import plots.dependency_plot as dependency_plot
 import plots.help as help_plot
 import plots.overview_plot as overview_plot
 import plots.similar_plot as similar_plot
-import plots.tornado_plot as tornado_plot
+import plots.ranked_buttons as ranked_buttons
 from plots.styling import style_button, style_options, style_input
 
 
@@ -24,7 +24,7 @@ class DataStore(param.Parameterized):
     similar_plot = param.ClassSelector(class_=similar_plot.SimilarPlot)
     feature_iter = param.ClassSelector(class_=feature_iter.FeatureIter)
     item_widgets = param.ClassSelector(class_=pn.Column)
-    tornado_plot = param.ClassSelector(class_=tornado_plot.TornadoPlot)
+    #ranked_buttons = param.ClassSelector(class_=ranked_buttons.RankedButtons)
     add_feature_panel = param.ClassSelector(class_=pn.layout.FloatPanel)
     help_pane = param.ClassSelector(class_=help_plot.Help)
     overview_plot = param.ClassSelector(class_=overview_plot.OverviewPlot)
@@ -135,10 +135,10 @@ class DataStore(param.Parameterized):
         self.param.watch(self.update_recommendation_item,
                             parameter_names=['item'], onlychanged=False)
 
-        # render tornado plot
-        self.update_tornado_plot()
-        self.recommendation.param.watch(self.update_tornado_plot,
-                                        parameter_names=['dataset_single'], onlychanged=False)
+        # render ranked buttons
+        #self.update_ranked_buttons()
+        #self.recommendation.param.watch(self.update_ranked_buttons,
+         #                               parameter_names=['dataset_single'], onlychanged=False)
 
         self.update_overview_plot()
         self.recommendation.param.watch(self.update_overview_plot,
@@ -170,7 +170,7 @@ class DataStore(param.Parameterized):
 
         # intentionally trigger visualization updates, etc
         self.param.update(data_loader=loader, item=item)
-        self.update_tornado_plot()
+        #self.update_ranked_buttons()
 
 
     def init_item_custom_content(self, item=None):
@@ -239,9 +239,9 @@ class DataStore(param.Parameterized):
             self.param.update(
                 similar_plot=similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols))
 
-    def update_tornado_plot(self, *params):
+    def update_ranked_buttons(self, *params):
         if self.active:
-            self.param.update(tornado_plot=tornado_plot.TornadoPlot(self.data_loader.columns,
+            self.param.update(ranked_buttons=ranked_buttons.RankedButtons(self.data_loader.columns,
                                                                     self.feature_iter, self.recommendation))
 
     def _update_item_self(self) -> item_functions.Item:
