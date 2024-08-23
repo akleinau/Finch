@@ -587,16 +587,24 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     :return: pd.Dataframe
     """
 
-    # first get mean per value of the col
-    mean_data = data.groupby(col).agg({y_col: 'mean'})
+    data_subset = data[[col, y_col]].copy()
+    individual_values = data_subset[col].unique()
 
-    # then smooth the line
-    window = get_window_size(mean_data)
-    rolling = mean_data[y_col].rolling(window=window, center=False, min_periods=1).agg(
+    # first smooth on ungrouped data
+    window = get_window_size(data_subset) if len(individual_values) >= 30 else 1
+    min_periods = min(window, 50)
+    roll1 = data_subset[y_col].rolling(window=window, center=False, min_periods=min_periods).mean()
+    data_roll1 = pd.concat([data_subset[col], roll1], axis=1)
+
+    # then get mean per value of the col
+    mean_data = data_roll1.groupby(col).agg({y_col: 'mean'})
+
+    # then second smooth of the line
+    window = get_window_size(individual_values)
+    min_periods = min(window, 50)
+    center = False if len(individual_values) < 30 else True # for categorical data, we want to uncenter the rolling
+    rolling = mean_data[y_col].rolling(window=window, center=center, min_periods=min_periods).agg(
         {'mean': 'mean'})
-
-    second_window = min(window, 10)
-    rolling = rolling.rolling(window=second_window, center=False, min_periods=1).mean()
 
     mean_data = mean_data.drop(columns=[y_col])
 

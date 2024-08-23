@@ -115,8 +115,16 @@ def get_window_items(data, item, col, y_col):
     item_index = np.abs(mean_data.index - item_col_value).argmin()
 
     # get the items with an index that is within the window around the item
-    start_index = max(0, item_index - window)
-    end_index = item_index + 1
+
+    # categorical data with window center on the right
+    if window == 1:
+        start_index = max(0, item_index - window)
+        end_index = item_index + 1
+    # continuous data with window center on center
+    else:
+        start_index = max(0, item_index - window // 2)
+        end_index = item_index + window // 2 + 1
+
     mean_data = mean_data.iloc[start_index:end_index]
 
     return mean_data
@@ -126,10 +134,12 @@ def get_window_size(data: pd.DataFrame) -> int:
     """
     calculates an appropriate window size based on the data size
 
-
+    :param data: pd.DataFrame
     """
 
-    window = max(1, min(int(len(data) / 15), 10))
-    window = window ** 2
+    if len(data) < 30:
+        return 1
+
+    window = max(5, min(int(len(data) / 10), 1000)) # min 1, max 10, 1/15 of the data
 
     return window
