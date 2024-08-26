@@ -591,7 +591,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     individual_values = data_subset[col].unique()
 
     # first smooth on ungrouped data
-    window = get_window_size(data_subset) if len(individual_values) >= 30 else 1
+    window = get_window_size(data_subset, min_size=50) if len(individual_values) >= 30 else 1
     min_periods = min(window, 50)
     roll1 = data_subset[y_col].rolling(window=window, center=False, min_periods=min_periods).mean()
     data_roll1 = pd.concat([data_subset[col], roll1], axis=1)

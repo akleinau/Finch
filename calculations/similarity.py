@@ -130,7 +130,7 @@ def get_window_items(data, item, col, y_col):
     return mean_data
 
 
-def get_window_size(data: pd.DataFrame) -> int:
+def get_window_size(data: pd.DataFrame, min_size=5) -> int:
     """
     calculates an appropriate window size based on the data size
 
@@ -140,6 +140,6 @@ def get_window_size(data: pd.DataFrame) -> int:
     if len(data) < 30:
         return 1
 
-    window = max(5, min(int(len(data) / 10), 1000)) # min 1, max 10, 1/15 of the data
+    window = min(max(min_size, int(len(data) * 0.05)), 1000) # min 5, max 1000, 0.05 of the data
 
     return window
