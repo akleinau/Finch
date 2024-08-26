@@ -120,7 +120,7 @@ def style_axes(plot):
 
 def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
     # add points
-    alpha = max(min(100 / len(data), 0.2), 0.05)
+    alpha = max(min(100 / len(data), 0.2), 0.1)
     plot.scatter(x=jitter(col, 0.5), y=jitter('fixed2', 2), alpha=alpha, source=data, size=2, color='grey',
                  legend_label='Standard')
     if len(all_selected_cols) > 1:
