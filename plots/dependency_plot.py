@@ -1,4 +1,5 @@
 import bokeh.colors
+import numpy as np
 import pandas as pd
 import panel as pn
 import param
@@ -50,7 +51,7 @@ class DependencyPlot(Viewer):
         self.normal_widget.param.watch(self.normal_changed, parameter_names=['value'], onlychanged=False)
 
         self.toggle_widget = pn.widgets.RadioButtonGroup(options=['change in prediction', 'ground truth',
-                                                                  'interaction effect'],
+                                                                  'interaction effect', 'uncertainty'],
                                                          value='change in prediction',
                                                          button_style='outline', stylesheets=[style_options])
         self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
@@ -58,7 +59,8 @@ class DependencyPlot(Viewer):
         self.toggle_dict = {
             'change in prediction': '',
             'ground truth': '(ground truth of the neighborhood)',
-            'interaction effect': '(highlight interaction effect)'
+            'interaction effect': '(highlight interaction effect)',
+            'uncertainty': '(show standard deviation of the predictions)'
         }
         self.toggle_help = pn.pane.Markdown(self.toggle_dict[self.toggle_widget.value], styles=dict(margin_left='10px', font_size='15px'))
 
@@ -83,6 +85,7 @@ class DependencyPlot(Viewer):
             toggle_options.append('ground truth')
         if len(all_selected_cols) > 1 and show_process:
             toggle_options.append('interaction effect')
+        toggle_options.append('uncertainty')
         self.toggle_widget.options = toggle_options
 
         if len(all_selected_cols) == 0:
@@ -134,7 +137,7 @@ class DependencyPlot(Viewer):
             pn.pane.Markdown("### Options:", styles=dict(margin='auto', width='100%', margin_top='15px'),
                              sizing_mode='stretch_width', min_width=500, max_width=1000, ),
             pn.FlexBox(
-                pn.pane.Markdown("show difference to...", styles=dict(font_size='15px')),
+                pn.pane.Markdown("show ...", styles=dict(font_size='15px')),
                 self.toggle_widget,
                 self.toggle_help,
                styles=dict(margin='auto', width='100%'),
@@ -203,6 +206,7 @@ class DependencyPlot(Viewer):
             create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "truth")
         if self.color_map['additive_prediction'] in color_data:
             create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "additive")
+        create_uncertainty_band(plot, col, color_data, self.color_map)
 
         # add legend
         plot.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
@@ -456,6 +460,13 @@ class DependencyPlot(Viewer):
         for obj in normal_renderers:
             obj.visible = self.normal_widget.value
 
+    def uncertainty_changed(self, show_line: bool):
+
+        uncertainty_renderers = [r for r in self.plot.renderers if "uncertainty" in r.glyph.tags]
+
+        for obj in uncertainty_renderers:
+            obj.visible = show_line
+
 
     def toggle_changed(self, *params):
         """
@@ -467,16 +478,25 @@ class DependencyPlot(Viewer):
             self.additive_widget.value = False
             self.normal_widget.value = False
             self.prev_line_changed(False)
+            self.uncertainty_changed(False)
         elif self.toggle_widget.value == "interaction effect":
             self.truth_widget.value = False
             self.additive_widget.value = True
             self.normal_widget.value = False
             self.prev_line_changed(True)
+            self.uncertainty_changed(False)
+        elif self.toggle_widget.value == "uncertainty":
+            self.truth_widget.value = False
+            self.additive_widget.value = False
+            self.normal_widget.value = False
+            self.prev_line_changed(False)
+            self.uncertainty_changed(True)
         else:
             self.truth_widget.value = False
             self.additive_widget.value = False
             self.normal_widget.value = True
             self.prev_line_changed(True)
+            self.uncertainty_changed(False)
 
         if self.toggle_widget.value is not None:
             self.toggle_help.object = self.toggle_dict[self.toggle_widget.value]
@@ -576,6 +596,22 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     chart3.varea(x=col, y1='mean_g', y2='min', source=combined, fill_color=color_map['negative_color'],
                  fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
 
+def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_map: dict):
+    if color_map['neighborhood'] in color_data:
+        combined = color_data[color_map['neighborhood']].copy()
+    else:
+        combined = color_data[color_map['base']].copy()
+
+    # color should be a nice mixture of red and blue
+    color = "#5324c0"
+    cluster_label = "uncertainty"
+
+    # tags are needed to display/ hide the influence bands when the user toggles the visibility
+    tags = ["prediction", "uncertainty"]
+
+    band = chart3.varea(x=col, y1='lower', y2='upper', source=combined, level='underlay',
+                        fill_color=color, tags=tags, visible=False, fill_alpha=0.4)
+
 
 def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     """
@@ -590,21 +626,31 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     data_subset = data[[col, y_col]].copy()
     individual_values = data_subset[col].unique()
 
-    # first smooth on ungrouped data
-    window = get_window_size(data_subset, min_size=50) if len(individual_values) >= 30 else 1
-    min_periods = min(window, 50)
-    roll1 = data_subset[y_col].rolling(window=window, center=False, min_periods=min_periods).mean()
-    data_roll1 = pd.concat([data_subset[col], roll1], axis=1)
 
-    # then get mean per value of the col
-    mean_data = data_roll1.groupby(col).agg({y_col: 'mean'})
+    mean_data = data_subset.groupby(col).agg({y_col: 'mean'})
 
     # then second smooth of the line
     window = get_window_size(individual_values)
-    min_periods = min(window, 50)
-    center = False if len(individual_values) < 30 else True # for categorical data, we want to uncenter the rolling
+    min_periods = min(window, 10)
+    center = window > 1 # for categorical data, we want to uncenter the rolling
     rolling = mean_data[y_col].rolling(window=window, center=center, min_periods=min_periods).agg(
-        {'mean': 'mean'})
+        {'std': 'std',
+         'mean': 'mean'})
+
+    # if the data is categorical, we need the std before grouping
+    if window == 1:
+        rolling['std'] = data_subset.groupby(col).agg({y_col: 'std'})[y_col]
+
+    # smooth the rolling for a nice line
+    # alpha is between 0 and 1, and is smaller, the bigger the nr of individual values
+    if window > 1: # aka, don't do this for categorical data
+        alpha = max(0.01, min(np.sqrt(1/len(individual_values)), 1))
+        rolling['std'] = rolling['std'].ewm(alpha=alpha).mean()
+        rolling['mean'] = rolling['mean'].ewm(alpha=alpha).mean()
+
+
+    rolling['upper'] = rolling['mean'] + rolling['std']
+    rolling['lower'] = rolling['mean'] - rolling['std']
 
     mean_data = mean_data.drop(columns=[y_col])
 
@@ -620,6 +666,11 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
                 a =  abs(combined['mean'].iloc[i]) / (abs(combined['mean'].iloc[i]) + abs(combined['mean'].iloc[i+1]))
                 new_item['mean'] = 0
                 new_item[col] = round(combined[col].iloc[i] + a * (combined[col].iloc[i+1] - combined[col].iloc[i]), 2)
+
+                # also find new 'upper' and 'lower' values
+                new_item['upper'] = round(combined['upper'].iloc[i] + a * (combined['upper'].iloc[i+1] - combined['upper'].iloc[i]), 2)
+                new_item['lower'] = round(combined['lower'].iloc[i] + a * (combined['lower'].iloc[i+1] - combined['lower'].iloc[i]), 2)
+
                 new_items.append(new_item)
 
             combined = pd.concat([combined, pd.DataFrame(new_items)], ignore_index=True)
