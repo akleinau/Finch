@@ -266,7 +266,8 @@ class DependencyPlot(Viewer):
         self.x_range = (self.sorted_data[col].min(), self.sorted_data[col].max())
         self.item_x = item.data_prob_raw[col]
         x_std = self.sorted_data[col].std()
-        x_range_padded = [self.x_range[0], self.x_range[1]]
+        x_range_padded = [self.x_range[0] - 0.025 * (self.x_range[1] - self.x_range[0]),
+                          self.x_range[1] + 0.025 * (self.x_range[1] - self.x_range[0])]
         self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
         self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
@@ -323,10 +324,10 @@ class DependencyPlot(Viewer):
         # add item info
         if item.type != 'global':
 
-            if self.simple:
+            #if self.simple:
                 # centers the plot on the item
-                plot.x_range.start = self.item_x - x_std
-                plot.x_range.end = self.item_x + x_std
+                #plot.x_range.start = self.item_x - x_std
+                #plot.x_range.end = self.item_x + x_std
 
             if not self.simple:
                 # add the label
@@ -403,12 +404,13 @@ class DependencyPlot(Viewer):
             if obj.glyph.__class__.__name__ == 'Line':
                 line = obj
 
-        # update the legend
-        # plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
-        legend_item = [i for i in self.plot.legend.items if i.label.value == "Ground truth"]
-        for l in legend_item:
-            l.renderers = [line]
-            l.visible = self.truth_widget.value
+        if line is not None:
+            # update the legend
+            # plot.legend.items.append(LegendItem(label="previous prediction", renderers=[l]))
+            legend_item = [i for i in self.plot.legend.items if i.label.value == "Ground truth"]
+            for l in legend_item:
+                l.renderers = [line]
+                l.visible = self.truth_widget.value
 
     def additive_changed(self, *params):
         """
@@ -446,12 +448,13 @@ class DependencyPlot(Viewer):
                 if obj.glyph.__class__.__name__ == 'Line':
                     line = obj
 
-            # update the legend
-            legend_item = [i for i in self.plot.legend.items if i.label.value == "Previous prediction"]
-            for l in legend_item:
-                if line is not None:
-                    l.renderers = [line]
-                l.visible = show_line
+            if line is not None:
+                # update the legend
+                legend_item = [i for i in self.plot.legend.items if i.label.value == "Previous prediction"]
+                for l in legend_item:
+                    if line is not None:
+                        l.renderers = [line]
+                    l.visible = show_line
 
     def normal_changed(self, *params):
 
