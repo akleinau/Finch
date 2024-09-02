@@ -549,11 +549,11 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
 
     if type == "truth":
         if color_map['neighborhood'] in color_data:
-            group_data = color_data[color_map['neighborhood_truth']]
-            compare_data = color_data[color_map['neighborhood']]
+            group_data = color_data[color_map['neighborhood']]
+            compare_data = color_data[color_map['neighborhood_truth']]
         else:
-            group_data = color_data[color_map['ground_truth']]
-            compare_data = color_data[color_map['base']]
+            group_data = color_data[color_map['base']]
+            compare_data = color_data[color_map['ground_truth']]
 
     elif type == "additive":
         group_data = color_data[color_map['neighborhood']]
