@@ -9,7 +9,7 @@ class Help(Viewer):
     Class to display the help text
     """
 
-    neighborhood_text = param.ClassSelector(class_=pn.pane.Markdown)
+    subset_text = param.ClassSelector(class_=pn.pane.Markdown)
     close_button_neighbor = param.ClassSelector(class_=pn.widgets.ButtonIcon)
     never_show_neighbor = param.Boolean()
     len_selected_cols = param.Integer()
@@ -18,10 +18,10 @@ class Help(Viewer):
         super().__init__(**params)
 
         # neighbor
-        self.str_neighborhood_start = (
-            "**The purple line shows how instances in the *neighborhood* of the current instance behave** \n"
-            " - the neighborhood contains all instances similar to the current instance in the selected features \n")
-        self.neighborhood_text = pn.pane.Markdown(self.str_neighborhood_start, sizing_mode='stretch_width',
+        self.str_subset_start = (
+            "**The purple line shows how instances that are part of the *selected subset* behave** \n"
+            " - the subset contains all instances similar to the current instance in the selected features \n")
+        self.subset_text = pn.pane.Markdown(self.str_subset_start, sizing_mode='stretch_width',
                                                   styles={'font-size': '11pt', 'color': '#A336B0'})
         self.close_button_neighbor = pn.widgets.ButtonIcon(icon="x")
         self.never_show_neighbor = False
@@ -67,7 +67,7 @@ class Help(Viewer):
                           hide_header=True, sizing_mode='stretch_width')
 
         elif self.len_selected_cols > 1 and not self.never_show_neighbor:
-            obj = pn.Card(pn.Row(self.neighborhood_text, self.close_button_neighbor),
+            obj = pn.Card(pn.Row(self.subset_text, self.close_button_neighbor),
                           styles=dict(margin='auto', width='100%', background='#FFF2FF',
                                       border='1px solid #A336B0', margin_bottom='5px'),
                           hide_header=True, sizing_mode='stretch_width')
@@ -95,6 +95,6 @@ class Help(Viewer):
                 item_value = item.data_raw[col].values[0]
                 str_here += f"{col} ~ {item_value}, "
             str_here = str_here[:-2]
-            self.neighborhood_text.object = self.str_neighborhood_start + "\n" + str_here
+            self.subset_text.object = self.str_subset_start + "\n" + str_here
 
         self.len_selected_cols = len(all_selected_cols)

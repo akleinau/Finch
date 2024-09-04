@@ -104,7 +104,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         if i == 1:
             # add divider
-            plot_list.append("## Neighborhood: \n using **" + str(len(similar_item_group)) + "** similar instances")
+            plot_list.append("## Subset: \n using **" + str(len(similar_item_group)) + "** similar instances")
 
         plot_list.append(plot)
 
@@ -129,7 +129,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
         if len(all_selected_cols) > 1:
             alpha = max(min(100 / len(similar_item_group), 0.2), 0.1)  # find a good alpha value based on length
             plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
-                         color=color_similar, legend_label='Neighborhood')
+                         color=color_similar, legend_label='Subset')
 
         # only allow the unique values as x-axis, but as too many values are not readable, restrict to 5
         if len(unique_values) <= 5:
@@ -145,7 +145,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
         if len(all_selected_cols) > 1:
             alpha = max(min(100 / len(similar_item_group), 0.2), 0.1)  # find a good alpha value based on length
             plot.scatter(x=col, y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
-                         color=color_similar, legend_label='Neighborhood')
+                         color=color_similar, legend_label='Subset')
 
     plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
               line_width=4, legend_label='Item')
