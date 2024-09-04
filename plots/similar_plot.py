@@ -121,12 +121,31 @@ def style_axes(plot):
 def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
     # add points
     alpha = max(min(100 / len(data), 0.4), 0.2)
-    plot.scatter(x=jitter(col, 0.5), y=jitter('fixed2', 2), alpha=alpha, source=data, size=2, color='grey',
-                 legend_label='Standard')
-    if len(all_selected_cols) > 1:
-        alpha = max(min(100 / len(similar_item_group), 0.2), 0.05)  # find a good alpha value based on length
-        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
-                     color=color_similar, legend_label='Neighborhood')
+
+    unique_values = data[col].unique()
+    if len(unique_values) <= 30:
+        plot.scatter(x=jitter(col, 0.5), y=jitter('fixed2', 2), alpha=alpha, source=data, size=2, color='grey',
+                     legend_label='Standard')
+        if len(all_selected_cols) > 1:
+            alpha = max(min(100 / len(similar_item_group), 0.2), 0.1)  # find a good alpha value based on length
+            plot.scatter(x=jitter(col, 0.5), y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
+                         color=color_similar, legend_label='Neighborhood')
+
+        # only allow the unique values as x-axis, but as too many values are not readable, restrict to 5
+        if len(unique_values) <= 5:
+            plot.xaxis.ticker = unique_values
+
+        # to show all the jitter, extend the x_range by 0.25
+        plot.x_range.start -= 0.25
+        plot.x_range.end += 0.25
+
+    else:
+        plot.scatter(x=col, y=jitter('fixed2', 2), alpha=alpha, source=data, size=2, color='grey',
+                     legend_label='Standard')
+        if len(all_selected_cols) > 1:
+            alpha = max(min(100 / len(similar_item_group), 0.2), 0.1)  # find a good alpha value based on length
+            plot.scatter(x=col, y=jitter('fixed', 2), alpha=alpha, source=similar_item_group, size=5,
+                         color=color_similar, legend_label='Neighborhood')
 
     plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
               line_width=4, legend_label='Item')
