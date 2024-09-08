@@ -171,7 +171,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
 
         plot.rect(x=col, y='fixed2', width=width, height=2, source=bins,
                   fill_color=linear_cmap('count', 'Greys256', low, high),
-                  line_color='lightgrey')
+                  line_color='lightgrey', alpha=0.7)
 
         if len(all_selected_cols) > 1:
             bins = similar_item_group.groupby(col).size()
@@ -183,7 +183,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
             bins['fixed'] = 1
             plot.rect(x=col, y='fixed', width=width, height=2, source=bins,
                         fill_color=linear_cmap('count', 'Purples256', low, high),
-                        line_color='lightgrey')
+                        line_color='lightgrey', alpha=0.7)
 
         # only allow the unique values as x-axis, but as too many values are not readable, restrict to 5
         if len(unique_values) <= 5:
@@ -209,7 +209,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
         bins['x'] = bins['bin'] + step/2
         plot.rect(x='x', y='fixed2', width=step, height=2, source=bins,
                     fill_color=linear_cmap('count', 'Greys256', low, high),
-                    line_color='lightgrey')
+                    line_color='lightgrey', alpha=0.7)
 
         if len(all_selected_cols) > 1:
             bins = similar_item_group.copy()
@@ -224,7 +224,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
             bins['x'] = bins['bin'] + step / 2
             plot.rect(x='x', y='fixed', width=step, height=2, source=bins,
                         fill_color=linear_cmap('count', 'Purples256', low, high),
-                        line_color='lightgrey')
+                        line_color='lightgrey', alpha=0.7)
 
     plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
               line_width=4, legend_label='Item')
