@@ -1,13 +1,15 @@
+import pandas as pd
 import panel as pn
 import param
-from bokeh.models import Legend
+from bokeh.models import Legend, HoverTool
 from bokeh.plotting import figure
-from bokeh.transform import jitter
+from bokeh.transform import jitter, linear_cmap
 from panel.viewable import Viewer
 
 from calculations.data_loader import DataLoader
 from calculations.item_functions import Item
 from calculations.similarity import get_similar_items
+from plots.helper_functions import check_if_categorical
 from plots.styling import add_style
 
 
@@ -118,7 +120,7 @@ def style_axes(plot):
     plot.yaxis.major_label_text_font_size = '0pt'
 
 
-def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
+def add_scatter_points(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
     # add points
     alpha = max(min(100 / len(data), 0.4), 0.2)
 
@@ -149,6 +151,87 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
 
     plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
               line_width=4, legend_label='Item')
+
+def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
+    unique_values = data[col].unique()
+    # find out if this is a categorical column
+    if check_if_categorical(data, col):
+        # add one area for each unique value, brighter if more instances
+        bins = data.groupby(col).size()
+
+        low = bins.max()
+        high = 0
+        # create dataframe
+        bins = bins.reset_index()
+        bins.columns = [col, 'count']
+        bins['fixed2'] = -1
+
+        # set width to minimal distance between unique values
+        width = bins[col].diff().min()
+
+        plot.rect(x=col, y='fixed2', width=width, height=2, source=bins,
+                  fill_color=linear_cmap('count', 'Greys256', low, high),
+                  line_color='lightgrey')
+
+        if len(all_selected_cols) > 1:
+            bins = similar_item_group.groupby(col).size()
+            low = bins.max()
+            high = 0
+            # create dataframe
+            bins = bins.reset_index()
+            bins.columns = [col, 'count']
+            bins['fixed'] = 1
+            plot.rect(x=col, y='fixed', width=width, height=2, source=bins,
+                        fill_color=linear_cmap('count', 'Purples256', low, high),
+                        line_color='lightgrey')
+
+        # only allow the unique values as x-axis, but as too many values are not readable, restrict to 5
+        if len(unique_values) <= 5:
+            plot.xaxis.ticker = unique_values
+
+        # to show all the jitter, extend the x_range by 0.25
+        plot.x_range.start -= 0.25
+        plot.x_range.end += 0.25
+
+    else:
+        # create 100 bins
+        bins = data.copy()
+        data_min = data[col].min()
+        step = (data[col].max() - data_min) / 50
+        bins['bin'] = bins[col].apply(lambda x: (x-data_min) // step * step + data_min)
+        bins = bins.groupby('bin').size()
+        low = bins.max()
+        high = 0
+        # create dataframe
+        bins = bins.reset_index()
+        bins.columns = ['bin', 'count']
+        bins['fixed2'] = -1
+        bins['x'] = bins['bin'] + step/2
+        plot.rect(x='x', y='fixed2', width=step, height=2, source=bins,
+                    fill_color=linear_cmap('count', 'Greys256', low, high),
+                    line_color='lightgrey')
+
+        if len(all_selected_cols) > 1:
+            bins = similar_item_group.copy()
+            bins['bin'] = bins[col].apply(lambda x: (x-data_min) // step * step + data_min)
+            bins = bins.groupby('bin').size()
+            low = bins.max()
+            high = 0
+            # create dataframe
+            bins = bins.reset_index()
+            bins.columns = ['bin', 'count']
+            bins['fixed'] = 1
+            bins['x'] = bins['bin'] + step / 2
+            plot.rect(x='x', y='fixed', width=step, height=2, source=bins,
+                        fill_color=linear_cmap('count', 'Purples256', low, high),
+                        line_color='lightgrey')
+
+    plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
+              line_width=4, legend_label='Item')
+
+    # tooltip
+    tool = [('count', '@count')]
+    plot.add_tools(HoverTool(tooltips=tool))
 
 
 def get_data(data_loader):

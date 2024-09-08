@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from calculations.item_functions import Item
+from plots.helper_functions import check_if_categorical
 
 
 def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
@@ -137,7 +138,7 @@ def get_window_size(data: pd.DataFrame, min_size=5) -> int:
     :param data: pd.DataFrame
     """
 
-    if len(data) < 30:
+    if check_if_categorical(data):
         return 1
 
     window = min(max(min_size, int(len(data) * 0.05)), 1000) # min 5, max 1000, 0.05 of the data

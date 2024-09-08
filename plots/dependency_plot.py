@@ -633,8 +633,17 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
     mean_data = data_subset.groupby(col).agg({y_col: 'mean'})
 
     # then second smooth of the line
-    window = get_window_size(individual_values)
-    min_periods = min(window, 10)
+    window = get_window_size(mean_data)
+
+    # min_periods should be the first point where there are more than 10 values
+    # so get the 10th value of data
+    sorted_data = data_subset.sort_values(by=col).reset_index()
+    min_value = sorted_data[col].iloc[10]
+    # now find the index of min_value in the mean_data
+    min_periods = mean_data.index.get_loc(min_value)
+    # but never bigger than window
+    min_periods = min(min_periods, window)
+
     center = window > 1 # for categorical data, we want to uncenter the rolling
     rolling = mean_data[y_col].rolling(window=window, center=center, min_periods=min_periods).agg(
         {'std': 'std',
