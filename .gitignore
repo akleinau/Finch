@@ -124,3 +124,9 @@ dmypy.json
 .pyre/
 
 .idea
+.Rproj.user
+*.nb.html
+.RData
+.Rhistory
+evaluation/images/
+evaluation/data
