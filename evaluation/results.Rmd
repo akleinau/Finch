@@ -14,7 +14,7 @@ free-text
 data %>% pull(QU03_01)
 ```
 
-SAS
+SUS
 
 ```{r}
 nr_participants = 5
@@ -87,16 +87,16 @@ curdata <- data %>%
   pivot_longer(cols=columns, names_to="question", values_to="answer")
 
 curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
-curdata$answer <- factor(curdata$answer)
+curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QU04_01" ~ "Confidence: I am confident in this tool. I feel that it works well.",
-                                                    "QU04_02" ~ "Predictable: The outputs of this tool are very predictable.",
-                                                    "QU04_03" ~ "Reliable: This tool is very reliable. I can count on it to be correct all the time.",
-                                                    "QU04_04" ~ "Safe:  I feel safe that when I rely on this tool I will get the right answers.",
-                                                    "QU04_05" ~ "Efficient: This tool is efficient in that it works very quickly.",
-                                                    "QU04_06" ~ "Better: This tool can perform the task better than a novice human user.",
-                                                    "QU04_07" ~ "Like:  I like using this tool for decision making."))
+                                                    "QU04_01" ~ "I am confident in this tool. I feel that it works well.",
+                                                    "QU04_02" ~ "The outputs of this tool are very predictable.",
+                                                    "QU04_03" ~ "This tool is very reliable. I can count on it to be correct all the time.",
+                                                    "QU04_04" ~ "I feel safe that when I rely on this tool I will get the right answers.",
+                                                    "QU04_05" ~ "This tool is efficient in that it works very quickly.",
+                                                    "QU04_06" ~ "This tool can perform the task better than a novice human user.",
+                                                    "QU04_07" ~ "I like using this tool for decision making."))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
@@ -105,7 +105,7 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
  # geom_label(data=curdata %>% filter(answer %in% c(3,4,5)), aes(y=nr*1.5, label=nr))+
   coord_flip() + 
   theme(panel.background = element_blank(), 
-        legend.position="bottom", legend.justification = "left", legend.margin = margin(t = 0, r = 0, b = 0, l = -25, unit = "mm"),
+        legend.position="bottom", legend.justification = "left", legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"),
         text=element_text(size=15),
         axis.line.x.bottom = element_line(color = 'black'),
         axis.text = element_text(size=12),
@@ -114,11 +114,13 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
         strip.background = element_rect(fill = "white")) +
   scale_fill_manual(values=c('#d7191c','#fdae61','#c0c0c0','#abd9e9','#2c7bb6'), 
                     breaks=c(1,2,3,4,5),
-                    labels=answer_labels) +
+                    labels=answer_labels,
+                    drop = FALSE) +
   labs(fill="", x="")+
   scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
-  facet_wrap("question", nrow=7, labeller = label_wrap_gen(width=80), scales="free")
-  ggsave("images/TXAI.jpg", height=9, width=8)
+  facet_wrap("question", nrow=7, labeller = label_wrap_gen(width=80), scales="free") +
+  theme(legend.justification ="center")
+  ggsave("images/TXAI.jpg", height=6, width=8)
   
 ```
 
@@ -139,7 +141,7 @@ curdata <- data %>%
   pivot_longer(cols=columns, names_to="question", values_to="answer")
 
 curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
-curdata$answer <- factor(curdata$answer)
+curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
                                                     "QU05_01" ~ "The tool emphasizes what is special or unique in the data.",
@@ -158,19 +160,42 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
  # geom_label(data=curdata %>% filter(answer %in% c(3,4,5)), aes(y=nr*1.5, label=nr))+
   coord_flip() + 
   theme(panel.background = element_blank(), 
-        legend.position="bottom", legend.justification = "left", legend.margin = margin(t = 0, r = 0, b = 0, l = -25, unit = "mm"),
-        text=element_text(size=15),
+        legend.position="bottom", legend.justification = "left", legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"),
+        text=element_text(size=11),
         axis.line.x.bottom = element_line(color = 'black'),
         axis.text = element_text(size=12),
-        axis.title = element_text(size=14),
-        strip.text = element_text(size=14),
+        axis.title = element_text(size=12),
+        strip.text = element_text(size=12),
         strip.background = element_rect(fill = "white")) +
   scale_fill_manual(values=c('#d7191c','#fdae61','#c0c0c0','#abd9e9','#2c7bb6'), 
                     breaks=c(1,2,3,4,5),
-                    labels=answer_labels) +
+                    labels=answer_labels,
+                    drop = FALSE
+                    ) +
   labs(fill="", x="")+
   scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
-  facet_wrap("question", nrow=8, labeller = label_wrap_gen(width=80), scales="free")
-  ggsave("images/Custom.jpg", height=9, width=8)
+  facet_wrap("question", nrow=8, labeller = label_wrap_gen(width=80), scales="free") +
+  theme(legend.justification ="center")
+  ggsave("images/Custom.jpg", height=8.5, width=8)
   
 ```
+
+
+```{r}
+columns = c("QU01_01", "QU01_02", "QU01_03", "QU01_04", "QU01_05", "QU01_06", "QU01_07", "QU01_08", "QU01_09", "QU01_10")
+odd_columns = c("QU01_01", "QU01_03","QU01_05", "QU01_07", "QU01_09")
+even_columns = c("QU01_02", "QU01_04", "QU01_06", "QU01_08", "QU01_10")
+curdata <- data %>% 
+  select(columns) %>%
+  mutate(QU01_01 = as.integer(QU01_01), QU01_02 = as.integer(QU01_02), QU01_03 = as.integer(QU01_03), QU01_04 = as.integer(QU01_04), QU01_05 = as.integer(QU01_05), QU01_06 = as.integer(QU01_06), QU01_07 = as.integer(QU01_07), QU01_08 = as.integer(QU01_08), QU01_09 = as.integer(QU01_09), QU01_10 = as.integer(QU01_10), .keep="unused")
+curdata <- curdata %>%
+  rowwise() %>%
+  mutate(X = sum(c_across(odd_columns)) - 5) %>%
+  mutate(Y = sum(c_across(even_columns)) - 5) %>% # normally, Y is calculated reversed, but our numbers are already reversed
+  mutate(SUS = (X+Y)*2.5)
+
+curdata
+  
+curdata %>% ungroup() %>% summarise(mean(SUS))
+```
+
