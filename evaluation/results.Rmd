@@ -164,7 +164,7 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
         legend.position="bottom", legend.justification = "left", legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"),
         text=element_text(size=11),
         axis.line.x.bottom = element_line(color = 'black'),
-        axis.text = element_text(size=12),
+        axis.text = element_text(size=11),
         axis.title = element_text(size=12),
         strip.text = element_text(size=12),
         strip.background = element_rect(fill = "white")) +
@@ -175,9 +175,9 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
                     ) +
   labs(fill="", x="")+
   scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
-  facet_wrap("question", nrow=8, labeller = label_wrap_gen(width=80), scales="free") +
+  facet_wrap("question", nrow=8, labeller = label_wrap_gen(width=90), scales="free") +
   theme(legend.justification ="center")
-  ggsave("images/Custom.jpg", height=8.5, width=8)
+  ggsave("images/Custom.jpg", height=6.5, width=8)
   
 ```
 
@@ -239,7 +239,7 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
         legend.position="bottom", legend.justification = "left", legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"),
         text=element_text(size=11),
         axis.line.x.bottom = element_line(color = 'black'),
-        axis.text = element_text(size=12),
+        axis.text = element_text(size=11),
         axis.title = element_text(size=12),
         strip.text = element_text(size=12),
         strip.background = element_rect(fill = "white")) +
@@ -252,6 +252,6 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
   scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
   facet_wrap("question", nrow=9, labeller = label_wrap_gen(width=85), scales="free") +
   theme(legend.justification ="center")
-  ggsave("images/ESG.jpg", height=8.5, width=8)
+  ggsave("images/ESG.jpg", height=7.5, width=8)
   
 ```
