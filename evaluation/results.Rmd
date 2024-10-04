@@ -7,6 +7,7 @@ output: html_notebook
 library(tidyverse)
 
 data <- ds %>% filter(AN03 == "Accept")
+data_extra <- ds_extra
 ```
 
 free-text
@@ -34,16 +35,16 @@ curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
 curdata$answer <- factor(curdata$answer)
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QU01_01" ~ "Frequent: I think that I would like to use this system frequently.",
-                                                    "QU01_02" ~ "Complex: I found the system unnecessarily complex. (reversed)",
-                                                    "QU01_03" ~ "Easy: I thought the system was easy to use.",
-                                                    "QU01_04" ~ "Support:  I think that I would need the support of a technical person to be able to use this system. (reversed)",
-                                                    "QU01_05" ~ "Integrated:  I found the various functions in this system were well integrated.",
-                                                    "QU01_06" ~ "Inconsistency: I thought there was too much inconsistency in this system. (reversed)",
-                                                    "QU01_07" ~  "Quick:  I would imagine that most people would learn to use this system very quickly.",
-                                                    "QU01_08" ~ "Cumbersome:  I found the system very cumbersome to use. (reversed)",
-                                                    "QU01_09" ~ "Confident: I felt very confident using the system.",
-                                                    "QU01_10" ~ "Learn: I needed to learn a lot of things before I could get going with this system (reversed)"))
+                                                    "QU01_01" ~ "(1A) I think that I would like to use this system frequently.",
+                                                    "QU01_02" ~ "(1B) I found the system unnecessarily complex. (reversed)",
+                                                    "QU01_03" ~ "(1C) I thought the system was easy to use.",
+                                                    "QU01_04" ~ "(1D) I think that I would need the support of a technical person to be able to use this system. (reversed)",
+                                                    "QU01_05" ~ "(1E) I found the various functions in this system were well integrated.",
+                                                    "QU01_06" ~ "(1F) I thought there was too much inconsistency in this system. (reversed)",
+                                                    "QU01_07" ~ "(1G) I would imagine that most people would learn to use this system very quickly.",
+                                                    "QU01_08" ~ "(1H) I found the system very cumbersome to use. (reversed)",
+                                                    "QU01_09" ~ "(1I) I felt very confident using the system.",
+                                                    "QU01_10" ~ "(1J) I needed to learn a lot of things before I could get going with this system (reversed)"))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
@@ -90,13 +91,13 @@ curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
 curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QU04_01" ~ "I am confident in this tool. I feel that it works well.",
-                                                    "QU04_02" ~ "The outputs of this tool are very predictable.",
-                                                    "QU04_03" ~ "This tool is very reliable. I can count on it to be correct all the time.",
-                                                    "QU04_04" ~ "I feel safe that when I rely on this tool I will get the right answers.",
-                                                    "QU04_05" ~ "This tool is efficient in that it works very quickly.",
-                                                    "QU04_06" ~ "This tool can perform the task better than a novice human user.",
-                                                    "QU04_07" ~ "I like using this tool for decision making."))
+                                                    "QU04_01" ~ "(3A) I am confident in this tool. I feel that it works well.",
+                                                    "QU04_02" ~ "(3B) The outputs of this tool are very predictable.",
+                                                    "QU04_03" ~ "(3C) This tool is very reliable. I can count on it to be correct all the time.",
+                                                    "QU04_04" ~ "(3D) I feel safe that when I rely on this tool I will get the right answers.",
+                                                    "QU04_05" ~ "(3E) This tool is efficient in that it works very quickly.",
+                                                    "QU04_06" ~ "(3F) This tool can perform the task better than a novice human user.",
+                                                    "QU04_07" ~ "(3G) I like using this tool for decision making."))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
@@ -144,14 +145,14 @@ curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
 curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QU05_01" ~ "The tool emphasizes what is special or unique in the data.",
-                                                    "QU05_02" ~ "The tool distinguishes positive and negative contributions of features.",
-                                                    "QU05_03" ~ "The tool offers an easily interpretable summary of the features",
-                                                    "QU05_04" ~ "The tool helps me validate if I can trust the shown results.",
-                                                    "QU06_04" ~ "The charts provided by the tool are easy to interpret.",
-                                                    "QU06_05" ~ "The charts provided by the tool are visually pleasing.",
-                                                    "QU06_06" ~  "The charts provided by the tool are helpful for finding feature interactions.",
-                                                    "QU06_07" ~ " The charts provided by the tool are helpful for interpreting feature interactions."))
+                                                    "QU05_01" ~ "(4A) The tool emphasizes what is special or unique in the data.",
+                                                    "QU05_02" ~ "(4B) The tool distinguishes positive and negative contributions of features.",
+                                                    "QU05_03" ~ "(4C) The tool offers an easily interpretable summary of the features",
+                                                    "QU05_04" ~ "(4D) The tool helps me validate if I can trust the shown results.",
+                                                    "QU06_04" ~ "(5A) The charts provided by the tool are easy to interpret.",
+                                                    "QU06_05" ~ "(5B) The charts provided by the tool are visually pleasing.",
+                                                    "QU06_06" ~ "(5C) The charts provided by the tool are helpful for finding feature interactions.",
+                                                    "QU06_07" ~ "(5D)  The charts provided by the tool are helpful for interpreting feature interactions."))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
@@ -199,3 +200,58 @@ curdata
 curdata %>% ungroup() %>% summarise(mean(SUS))
 ```
 
+ESG
+```{r}
+nr_participants = 5
+breaks_participants = c(-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5)
+labels_participants = c("5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5")
+columns = c("QE01_01", "QE01_02", "QE01_03", "QE01_04", "QE01_05", "QE01_06", "QE01_07", "QE01_08", "QE01_09")
+answer_labels=c("Strongly disagree", "Disagree", "neither agree nor disagree", "Agree", "Strongly agree")
+
+curdata <- data_extra %>% 
+  #filter(!is_at_risk) %>%
+  select(columns) %>%
+  #mutates rows
+  mutate(QE01_01 = as.integer(QE01_01), QE01_02 = as.integer(QE01_02), QE01_03 = as.integer(QE01_03), QE01_04 = as.integer(QE01_04), QE01_05 = as.integer(QE01_05), QE01_06 = as.integer(QE01_06), QE01_07 = as.integer(QE01_07), QE01_08 = as.integer(QE01_08), QE01_09 = as.integer(QE01_09), .keep="unused") %>%
+  pivot_longer(cols=columns, names_to="question", values_to="answer")
+
+curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
+curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
+curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
+curdata <- curdata %>% mutate(question = case_match(question, 
+                                                    "QE01_01" ~ "(2A) From the explanation, I understand how the model works.",
+                                                    "QE01_02" ~ "(2B) This explanation of how the model works is satisfying.",
+                                                    "QE01_03" ~ "(2C) This explanation of how the model works has sufficient detail.",
+                                                    "QE01_04" ~ "(2D) This explanation seems complete.",
+                                                    "QE01_05" ~ "(2E) This explanation shows me how accurate the model is.",
+                                                    "QE01_06" ~ "(2F) This explanation shows me how reliable the model is.",
+                                                    "QE01_07" ~ "(2G) This explanation tells me how to use the model.",
+                                                    "QE01_08" ~ "(2H) This explanation is useful to my goals.",
+                                                    "QE01_09" ~ "(2I) This explanation helps me know when I should trust and not trust the model."))
+
+ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
+  geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
+  geom_col(data=curdata %>% filter(answer %in% c(3,4,5) ), aes(y=nr), position = position_stack(reverse = TRUE)) + 
+ # geom_label(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr*1.7, label=nr))+
+ # geom_label(data=curdata %>% filter(answer %in% c(3,4,5)), aes(y=nr*1.5, label=nr))+
+  coord_flip() + 
+  theme(panel.background = element_blank(), 
+        legend.position="bottom", legend.justification = "left", legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "mm"),
+        text=element_text(size=11),
+        axis.line.x.bottom = element_line(color = 'black'),
+        axis.text = element_text(size=12),
+        axis.title = element_text(size=12),
+        strip.text = element_text(size=12),
+        strip.background = element_rect(fill = "white")) +
+  scale_fill_manual(values=c('#d7191c','#fdae61','#c0c0c0','#abd9e9','#2c7bb6'), 
+                    breaks=c(1,2,3,4,5),
+                    labels=answer_labels,
+                    drop = FALSE
+                    ) +
+  labs(fill="", x="")+
+  scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
+  facet_wrap("question", nrow=9, labeller = label_wrap_gen(width=85), scales="free") +
+  theme(legend.justification ="center")
+  ggsave("images/ESG.jpg", height=8.5, width=8)
+  
+```
