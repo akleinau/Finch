@@ -145,14 +145,14 @@ curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
 curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QU05_01" ~ "(4A) The tool emphasizes what is special or unique in the data.",
-                                                    "QU05_02" ~ "(4B) The tool distinguishes positive and negative contributions of features.",
-                                                    "QU05_03" ~ "(4C) The tool offers an easily interpretable summary of the features",
-                                                    "QU05_04" ~ "(4D) The tool helps me validate if I can trust the shown results.",
-                                                    "QU06_04" ~ "(5A) The charts provided by the tool are easy to interpret.",
-                                                    "QU06_05" ~ "(5B) The charts provided by the tool are visually pleasing.",
-                                                    "QU06_06" ~ "(5C) The charts provided by the tool are helpful for finding feature interactions.",
-                                                    "QU06_07" ~ "(5D)  The charts provided by the tool are helpful for interpreting feature interactions."))
+                                                    "QU05_01" ~ "(3A) The tool emphasizes what is special or unique in the data.",
+                                                    "QU05_02" ~ "(3B) The tool distinguishes positive and negative contributions of features.",
+                                                    "QU05_03" ~ "(3C) The tool offers an easily interpretable summary of the features",
+                                                    "QU05_04" ~ "(3D) The tool helps me validate if I can trust the shown results.",
+                                                    "QU06_04" ~ "(4A) The charts provided by the tool are easy to interpret.",
+                                                    "QU06_05" ~ "(4B) The charts provided by the tool are visually pleasing.",
+                                                    "QU06_06" ~ "(4C) The charts provided by the tool are helpful for finding feature interactions.",
+                                                    "QU06_07" ~ "(4D)  The charts provided by the tool are helpful for interpreting feature interactions."))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
