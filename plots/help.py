@@ -78,15 +78,15 @@ class Help(Viewer):
 
     def close_neighbor(self, event):
         self.never_show_neighbor = True
-        self.len_selected_cols = 0  # trigger update
+        self.len_selected_cols = -1  # trigger update
 
     def close_base(self, event):
         self.never_show_base = True
-        self.len_selected_cols = 0  # trigger update
+        self.len_selected_cols = -1  # trigger update
 
     def close_overview(self, event):
         self.never_show_overview = True
-        self.len_selected_cols = 0  # trigger update
+        self.len_selected_cols = -1  # trigger update
 
     def update(self, all_selected_cols: list, item: Item):
         if len(all_selected_cols) > 1:
