@@ -145,10 +145,10 @@ curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
 curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QU05_01" ~ "(3A) The tool emphasizes what is special or unique in the data.",
-                                                    "QU05_02" ~ "(3B) The tool distinguishes positive and negative contributions of features.",
-                                                    "QU05_03" ~ "(3C) The tool offers an easily interpretable summary of the features",
-                                                    "QU05_04" ~ "(3D) The tool helps me validate if I can trust the shown results."))
+                                                    "QU05_01" ~ "The tool emphasizes what is special or unique in the data.",
+                                                    "QU05_02" ~ "The tool distinguishes positive and negative contributions of features.",
+                                                    "QU05_03" ~ "The tool offers an easily interpretable summary of the features",
+                                                    "QU05_04" ~ "The tool helps me validate if I can trust the shown results."))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
@@ -173,7 +173,7 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
   scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
   facet_wrap("question", nrow=8, labeller = label_wrap_gen(width=90), scales="free") +
   theme(legend.justification ="center")
-  ggsave("images/Custom.jpg", height=6.5, width=8)
+  ggsave("images/Custom1.jpg", height=3.5, width=6.5)
 ```
 
 Custom & Custom_Vis
@@ -195,10 +195,10 @@ curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
 curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QU06_04" ~ "(4A) The charts provided by the tool are easy to interpret.",
-                                                    "QU06_05" ~ "(4B) The charts provided by the tool are visually pleasing.",
-                                                    "QU06_06" ~ "(4C) The charts provided by the tool are helpful for finding feature interactions.",
-                                                    "QU06_07" ~ "(4D)  The charts provided by the tool are helpful for interpreting feature interactions."))
+                                                    "QU06_04" ~ "The charts provided by the tool are easy to interpret.",
+                                                    "QU06_05" ~ "The charts provided by the tool are visually pleasing.",
+                                                    "QU06_06" ~ "The charts provided by the tool are helpful for finding feature interactions.",
+                                                    "QU06_07" ~ "The charts provided by the tool are helpful for interpreting feature interactions."))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
@@ -223,7 +223,7 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
   scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
   facet_wrap("question", nrow=8, labeller = label_wrap_gen(width=90), scales="free") +
   theme(legend.justification ="center")
-  ggsave("images/Custom.jpg", height=6.5, width=8)
+  ggsave("images/Custom2.jpg", height=3.5, width=6.5)
 ```
 
 
@@ -264,15 +264,15 @@ curdata <- curdata %>% group_by(question, answer) %>% summarize("nr"=n())
 curdata$answer <- factor(curdata$answer, levels=c(1,2,3,4,5))
 curdata <- curdata %>% mutate(nr= if_else(answer == 3, nr/2, as.double(nr)))
 curdata <- curdata %>% mutate(question = case_match(question, 
-                                                    "QE01_01" ~ "(2A) From the explanation, I understand how the model works.",
-                                                    "QE01_02" ~ "(2B) This explanation of how the model works is satisfying.",
-                                                    "QE01_03" ~ "(2C) This explanation of how the model works has sufficient detail.",
-                                                    "QE01_04" ~ "(2D) This explanation seems complete.",
-                                                    "QE01_05" ~ "(2E) This explanation shows me how accurate the model is.",
-                                                    "QE01_06" ~ "(2F) This explanation shows me how reliable the model is.",
-                                                    "QE01_07" ~ "(2G) This explanation tells me how to use the model.",
-                                                    "QE01_08" ~ "(2H) This explanation is useful to my goals.",
-                                                    "QE01_09" ~ "(2I) This explanation helps me know when I should trust and not trust the model."))
+                                                    "QE01_01" ~ "From the explanation, I understand how the model works.",
+                                                    "QE01_02" ~ "This explanation of how the model works is satisfying.",
+                                                    "QE01_03" ~ "This explanation of how the model works has sufficient detail.",
+                                                    "QE01_04" ~ "This explanation seems complete.",
+                                                    "QE01_05" ~ "This explanation shows me how accurate the model is.",
+                                                    "QE01_06" ~ "This explanation shows me how reliable the model is.",
+                                                    "QE01_07" ~ "This explanation tells me how to use the model.",
+                                                    "QE01_08" ~ "This explanation is useful to my goals.",
+                                                    "QE01_09" ~ "This explanation helps me know when I should trust and not trust the model."))
 
 ggplot(curdata, aes(x="", y=nr, fill=answer)) + 
   geom_col(data=curdata %>% filter(answer %in% c(1,2,3)), aes(y=-nr)) + 
@@ -297,6 +297,6 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
   scale_y_continuous("number of participants", breaks_participants, labels=labels_participants, limits=c(-nr_participants,nr_participants)) +
   facet_wrap("question", nrow=9, labeller = label_wrap_gen(width=85), scales="free") +
   theme(legend.justification ="center")
-  ggsave("images/ESG.jpg", height=7, width=8)
+  ggsave("images/ESG.jpg", height=7, width=6.5)
   
 ```
