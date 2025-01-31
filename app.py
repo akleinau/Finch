@@ -57,6 +57,7 @@ overview_plot = pn.bind(lambda e: e, ds.param.overview_plot)
 floatpanel = pn.bind(lambda e: e, ds.param.add_feature_panel)
 help = pn.bind(lambda e: e, ds.param.help_pane)
 
+
 # main content
 template.main.append(pn.Column(
     pn.Row(ds.feature_iter, styles=dict(margin="auto")),

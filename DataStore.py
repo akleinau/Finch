@@ -29,6 +29,7 @@ class DataStore(param.Parameterized):
     help_pane = param.ClassSelector(class_=help_plot.Help)
     overview_plot = param.ClassSelector(class_=overview_plot.OverviewPlot)
     recommendation = param.ClassSelector(class_=recommendation.Recommendation)
+    smooth_widget = param.ClassSelector(class_=pn.widgets.Checkbox)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -60,9 +61,12 @@ class DataStore(param.Parameterized):
         self.predict_class_label.param.watch(lambda event: self.set_item_widgets(),
                                              parameter_names=['value'], onlychanged=False)
 
+        # smooth curve widget
+        self.smooth_widget = pn.widgets.Checkbox(name='smooth curve', value=True, align="end",  styles=dict(margin_left='15px', font_size='15px'))
+
         # columns
         self.feature_iter = feature_iter.FeatureIter(self.data_loader.columns)
-        self.render_plot = dependency_plot.DependencyPlot(simple=False)
+        self.render_plot = dependency_plot.DependencyPlot(simple=False, smooth_widget=self.smooth_widget)
         self.help_pane = help_plot.Help()
         self.overview_plot = overview_plot.OverviewPlot()
         self.recommendation = recommendation.Recommendation()
@@ -106,6 +110,7 @@ class DataStore(param.Parameterized):
                                     parameter_names=['value'], onlychanged=False)
         self.predict_class_label.param.watch(self.update_render_plot, parameter_names=['value'],
                                              onlychanged=False)
+        self.smooth_widget.param.watch(self.update_render_plot, parameter_names=['value'], onlychanged=False)
 
         # this just makes sure that the transition from overview to dependency plot is smoother
         self.feature_iter.param.watch(self.clear_overview_plot,

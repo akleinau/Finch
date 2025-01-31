@@ -23,7 +23,7 @@ class DependencyPlot(Viewer):
     plot = param.ClassSelector(class_=figure)
     density_plot = param.ClassSelector(class_=figure)
 
-    def __init__(self, simple:bool, **params):
+    def __init__(self, simple:bool, smooth_widget = pn.pane.Markdown(""), **params):
         super().__init__(**params)
         self.plot = None
         self.density_plot = None
@@ -64,8 +64,11 @@ class DependencyPlot(Viewer):
         }
         self.toggle_help = pn.pane.Markdown(self.toggle_dict[self.toggle_widget.value], styles=dict(margin_left='10px', font_size='15px'))
 
+        self.smooth_widget = smooth_widget
+
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item,
-                    data_loader: DataLoader, feature_iter: FeatureIter, show_process: bool = True, simple_next: bool = True):
+                    data_loader: DataLoader, feature_iter: FeatureIter, show_process: bool = True,
+                    simple_next: bool = True):
         """
         updates the plot with the new data
 
@@ -75,6 +78,7 @@ class DependencyPlot(Viewer):
         :param data_loader: calculations.data_loader.DataLoader
         :param show_process: bool
         :param simple_next: bool
+        :param isSmooth: bool
         """
 
         self.truth = "truth" in data.columns
@@ -87,6 +91,8 @@ class DependencyPlot(Viewer):
             toggle_options.append('interaction effect')
         toggle_options.append('uncertainty')
         self.toggle_widget.options = toggle_options
+
+        isSmooth = self.smooth_widget.value if hasattr(self.smooth_widget, "value") else True
 
         if len(all_selected_cols) == 0:
             self.truth_widget.visible = False
@@ -112,12 +118,12 @@ class DependencyPlot(Viewer):
                     last = all_selected_cols[-1]
                     plot.on_event('tap', lambda event: set_col(last, feature_iter))
                 self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, data_loader,
-                                                        show_process, False)
+                                                        show_process, False, isSmooth)
                 self.item_x = item.data_prob_raw[col]
             else:
                 self.remove_old(self.plot, simple_next, all_selected_cols)
                 self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, data_loader,
-                                                        show_process, simple_next)
+                                                        show_process, simple_next, isSmooth)
 
             self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
             self.toggle_widget.value = 'change in prediction'
@@ -140,13 +146,14 @@ class DependencyPlot(Viewer):
                 pn.pane.Markdown("show ...", styles=dict(font_size='15px')),
                 self.toggle_widget,
                 self.toggle_help,
+                self.smooth_widget,
                styles=dict(margin='auto', width='100%'),
                sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
             styles=dict(margin='auto', width='100%'), align="center")
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item,
                                data_loader: DataLoader, previous_prediction: bool = True,
-                               simple_next: bool = True) -> figure:
+                               simple_next: bool = True, isSmooth: bool = True) -> figure:
         """
         creates dependency plot
 
@@ -178,7 +185,7 @@ class DependencyPlot(Viewer):
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
             color_data[color] = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map,
                                                   y_col)
-            color_data[color] = get_rolling(color_data[color], y_col, col)
+            color_data[color] = get_rolling(color_data[color], y_col, col, isSmooth)
 
         for i, color in enumerate(colors):
             # choose right data
@@ -616,13 +623,14 @@ def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_ma
                         fill_color=color, tags=tags, visible=False, fill_alpha=0.4)
 
 
-def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
+def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = False) -> pd.DataFrame:
     """
     creates dataframe with rolling mean and quantiles
 
     :param data: pd.DataFrame
     :param y_col: str
     :param col: str
+    :param isSmoothed: bool
     :return: pd.Dataframe
     """
 
@@ -655,11 +663,12 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str) -> pd.DataFrame:
 
     # smooth the rolling for a nice line
     # alpha is between 0 and 1, and is smaller, the bigger the nr of individual values
-    if window > 1: # aka, don't do this for categorical data
-        alpha = max(0.01, min(np.sqrt(1/len(individual_values)), 1))
+    if window > 1 and isSmoothed: # aka, don't do this for categorical data
+        alpha = max(0.01, min(np.sqrt(10/len(individual_values)), 1))
+        print(alpha)
+
         rolling['std'] = rolling['std'].ewm(alpha=alpha).mean()
         rolling['mean'] = rolling['mean'].ewm(alpha=alpha).mean()
-
 
     rolling['upper'] = rolling['mean'] + rolling['std']
     rolling['lower'] = rolling['mean'] - rolling['std']
