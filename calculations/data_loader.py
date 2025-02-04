@@ -104,7 +104,7 @@ class DataLoader(Viewer):
 
 
 def load_bike_data() -> pd.DataFrame:
-    file_testdata = open('bike_data/bike_testdata.csv', 'rb')
+    file_testdata = open('bike_data/bike_traindata.csv', 'rb')
     testdata = pd.read_csv(file_testdata)
     return testdata
 
@@ -117,7 +117,7 @@ def load_bike_nn() -> pickle:
 
 
 def load_bike_truth() -> pd.DataFrame:
-    file_truth = open('bike_data/bike_testtruth.csv', 'rb')
+    file_truth = open('bike_data/bike_traintruth.csv', 'rb')
     truth = pd.read_csv(file_truth)
     return truth
 
