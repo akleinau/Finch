@@ -277,7 +277,7 @@ class DependencyPlot(Viewer):
                           self.x_range[1] + 0.025 * (self.x_range[1] - self.x_range[0])]
         self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
         self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
-                               self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
+                               self.y_range[1] + 0.07 * (self.y_range[1] - self.y_range[0])]
         if self.simple:
             item_value = item.data_prob_raw[col]
             title = f"{col} = {item_value:.2f}"
@@ -316,6 +316,7 @@ class DependencyPlot(Viewer):
                     code=""" return (tick * 100).toFixed(0) + '%'; """)
 
 
+
             else:
                 plot.yaxis[0].formatter = bokeh.models.CustomJSTickFormatter(
                     code="""  
@@ -327,6 +328,10 @@ class DependencyPlot(Viewer):
                 # second y-axis for the absolute values
                 plot.yaxis[1].formatter = bokeh.models.CustomJSTickFormatter(
                     code=""" return tick; """)
+
+            plot.yaxis[0].axis_label_text_font_size = '15pt'
+            plot.yaxis[1].axis_label_text_font_size = '15pt'
+
 
         # add item info
         if item.type != 'global':
@@ -340,7 +345,7 @@ class DependencyPlot(Viewer):
                 # add the label
                 plot.add_layout(
                     Label(x=self.item_x, y=self.y_range[1], text=col + " = " + str(self.item_x), text_align='center',
-                          text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
+                          text_baseline='bottom', text_font_size='14pt', text_color=self.color_map['selected_color']))
 
             add_item(plot, col, item, self.y_range, self.color_map)
 
@@ -351,7 +356,7 @@ class DependencyPlot(Viewer):
             # hide all axes ticks
             plot.xaxis.ticker = []
             plot.yaxis.ticker = []
-            plot.yaxis.axis_label_text_font_size = '10pt'
+            plot.yaxis.axis_label_text_font_size = '11pt'
 
             # center title
             plot.title.align = 'center'
