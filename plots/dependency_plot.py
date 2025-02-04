@@ -665,7 +665,6 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
     # alpha is between 0 and 1, and is smaller, the bigger the nr of individual values
     if window > 1 and isSmoothed: # aka, don't do this for categorical data
         alpha = max(0.01, min(np.sqrt(10/len(individual_values)), 1))
-        print(alpha)
 
         rolling['std'] = rolling['std'].ewm(alpha=alpha).mean()
         rolling['mean'] = rolling['mean'].ewm(alpha=alpha).mean()
