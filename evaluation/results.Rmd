@@ -6,7 +6,7 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 
-data <- ds %>% filter(AN03 == "Accept")
+data <- ds %>% filter(AN03 == "Accept")%>% filter(FINISHED == "TRUE") 
 data_extra <- ds_extra
 ```
 
@@ -18,9 +18,9 @@ data %>% pull(QU03_01)
 SUS
 
 ```{r}
-nr_participants = 5
-breaks_participants = c(-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5)
-labels_participants = c("5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5")
+nr_participants = 6
+breaks_participants = c(-6,-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5,6)
+labels_participants = c("6","5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5","6")
 columns = c("QU01_01", "QU01_02", "QU01_03", "QU01_04", "QU01_05", "QU01_06", "QU01_07", "QU01_08", "QU01_09", "QU01_10")
 answer_labels=c("Strongly disagree", "Disagree", "neither agree nor disagree", "Agree", "Strongly agree")
 
@@ -74,9 +74,9 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
 TXAI
 
 ```{r}
-nr_participants = 5
-breaks_participants = c(-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5)
-labels_participants = c("5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5")
+nr_participants = 6
+breaks_participants = c(-6,-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5,6)
+labels_participants = c("6","5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5","6")
 columns = c("QU04_01", "QU04_02", "QU04_03", "QU04_04", "QU04_05", "QU04_06", "QU04_07")
 answer_labels=c("Strongly disagree", "Disagree", "neither agree nor disagree", "Agree", "Strongly agree")
 
@@ -128,9 +128,9 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
 
 Custom & Custom_Vis
 ```{r}
-nr_participants = 5
-breaks_participants = c(-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5)
-labels_participants = c("5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5")
+nr_participants = 6
+breaks_participants = c(-6,-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5,6)
+labels_participants = c("6","5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5","6")
 columns = c("QU05_01", "QU05_02", "QU05_03", "QU05_04")
 answer_labels=c("Strongly disagree", "Disagree", "neither agree nor disagree", "Agree", "Strongly agree")
 
@@ -178,9 +178,9 @@ ggplot(curdata, aes(x="", y=nr, fill=answer)) +
 
 Custom & Custom_Vis
 ```{r}
-nr_participants = 5
-breaks_participants = c(-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5)
-labels_participants = c("5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5")
+nr_participants = 6
+breaks_participants = c(-6,-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5,6)
+labels_participants = c("6","5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5","6")
 columns = c("QU06_04", "QU06_05", "QU06_06", "QU06_07")
 answer_labels=c("Strongly disagree", "Disagree", "neither agree nor disagree", "Agree", "Strongly agree")
 
@@ -247,9 +247,9 @@ curdata %>% ungroup() %>% summarise(mean(SUS))
 
 ESG
 ```{r}
-nr_participants = 5
-breaks_participants = c(-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5)
-labels_participants = c("5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5")
+nr_participants = 6
+breaks_participants = c(-6,-5,-4, -3, -2, -1,0, 1, 2, 3, 4, 5,6)
+labels_participants = c("6","5", "4", "3", "2", "1", "0", "1", "2", "3", "4", "5","6")
 columns = c("QE01_01", "QE01_02", "QE01_03", "QE01_04", "QE01_05", "QE01_06", "QE01_07", "QE01_08", "QE01_09")
 answer_labels=c("Strongly disagree", "Disagree", "neither agree nor disagree", "Agree", "Strongly agree")
 
