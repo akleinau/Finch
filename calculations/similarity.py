@@ -43,21 +43,17 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
         data_std[col] = (data_std[col] - mean) / std
         item_data[col] = (item_data[col] - mean) / std
 
-    # calculate distance to item using euclidean distance
-    data_std['distance'] = 0
+    # select all items that are close enough in all columns
+    close_boundary = 1 # threshold for closeness, can be adjusted
     for col in columns:
-        data_std['distance'] += (data_std[col] - item_data[col][0]) ** 2
+        data_std = data_std[data_std[col].between(item_data[col][0] - close_boundary, item_data[col][0] + close_boundary)]
 
-    # get the 5% closest items, but at least 50 and all those that are very close
-    data_std = data_std.sort_values(by='distance')
-    num_items = min(max(int(len(data) * 0.05), 50), len(data_std))
-    closest_density = data_std.head(num_items)
-    min_distance = len(columns) * 0.1
-    closest_distance = data_std[data_std['distance'] <= min_distance]
-    combined_indexes = closest_density.index.union(closest_distance.index)
+
+
+
 
     # map back to original data
-    data = data[data.index.isin(combined_indexes)]
+    data = data[data.index.isin(data_std.index)]
 
     return data
 
