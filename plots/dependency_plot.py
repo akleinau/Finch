@@ -521,24 +521,40 @@ class DependencyPlot(Viewer):
         line_width = 3.5 if color == colors['subset'] or color == colors['previous_prediction'] else 3 if color == \
                                                                                                                 colors[
                                                                                                                     'base'] else 2
+        # create a new column indicating the distance of the index to the previous index
+        combined['distance'] = combined.index.to_series().diff().abs()
+
+        # distance threshold is minimal distance between two points, but filter out NA
+        distance_threshold = combined['distance'].dropna().min() * 2
+        # split the line into parts every time mean is NaN, or the distance is too big, and draw a line for each part
+        combined_split = np.split(combined, np.where(combined['distance'] >= distance_threshold
+                                                    | combined['mean'].isna())[0])
+
+        # remove NA
+        combined_split = [part[~np.isnan(part['mean'])] for part in combined_split]
+        # remove empty parts
+        combined_split = [part for part in combined_split if not len(part) == 0]
+
+
         if not simple_next or (color != colors['previous_prediction'] and color != colors['base']):
-            if len(combined) > 1:
-                line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
-                               legend_label=cluster_label, tags=[color, "prediction"],
-                               name=cluster_label, line_dash=line_type, alpha=alpha, visible=False)
-            else:
-                line = chart3.scatter(col, 'mean', source=combined, color=color, size=10, legend_label=cluster_label,
-                                     tags=[color, "prediction"], name=cluster_label, alpha=alpha, visible=False)
-            if color == colors['ground_truth'] or color == colors['subset_truth']:
-                line.visible = self.truth_widget.value
-                line.on_change('visible', self.set_truth)
-            elif color == colors['additive_prediction']:
-                line.visible = self.additive_widget.value
-                line.on_change('visible', self.set_additive)
-            else:
-                line.visible = True
-            line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
-            chart3.add_tools(line_hover)
+            for i, part in enumerate(combined_split):
+                if len(combined) > 1:
+                    line = chart3.line(col, 'mean', source=part, color=color, line_width=line_width,
+                                   legend_label=cluster_label, tags=[color, "prediction"],
+                                   name=cluster_label, line_dash=line_type, alpha=alpha, visible=False)
+                else:
+                    line = chart3.scatter(col, 'mean', source=part, color=color, size=10, legend_label=cluster_label,
+                                         tags=[color, "prediction"], name=cluster_label, alpha=alpha, visible=False)
+                if color == colors['ground_truth'] or color == colors['subset_truth']:
+                    line.visible = self.truth_widget.value
+                    line.on_change('visible', self.set_truth)
+                elif color == colors['additive_prediction']:
+                    line.visible = self.additive_widget.value
+                    line.on_change('visible', self.set_additive)
+                else:
+                    line.visible = True
+                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
+                chart3.add_tools(line_hover)
 
     def set_truth(self, attr, old, new):
         self.truth_widget.value = new
@@ -588,7 +604,7 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     combined = group_data.join(compare_data, lsuffix='_p', rsuffix='_g', how='outer')
 
     ## fill the missing values with the previous value
-    combined = combined.interpolate(method="index")
+    #combined = combined.interpolate(method="index")
     combined.reset_index(inplace=True)
 
     # create two bands, a positive and a negative one
@@ -606,10 +622,21 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
         tags.append("influence_normal")
         visible = True
 
-    chart3.varea(x=col, y1='mean_g', y2='max', source=combined, fill_color=color_map['positive_color'],
-                 fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
-    chart3.varea(x=col, y1='mean_g', y2='min', source=combined, fill_color=color_map['negative_color'],
-                 fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
+    distance_threshold = combined['distance'].dropna().min() * 2
+    # split the line into parts every time mean is NaN, or the distance is too big, and draw a line for each part
+    combined_split = np.split(combined, np.where(combined['distance_p'] >= distance_threshold
+                                                 | combined['mean_p'].isna() | combined['mean_g'].isna())[0])
+
+    # remove NA
+    combined_split = [part[~np.isnan(part['mean_p']) & ~np.isnan(part['mean_g'])] for part in combined_split]
+    # remove empty parts
+    combined_split = [part for part in combined_split if not len(part) == 0]
+
+    for i, part in enumerate(combined_split):
+        chart3.varea(x=col, y1='mean_g', y2='max', source=part, fill_color=color_map['positive_color'],
+                     fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
+        chart3.varea(x=col, y1='mean_g', y2='min', source=part, fill_color=color_map['negative_color'],
+                     fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
 
 def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_map: dict):
     if color_map['subset'] in color_data:
@@ -643,7 +670,11 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
     individual_values = data_subset[col].unique()
 
 
-    mean_data = data_subset.groupby(col).agg({y_col: 'mean'})
+    mean_data = data_subset.groupby(col).agg({y_col:  'mean'})
+    count_data = data_subset.groupby(col).agg({y_col: 'count'})
+
+    # rename count_data column to "count"
+    count_data.rename(columns={y_col: 'count'}, inplace=True)
 
     # then second smooth of the line
     window = get_window_size(mean_data)
@@ -679,7 +710,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
 
     mean_data = mean_data.drop(columns=[y_col])
 
-    combined = pd.concat([mean_data, rolling], axis=1)
+    combined = pd.concat([count_data, rolling ], axis=1)
 
     # if there are only few values in the data, find where they cross 0 and add a middle value
     if len(combined) < 30:
@@ -701,6 +732,9 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
             combined = pd.concat([combined, pd.DataFrame(new_items)], ignore_index=True)
             combined = combined.sort_values(by=col)
             combined = combined.set_index(col)
+
+    # if count is smaller than 10, set mean and std to NaN
+    combined.loc[combined['count'] < 10, ['mean', 'std']] = np.nan
 
     return combined
 
