@@ -47,7 +47,7 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
         item_data[col] = (item_data[col] - mean) / std
 
     # select all items that are close enough in all columns
-    close_boundary = 1 # threshold for closeness, can be adjusted
+    close_boundary = 0.05 # threshold for closeness, can be adjusted
     for col in columns:
         data_std = data_std[data_std[col].between(item_data[col][0] - close_boundary, item_data[col][0] + close_boundary)]
 
