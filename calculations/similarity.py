@@ -35,7 +35,10 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
     data_std = data.copy()
     item_data = item.data_raw.copy()
 
-    columns = get_columns(col_white_list, data, item_data)
+    columns = col_white_list
+
+    if len(columns) == 0:
+        return pd.DataFrame()
 
     for col in columns:
         mean = data_std[col].mean()
@@ -48,36 +51,10 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
     for col in columns:
         data_std = data_std[data_std[col].between(item_data[col][0] - close_boundary, item_data[col][0] + close_boundary)]
 
-
-
-
-
     # map back to original data
     data = data[data.index.isin(data_std.index)]
 
     return data
-
-
-def get_columns(col_white_list: list, data: pd.DataFrame, item_data: pd.DataFrame) -> list:
-    """
-    returns the columns that are used for the similarity calculation
-
-    :param col_white_list: list
-    :param data: pd.DataFrame
-    :param item_data: pd.DataFrame
-    :return: list
-    """
-
-    if len(col_white_list) == 0:
-        columns = list(data.columns)
-        excluded_columns = ['prob_', 'scatter', 'prediction', 'group', 'truth']
-
-        columns = [col for col in columns if not any([excluded in col for excluded in excluded_columns])]
-        item_columns = [col for col in item_data.columns if not any([excluded in col for excluded in excluded_columns])]
-        columns = [col for col in columns if col in item_columns]
-    else:
-        columns = col_white_list
-    return columns
 
 
 def get_pdp_items(data, item, col_white_list):
@@ -91,7 +68,7 @@ def get_pdp_items(data, item, col_white_list):
     """
     data_pdp = data.copy()
     item_data = item.data_raw.copy()
-    columns = get_columns(col_white_list, data, item_data)
+    columns = col_white_list
 
     # replace each column with the item value
     for col in columns:

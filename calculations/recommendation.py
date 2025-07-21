@@ -68,19 +68,24 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
                 similar_items = get_similar_items(data, item, all_selected_cols[1:] + [col])
             else:
                 similar_items = data
-            prev_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
-            added_value = single_value + prev_value
 
-            # calculate joined value
-            # get prediction of the col with the other selected cols
-            similar_items = get_similar_items(data, item, columns[1:])
-            joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
+            if len(similar_items) > 0:
+                prev_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
+                added_value = single_value + prev_value
 
-            # value = single_mean - mean_prob
-            value = np.abs(joined_value - added_value)
+                # calculate joined value
+                # get prediction of the col with the other selected cols
+                similar_items = get_similar_items(data, item, columns[1:])
 
-            results.append({'feature': col, 'prediction': joined_value, 'value': value,
-                            'item_value': item.data_raw[col].values[0]})
+                if len(similar_items) > 0:
+
+                    joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
+
+                    # value = single_mean - mean_prob
+                    value = np.abs(joined_value - added_value)
+
+                    results.append({'feature': col, 'prediction': joined_value, 'value': value,
+                                    'item_value': item.data_raw[col].values[0]})
         else:
             results.append({'feature': col, 'prediction': single_value, 'value': single_value,
                             'item_value': item.data_raw[col].values[0]})

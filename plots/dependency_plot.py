@@ -183,8 +183,13 @@ class DependencyPlot(Viewer):
         color_data = {}
         for i, color in enumerate(colors):
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
-            color_data[color] = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map,
+            color_data[color]  = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map,
                                                   y_col)
+
+            # stop if there is no data, return empty plot
+            if len(color_data[color]) == 0:
+                return figure(title="No data available for this feature (combination)", width=900, height=50)
+
             color_data[color] = get_rolling(color_data[color], y_col, col, isSmooth)
 
         for i, color in enumerate(colors):

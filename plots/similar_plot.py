@@ -58,6 +58,9 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
     data = get_data(data_loader)
     similar_item_group = get_similar_items(data, item, include_cols)
 
+    if len(similar_item_group) == 0:
+        return pn.Column()
+
     diff = find_order(data, similar_item_group)
 
     # for each column, create a bokeh plot with the distribution of the data
@@ -173,7 +176,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
                   fill_color=linear_cmap('count', 'Greys256', low, high),
                   line_color='lightgrey', alpha=0.7)
 
-        if len(all_selected_cols) > 1:
+        if len(similar_item_group) > 0:
             bins = similar_item_group.groupby(col).size()
             low = bins.max()
             high = 0
@@ -211,7 +214,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
                     fill_color=linear_cmap('count', 'Greys256', low, high),
                     line_color='lightgrey', alpha=0.7)
 
-        if len(all_selected_cols) > 1:
+        if len(similar_item_group) > 0:
             bins = similar_item_group.copy()
             bins['bin'] = bins[col].apply(lambda x: (x-data_min) // step * step + data_min)
             bins = bins.groupby('bin').size()
