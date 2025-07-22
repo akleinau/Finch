@@ -281,8 +281,8 @@ class DataStore(param.Parameterized):
     def update_recommendation_item(self, *params):
         if self.active:
             self.recommendation.update_item(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
-                                            self.data_loader.columns, self.feature_iter.all_selected_cols)
+                                            self.data_loader.columns, self.feature_iter.all_selected_cols, self.data_loader.column_details)
 
     def update_recommendation_selected_cols(self, *params):
         if self.active:
-            self.recommendation.update_selected_cols(self.feature_iter.all_selected_cols)
+            self.recommendation.update_selected_cols(self.feature_iter.all_selected_cols, self.data_loader.column_details)

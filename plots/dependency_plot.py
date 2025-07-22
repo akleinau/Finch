@@ -187,13 +187,13 @@ class DependencyPlot(Viewer):
         for i, color in enumerate(colors):
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
             color_data[color]  = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map,
-                                                  y_col)
+                                                  y_col, data_loader.column_details)
 
             # stop if there is no data, return empty plot
             if len(color_data[color]) == 0:
                 return figure(title=no_data_title, width=900, height=50)
 
-            color_data[color] = get_rolling(color_data[color], y_col, col, isSmooth)
+            color_data[color] = get_rolling(color_data[color], y_col, col, data_loader.column_details, isSmooth)
 
         for i, color in enumerate(colors):
             # choose right data
@@ -387,7 +387,7 @@ class DependencyPlot(Viewer):
         color_item = "#19b57A"
 
         data = get_data(data_loader)
-        similar_item_group = get_similar_items(data, item, all_selected_cols[1:])
+        similar_item_group = get_similar_items(data, item, all_selected_cols[1:], data_loader.column_details)
 
         plot = figure(title="", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900,
                       sizing_mode='stretch_both', min_width=500, min_height=100, max_width=1000, max_height=300,
@@ -695,7 +695,7 @@ def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_ma
                         fill_color=color, tags=tags, visible=False, fill_alpha=0.4)
 
 
-def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = False) -> pd.DataFrame:
+def get_rolling(data: pd.DataFrame, y_col: str, col: str,  column_details, isSmoothed : bool = False) -> pd.DataFrame:
     """
     creates dataframe with rolling mean and quantiles
 
@@ -717,7 +717,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
     count_data.rename(columns={y_col: 'count'}, inplace=True)
 
     # then second smooth of the line
-    window = get_window_size(mean_data)
+    window = get_window_size(mean_data, column_details)
 
     # min_periods should be the first point where there are more than 10 values
     # so get the 10th value of data
@@ -781,7 +781,7 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
 
 
 def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_data: pd.DataFrame,
-                      color_map: dict, y_col) -> pd.DataFrame:
+                      color_map: dict, y_col, column_details) -> pd.DataFrame:
     """
     returns the data used for the calculation of the current line
 
@@ -798,16 +798,16 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
     if (color == color_map['base']) or (color == color_map['ground_truth']):
         filtered_data = sorted_data
     elif (color == color_map['subset']) or (color == color_map['subset_truth']):
-        filtered_data = get_similar_items(sorted_data, item, include_cols)
+        filtered_data = get_similar_items(sorted_data, item, include_cols, column_details)
     elif color == color_map['previous_prediction']:
         if len(include_cols) == 1:
             filtered_data = sorted_data
         else:
-            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1], column_details)
     elif color == color_map['additive_prediction']:
         # first get the prediction of just the newest feature alone
         last_col = include_cols[-1]
-        single_mean = get_window_items(sorted_data, item, last_col, y_col)[y_col].mean()
+        single_mean = get_window_items(sorted_data, item, last_col, y_col, column_details)[y_col].mean()
 
         # get previous prediction data
         if len(include_cols) == 0:
@@ -816,7 +816,7 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
         elif len(include_cols) == 1:
             filtered_data = sorted_data.copy()
         else:
-            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1]).copy()
+            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1], column_details).copy()
         filtered_data[y_col] = filtered_data[y_col] + single_mean
     else:
         filtered_data = sorted_data[sorted_data["scatter_group"] == color]

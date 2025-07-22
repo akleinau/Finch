@@ -4,7 +4,7 @@ import pandas as pd
 from calculations.item_functions import Item
 
 
-def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
+def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list, column_details) -> pd.DataFrame:
     """
     depending on if pdp is used, starts the calculation of the similar items
     :param data: pd.DataFrame
@@ -17,10 +17,10 @@ def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list) -> p
     if use_pdp:
         return get_pdp_items(data, item, col_white_list)
     else:
-        return get_similar_subset(data, item, col_white_list)
+        return get_similar_subset(data, item, col_white_list, column_details)
 
 
-def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
+def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list, column_details) -> pd.DataFrame:
     """
     returns a subset of the data that is similar to the item
 
@@ -31,7 +31,7 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
     """
 
     # standardize the data
-    data_std = data.copy()
+    reduced_data = data.copy()
     item_data = item.data_raw.copy()
 
     columns = col_white_list
@@ -40,23 +40,17 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
         return pd.DataFrame()
 
 
-
-    for col in columns:
-        #print(col, data_std[col].range())
-        mean = data_std[col].mean()
-        std = data_std[col].std()
-        data_std[col] = (data_std[col] - mean) / std
-        item_data[col] = (item_data[col] - mean) / std
-
     # select all items that are close enough in all columns
-    close_boundary = 0.2 # threshold for closeness, can be adjusted
+    close_boundary = 0.05 # threshold for closeness, can be adjusted
     for col in columns:
-        data_std = data_std[data_std[col].between(item_data[col][0] - close_boundary, item_data[col][0] + close_boundary)]
+        if column_details[col]['type'] == 'categorical':
+            reduced_data = reduced_data[reduced_data[col].isin(item_data[col])]
+        else:
+            max_dist = column_details[col]['range'] * close_boundary
+            reduced_data = reduced_data[reduced_data[col].between(item_data[col][0] - max_dist, item_data[col][0] + max_dist)]
 
     # map back to original data
-    data = data[data.index.isin(data_std.index)]
-
-    return data
+    return reduced_data
 
 
 def get_pdp_items(data, item, col_white_list):
@@ -79,12 +73,12 @@ def get_pdp_items(data, item, col_white_list):
     return data_pdp
 
 
-def get_window_items(data, item, col, y_col):
+def get_window_items(data, item, col, y_col, column_details):
     item_col_value = item.data_raw[col].values[0]
 
     mean_data = data.groupby(col).agg({y_col: 'mean'})
 
-    window = get_window_size(mean_data) - 1  # -1 because we add one to the end_index
+    window = get_window_size(mean_data, column_details) - 1  # -1 because we add one to the end_index
 
     # get the closest item index to the item value
     # if the item value is not in the data, find the closest value
@@ -106,7 +100,7 @@ def get_window_items(data, item, col, y_col):
     return mean_data
 
 
-def get_window_size(data: pd.DataFrame, min_size=5) -> int:
+def get_window_size(data: pd.DataFrame, column_details, min_size=5) -> int:
     """
     calculates an appropriate window size based on the data size
 

@@ -55,7 +55,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
         include_cols = [col for col in all_selected_cols if col != cur_feature]
 
     data = get_data(data_loader)
-    similar_item_group = get_similar_items(data, item, include_cols)
+    similar_item_group = get_similar_items(data, item, include_cols, data_loader.column_details)
 
     if len(similar_item_group) == 0:
         return pn.Column()

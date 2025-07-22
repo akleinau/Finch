@@ -22,7 +22,7 @@ class Recommendation(Viewer):
         self.y_col = None
         self.columns = None
 
-    def update_item(self, data, item, y_col, columns, all_selected_cols):
+    def update_item(self, data, item, y_col, columns, all_selected_cols, column_details):
         self.data = data
         self.item = item
         self.y_col = y_col
@@ -34,21 +34,21 @@ class Recommendation(Viewer):
         single_dict = {}
         for col in columns:
             # get prediction of the col on its own
-            single_dict[col] = get_window_items(data, item, col, y_col)[y_col].mean() - self.mean_prob
+            single_dict[col] = get_window_items(data, item, col, y_col, column_details)[y_col].mean() - self.mean_prob
         self.single_dict = single_dict
 
         self.dataset_single = get_dataset(data, item, y_col, self.remaining_columns, all_selected_cols, single_dict,
-                                          self.mean_prob)
+                                          self.mean_prob, column_details)
 
         #self.dataset_overview = get_overview_dataset(data, item, y_col, columns, single_dict, self.mean_prob)
 
-    def update_selected_cols(self, all_selected_cols):
+    def update_selected_cols(self, all_selected_cols, column_details):
         self.remaining_columns = [col for col in self.columns if col not in all_selected_cols]
         self.dataset_single = get_dataset(self.data, self.item, self.y_col, self.remaining_columns, all_selected_cols,
-                                          self.single_dict, self.mean_prob)
+                                          self.single_dict, self.mean_prob, column_details)
 
 
-def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_dict, mean_prob):
+def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_dict, mean_prob, column_details):
     """
     creates the dataset for the tornado plot, containing all single features and the interaction strength
     """
@@ -65,21 +65,21 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
 
             # calculate added value
             if len(columns) > 2:
-                similar_items = get_similar_items(data, item, all_selected_cols[1:] + [col])
+                similar_items = get_similar_items(data, item, all_selected_cols[1:] + [col], column_details)
             else:
                 similar_items = data
 
             if len(similar_items) > 0:
-                prev_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
+                prev_value = get_window_items(similar_items, item, first_col, y_col, column_details)[y_col].mean() - mean_prob
                 added_value = single_value + prev_value
 
                 # calculate joined value
                 # get prediction of the col with the other selected cols
-                similar_items = get_similar_items(data, item, columns[1:])
+                similar_items = get_similar_items(data, item, columns[1:], column_details)
 
                 if len(similar_items) > 0:
 
-                    joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
+                    joined_value = get_window_items(similar_items, item, first_col, y_col, column_details)[y_col].mean() - mean_prob
 
                     # value = single_mean - mean_prob
                     value = np.abs(joined_value - added_value)
@@ -95,7 +95,7 @@ def get_dataset(data, item, y_col, remaining_columns, all_selected_cols, single_
     return dataframe
 
 
-def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
+def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob, column_details):
     """
     creates the dataset for the overview plot, containing the most important feature interactions
     """
@@ -111,7 +111,7 @@ def get_overview_dataset(data, item, y_col, columns, single_dict, mean_prob):
     tree_list = []
     for col in columns:
         remaining = [c for c in columns if c != col]
-        tree_list.append(InteractTreeRoot(single_dict, col, remaining, mean_prob, data, item, y_col, min_value))
+        tree_list.append(InteractTreeRoot(single_dict, col, remaining, mean_prob, data, item, y_col, min_value, column_details))
 
     # create a list of all nodes
     nodes = []
@@ -160,7 +160,7 @@ class InteractTree:
 
 class InteractTreeRoot(InteractTree):
 
-    def __init__(self, single_dict, col, remaining_columns, mean_prob, data, item, y_col, min_value):
+    def __init__(self, single_dict, col, remaining_columns, mean_prob, data, item, y_col, min_value, column_details):
         self.value = np.abs(single_dict[col])
         self.prediction = single_dict[col]
         self.added = single_dict[col]
@@ -172,7 +172,7 @@ class InteractTreeRoot(InteractTree):
             for col in remaining_columns:
                 remaining = [c for c in remaining_columns if c != col]
                 self.nodes.append(
-                    InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value))
+                    InteractTreeSub(single_dict, self, col, remaining, mean_prob, data, item, y_col, min_value, column_details))
 
     def get_nodes(self):
         nodes = []
@@ -182,7 +182,7 @@ class InteractTreeRoot(InteractTree):
 
 
 class InteractTreeSub(InteractTree):
-    def __init__(self, single_dict, prev, col, remaining_columns, mean_prob, data, item, y_col, min_value):
+    def __init__(self, single_dict, prev, col, remaining_columns, mean_prob, data, item, y_col, min_value, column_details):
         # calculate added value
         single_value = single_dict[col]
         prev_value = prev.prediction
@@ -191,8 +191,8 @@ class InteractTreeSub(InteractTree):
         # calculate joined value
         # get prediction of the col with the other selected cols
         first_col = prev.columns[0]
-        similar_items = get_similar_items(data, item, [col] + prev.columns[1:])
-        joined_value = get_window_items(similar_items, item, first_col, y_col)[y_col].mean() - mean_prob
+        similar_items = get_similar_items(data, item, [col] + prev.columns[1:], column_details)
+        joined_value = get_window_items(similar_items, item, first_col, y_col, column_details)[y_col].mean() - mean_prob
 
         # set all values
         self.prediction = joined_value
