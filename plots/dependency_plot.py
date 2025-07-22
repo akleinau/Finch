@@ -111,7 +111,6 @@ class DependencyPlot(Viewer):
 
             col = all_selected_cols[0]
             if (self.col != col) or (self.item_x != item.data_prob_raw[col]) or (self.plot.title != ""):
-                print("new_figure")
                 plot = self.create_figure(col, data, item, data_loader)
                 if not self.simple:
                     add_axis(plot, self.y_range_padded, self.color_map)
@@ -542,10 +541,7 @@ class DependencyPlot(Viewer):
         split_indizes_mean_is_nan = np.where(combined['mean'].isna())
         split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0], split_indizes_mean_is_nan[0])))
 
-        combined_split = np.split(combined, split_indizes)
-        if (col == "windspeed"):
-            print(distance_threshold)
-            print(split_indizes)
+        combined_split = split(combined, split_indizes)
 
         # remove NA
         combined_split = [part[~np.isnan(part['mean'])] for part in combined_split]
@@ -649,12 +645,7 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0],
                                               split_indizes_mean_is_nan[0], split_indizes_mean_g_is_nan[0])))
 
-    combined_split = np.split(combined, split_indizes)
-
-    if (col == "windspeed"):
-        print("influence band")
-        print(split_indizes)
-        print(distance_threshold)
+    combined_split = split(combined, split_indizes)
 
     # remove NA
     combined_split = [part[~np.isnan(part['mean_p']) & ~np.isnan(part['mean_g'])] for part in combined_split]
@@ -666,6 +657,20 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
                      fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
         chart3.varea(x=col, y1='mean_g', y2='min', source=part, fill_color=color_map['negative_color'],
                      fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
+
+def split(data: pd.DataFrame, split_indizes: np.ndarray) -> list:
+    """
+    splits the data into parts, every time the index is in split_indizes
+
+    :param data: pd.DataFrame
+    :param split_indizes: np.ndarray
+    :return: list of pd.DataFrame
+    """
+    if len(split_indizes) == 0:
+        return [data]
+
+    split_indizes = np.concatenate(([0], split_indizes, [len(data)]))
+    return [data.iloc[split_indizes[i]:split_indizes[i + 1]] for i in range(len(split_indizes) - 1)]
 
 def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_map: dict):
     if color_map['subset'] in color_data:
