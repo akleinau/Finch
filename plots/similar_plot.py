@@ -9,7 +9,6 @@ from panel.viewable import Viewer
 from calculations.data_loader import DataLoader
 from calculations.item_functions import Item
 from calculations.similarity import get_similar_items
-from plots.helper_functions import check_if_categorical
 from plots.styling import add_style
 
 
@@ -90,7 +89,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
             plot.add_layout(Legend(), 'above')
             plot.legend.visible = False
 
-        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
+        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group, data_loader)
 
         # add the mean of the data and of similar_item_group as lines
         # data_mean = data[col].mean()
@@ -155,10 +154,10 @@ def add_scatter_points(all_selected_cols, col, color_item, color_similar, data, 
     plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
               line_width=4, legend_label='Item')
 
-def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
+def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group, data_loader):
     unique_values = data[col].unique()
     # find out if this is a categorical column
-    if check_if_categorical(data, col):
+    if data_loader.column_details[col]['type'] == 'categorical':
         # add one area for each unique value, brighter if more instances
         bins = data.groupby(col).size()
 
@@ -200,7 +199,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
         # create 100 bins
         bins = data.copy()
         data_min = data[col].min()
-        step = (data[col].max() - data_min) / 50
+        step = data_loader.column_details[col]['bin_size']
         bins['bin'] = bins[col].apply(lambda x: (x-data_min) // step * step + data_min)
         bins = bins.groupby('bin').size()
         low = bins.max()

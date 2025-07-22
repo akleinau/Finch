@@ -7,6 +7,7 @@ from bokeh.models import (Band, HoverTool, Legend, LegendItem, BoxAnnotation, Li
 from bokeh.plotting import figure
 from panel.viewable import Viewer
 
+import DataStore
 from calculations.data_loader import DataLoader
 from calculations.feature_iter import FeatureIter
 from calculations.item_functions import Item
@@ -14,6 +15,8 @@ from calculations.similarity import get_similar_items, get_window_size, get_wind
 from plots.similar_plot import get_data, add_scatter
 from plots.styling import add_style, style_truth, style_additive, style_options
 
+
+no_data_title = "No data available for this feature (combination)"
 
 class DependencyPlot(Viewer):
     """
@@ -107,7 +110,8 @@ class DependencyPlot(Viewer):
             self.additive_widget.visible = len(all_selected_cols) > 1 and show_process
 
             col = all_selected_cols[0]
-            if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
+            if (self.col != col) or (self.item_x != item.data_prob_raw[col]) or (self.plot.title != ""):
+                print("new_figure")
                 plot = self.create_figure(col, data, item, data_loader)
                 if not self.simple:
                     add_axis(plot, self.y_range_padded, self.color_map)
@@ -188,7 +192,7 @@ class DependencyPlot(Viewer):
 
             # stop if there is no data, return empty plot
             if len(color_data[color]) == 0:
-                return figure(title="No data available for this feature (combination)", width=900, height=50)
+                return figure(title=no_data_title, width=900, height=50)
 
             color_data[color] = get_rolling(color_data[color], y_col, col, isSmooth)
 
@@ -209,15 +213,15 @@ class DependencyPlot(Viewer):
                 cluster_label = get_group_label(color, self.color_map)
 
                 self.create_line(plot, alpha, cluster_label, col, color, group_data, line_type,
-                                 self.color_map, simple_next)
+                                 self.color_map, simple_next, data_loader)
 
 
         # add influence
-        create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "normal")
+        create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "normal", data_loader)
         if len(all_selected_cols) >= 1 and self.truth:
-            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "truth")
+            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "truth", data_loader)
         if self.color_map['additive_prediction'] in color_data:
-            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "additive")
+            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "additive", data_loader)
         create_uncertainty_band(plot, col, color_data, self.color_map)
 
         # add legend
@@ -243,7 +247,8 @@ class DependencyPlot(Viewer):
                               or any([c in r.glyph.tags for c in keep_colors])]
 
             # change the current subset line to be the previous prediction line
-            plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
+            if plot.legend:
+                plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
             old_line = [r for r in plot.renderers if self.color_map['subset'] in r.glyph.tags]
             for l in old_line:
                 # this actually should only  be one line, hopefully
@@ -251,12 +256,14 @@ class DependencyPlot(Viewer):
                 l.glyph.line_color = self.color_map['previous_prediction']
                 l.name = "Previous prediction"
                 # add to legend
-                plot.legend.items = [i for i in plot.legend.items if i.label.value != "Subset Prediction"]
-                plot.legend.items.append(LegendItem(label="Previous prediction", renderers=[l]))
+                if plot.legend:
+                    plot.legend.items = [i for i in plot.legend.items if i.label.value != "Subset Prediction"]
+                    plot.legend.items.append(LegendItem(label="Previous prediction", renderers=[l]))
 
         else:
             plot.renderers = [r for r in plot.renderers if "prediction" not in r.glyph.tags]
-            plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
+            if plot.legend:
+                plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
 
     def create_figure(self, col: str, data: pd.DataFrame, item: Item, data_loader: DataLoader) -> figure:
         """
@@ -387,7 +394,7 @@ class DependencyPlot(Viewer):
                       sizing_mode='stretch_both', min_width=500, min_height=100, max_width=1000, max_height=300,
                       styles=dict(margin='auto', width='100%'),
                       x_range=self.plot.x_range, active_scroll="xwheel_zoom", )
-        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
+        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group, data_loader)
 
         plot = add_style(plot)
 
@@ -517,18 +524,28 @@ class DependencyPlot(Viewer):
             self.toggle_help.object = self.toggle_dict[self.toggle_widget.value]
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str,
-                    combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool):
+                    combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool, data_loader: DataLoader):
         line_width = 3.5 if color == colors['subset'] or color == colors['previous_prediction'] else 3 if color == \
                                                                                                                 colors[
                                                                                                                     'base'] else 2
         # create a new column indicating the distance of the index to the previous index
         combined['distance'] = combined.index.to_series().diff().abs()
 
+        # creating a new column from the current index called after col, and create new index
+        combined = combined.reset_index(drop=False)
+
+
         # distance threshold is minimal distance between two points, but filter out NA
-        distance_threshold = combined['distance'].dropna().min() * 2
+        distance_threshold = data_loader.column_details[col]['bin_size'] * 2
         # split the line into parts every time mean is NaN, or the distance is too big, and draw a line for each part
-        combined_split = np.split(combined, np.where(combined['distance'] >= distance_threshold
-                                                    | combined['mean'].isna())[0])
+        split_indizes_distance_too_high = np.where(combined['distance'] >= distance_threshold)
+        split_indizes_mean_is_nan = np.where(combined['mean'].isna())
+        split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0], split_indizes_mean_is_nan[0])))
+
+        combined_split = np.split(combined, split_indizes)
+        if (col == "windspeed"):
+            print(distance_threshold)
+            print(split_indizes)
 
         # remove NA
         combined_split = [part[~np.isnan(part['mean'])] for part in combined_split]
@@ -563,7 +580,8 @@ class DependencyPlot(Viewer):
         self.additive_widget.value = new
 
 
-def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool, type: str):
+def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool, type: str,
+                          data_loader: DataLoader):
     """
     creates the influence band in red and blue, highlighting the last influence changes
 
@@ -622,10 +640,21 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
         tags.append("influence_normal")
         visible = True
 
-    distance_threshold = combined['distance'].dropna().min() * 2
+    distance_threshold = data_loader.column_details[col]['bin_size'] * 2
+
     # split the line into parts every time mean is NaN, or the distance is too big, and draw a line for each part
-    combined_split = np.split(combined, np.where(combined['distance_p'] >= distance_threshold
-                                                 | combined['mean_p'].isna() | combined['mean_g'].isna())[0])
+    split_indizes_distance_too_high = np.where(combined['distance_p'] >= distance_threshold)
+    split_indizes_mean_is_nan = np.where(combined['mean_p'].isna())
+    split_indizes_mean_g_is_nan = np.where(combined['mean_g'].isna())
+    split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0],
+                                              split_indizes_mean_is_nan[0], split_indizes_mean_g_is_nan[0])))
+
+    combined_split = np.split(combined, split_indizes)
+
+    if (col == "windspeed"):
+        print("influence band")
+        print(split_indizes)
+        print(distance_threshold)
 
     # remove NA
     combined_split = [part[~np.isnan(part['mean_p']) & ~np.isnan(part['mean_g'])] for part in combined_split]
@@ -712,6 +741,9 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
 
     combined = pd.concat([count_data, rolling ], axis=1)
 
+    # if count is smaller than 10, set mean and std to NaN
+    #combined.loc[combined['count'] < 10, ['mean', 'std']] = np.nan
+
     # if there are only few values in the data, find where they cross 0 and add a middle value
     if len(combined) < 30:
         for i in range(len(combined) - 1):
@@ -733,8 +765,6 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
             combined = combined.sort_values(by=col)
             combined = combined.set_index(col)
 
-    # if count is smaller than 10, set mean and std to NaN
-    combined.loc[combined['count'] < 10, ['mean', 'std']] = np.nan
 
     return combined
 

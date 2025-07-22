@@ -80,6 +80,9 @@ class DataLoader(Viewer):
 
         self.data_and_probabilities = self.combine_data_and_results()
 
+        self.column_details = self.get_column_details()
+
+
     def combine_data_and_results(self, data: pd.DataFrame = None) -> pd.DataFrame:
         """
         combines the data with the results of the neural network
@@ -101,6 +104,33 @@ class DataLoader(Viewer):
         # merge X_test, shap, predictions
         all_data = pd.concat([data, all_predictions], axis=1)
         return all_data
+
+    def get_column_details(self):
+        details = {}
+        for col in self.columns:
+            details[col] = {
+                'mean': self.means[col],
+                'std': self.data[col].std(),
+                'min': self.data[col].min(),
+                'max': self.data[col].max(),
+                'range': self.data[col].max() - self.data[col].min(),
+                'type': get_column_type(self.data[col]),
+                'bin_size': get_bin_size(self.data[col])
+            }
+        return details
+
+def get_column_type(column: pd.Series) -> str:
+    # determine if column is categorical or continuous
+    unique = column.nunique()
+    if unique < 24:
+        return 'categorical'
+    else:
+        return 'continuous'
+
+def get_bin_size(column: pd.Series) -> int:
+    # calculate bin size
+    return (column.max() - column.min()) / 50 if column.nunique() > 24 else 1
+
 
 
 def load_bike_data() -> pd.DataFrame:

@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from calculations.item_functions import Item
-from plots.helper_functions import check_if_categorical
 
 
 def get_similar_items(data: pd.DataFrame, item: Item, col_white_list: list) -> pd.DataFrame:
@@ -40,14 +39,17 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list) -> 
     if len(columns) == 0:
         return pd.DataFrame()
 
+
+
     for col in columns:
+        #print(col, data_std[col].range())
         mean = data_std[col].mean()
         std = data_std[col].std()
         data_std[col] = (data_std[col] - mean) / std
         item_data[col] = (item_data[col] - mean) / std
 
     # select all items that are close enough in all columns
-    close_boundary = 0.05 # threshold for closeness, can be adjusted
+    close_boundary = 0.2 # threshold for closeness, can be adjusted
     for col in columns:
         data_std = data_std[data_std[col].between(item_data[col][0] - close_boundary, item_data[col][0] + close_boundary)]
 
@@ -111,7 +113,8 @@ def get_window_size(data: pd.DataFrame, min_size=5) -> int:
     :param data: pd.DataFrame
     """
 
-    if check_if_categorical(data):
+    unique_values = data.index.unique()
+    if len(unique_values) <= 24:
         return 1
 
     window = min(max(min_size, int(len(data) * 0.05)), 1000) # min 5, max 1000, 0.05 of the data
