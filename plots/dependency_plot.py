@@ -209,7 +209,7 @@ class DependencyPlot(Viewer):
 
             if len(group_data) > 0:
                 # choose right label
-                cluster_label = get_group_label(color, self.color_map)
+                cluster_label = get_group_label(color, self.color_map, all_selected_cols, item)
 
                 self.create_line(plot, alpha, cluster_label, col, color, group_data, line_type,
                                  self.color_map, simple_next, data_loader)
@@ -551,12 +551,18 @@ class DependencyPlot(Viewer):
 
         if not simple_next or (color != colors['previous_prediction'] and color != colors['base']):
             for i, part in enumerate(combined_split):
+
+                # if the label is longer than 15 characters, shorten it as "...label"
+                cluster_legend = cluster_label
+                if len(cluster_legend) > 30:
+                    cluster_legend = '...' + cluster_label[-27:]
+
                 if len(combined) > 1:
                     line = chart3.line(col, 'mean', source=part, color=color, line_width=line_width,
-                                   legend_label=cluster_label, tags=[color, "prediction"],
+                                   legend_label=cluster_legend, tags=[color, "prediction"],
                                    name=cluster_label, line_dash=line_type, alpha=alpha, visible=False)
                 else:
-                    line = chart3.scatter(col, 'mean', source=part, color=color, size=10, legend_label=cluster_label,
+                    line = chart3.scatter(col, 'mean', source=part, color=color, size=10, legend_label=cluster_legend,
                                          tags=[color, "prediction"], name=cluster_label, alpha=alpha, visible=False)
                 if color == colors['ground_truth'] or color == colors['subset_truth']:
                     line.visible = self.truth_widget.value
@@ -900,17 +906,32 @@ def get_group_style(color: str, color_map: dict, show_truth, show_additive) -> t
     return alpha, line_type
 
 
-def get_group_label(color: str, color_map: dict) -> str:
+def get_group_label(color: str, color_map: dict, all_selected_cols: list, item: Item) -> str:
     if color == color_map['base']:
-        cluster_label = 'Base Prediction'
+        cluster_label = "Base Prediction"
     elif color == color_map['subset']:
-        cluster_label = 'Subset Prediction'
+        # concatenate all selected columns, except the first one
+        all_selected_cols = all_selected_cols[1:]
+        label = ""
+        for i, col in enumerate(all_selected_cols):
+            label += col + "=" + str(item.data_prob_raw[all_selected_cols[i]])
+            if i < len(all_selected_cols) - 1:
+                label += ", "
+
+        cluster_label = label
     elif color == color_map['ground_truth']:
         cluster_label = 'Ground truth'
     elif color == color_map['subset_truth']:
         cluster_label = 'Ground truth'
     elif color == color_map['previous_prediction']:
-        cluster_label = 'Previous prediction'
+        # concatenate all selected columns, except the first one and the last one
+        all_selected_cols = all_selected_cols[1:-1]
+        label = ""
+        for i, col in enumerate(all_selected_cols):
+            label += col + "=" + str(item.data_prob_raw[all_selected_cols[i]])
+            if i < len(all_selected_cols) - 1:
+                label += ", "
+        cluster_label = label
     elif color == color_map['additive_prediction']:
         cluster_label = 'only main effect'
     else:
