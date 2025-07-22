@@ -648,8 +648,11 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     split_indizes_distance_too_high = np.where(combined['distance_p'] >= distance_threshold)
     split_indizes_mean_is_nan = np.where(combined['mean_p'].isna())
     split_indizes_mean_g_is_nan = np.where(combined['mean_g'].isna())
-    split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0],
-                                              split_indizes_mean_is_nan[0], split_indizes_mean_g_is_nan[0])))
+
+    # only select values in both mean_p and mean_g
+    split_indices_both_nan = np.intersect1d(split_indizes_mean_is_nan[0], split_indizes_mean_g_is_nan[0])
+
+    split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0], split_indices_both_nan)))
 
     combined_split = split(combined, split_indizes)
 
