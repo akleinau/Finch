@@ -115,7 +115,8 @@ class DataLoader(Viewer):
                 'max': self.data[col].max(),
                 'range': self.data[col].max() - self.data[col].min(),
                 'type': get_column_type(self.data[col]),
-                'bin_size': get_bin_size(self.data[col])
+                'bin_size': get_bin_size(self.data[col]),
+                'similarity_boundary': 0.05,  # default similarity boundary
             }
         return details
 

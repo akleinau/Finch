@@ -41,12 +41,11 @@ def get_similar_subset(data: pd.DataFrame, item: Item, col_white_list: list, col
 
 
     # select all items that are close enough in all columns
-    close_boundary = 0.05 # threshold for closeness, can be adjusted
     for col in columns:
         if column_details[col]['type'] == 'categorical':
             reduced_data = reduced_data[reduced_data[col].isin(item_data[col])]
         else:
-            max_dist = column_details[col]['range'] * close_boundary
+            max_dist = column_details[col]['range'] * column_details[col]['similarity_boundary']
             reduced_data = reduced_data[reduced_data[col].between(item_data[col][0] - max_dist, item_data[col][0] + max_dist)]
 
     # map back to original data
