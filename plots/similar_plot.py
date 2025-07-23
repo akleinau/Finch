@@ -77,7 +77,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         # create a figure
         x_range = [data[col].min(), data[col].max()]
-        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=80, width=300,
+        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=90, width=300,
                       sizing_mode='fixed', tools='tap, xpan, xwheel_zoom', active_scroll="xwheel_zoom")
 
         if i == 0:
@@ -101,6 +101,9 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         plot.yaxis.axis_label = col + " = " + "{:.2f}".format(item.data_raw[col].values[0])
         plot.yaxis.axis_label_orientation = "horizontal"
+        plot.xaxis.axis_label = col
+        plot.xaxis.axis_label_text_font_size = '10pt'
+        plot.xaxis.axis_label_standoff = 1  # move the x-axis label down
 
         style_axes(plot)
 
