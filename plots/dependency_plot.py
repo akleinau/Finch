@@ -226,6 +226,9 @@ class DependencyPlot(Viewer):
         # add legend
         plot.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
 
+        # add item
+        add_item(plot, col, item, self.y_range, self.color_map)
+
         return plot
 
     def remove_old(self, plot: figure, simple_next: bool, all_selected_cols: list):
@@ -353,7 +356,6 @@ class DependencyPlot(Viewer):
                     Label(x=self.item_x, y=self.y_range[1], text=col + " = " + str(self.item_x), text_align='center',
                           text_baseline='bottom', text_font_size='11pt', text_color=self.color_map['selected_color']))
 
-            add_item(plot, col, item, self.y_range, self.color_map)
 
         # remove stuff for simple
         if self.simple:
@@ -852,7 +854,7 @@ def add_item(chart3: figure, col: str, item: Item, y_range: list,
              colors: dict):
     line_width = 4
     chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
-                line_width=line_width, color=colors['selected_color'], tags=["item"], line_cap='round', level='overlay')
+                line_width=line_width, color=colors['selected_color'], tags=["item"], line_cap='round', level='glyph')
 
 
 def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict, show_progress: bool) -> list:
