@@ -324,6 +324,9 @@ class DataStore(param.Parameterized):
     def update_subset_widgets(self, *params):
         if self.active:
 
+            if len(self.feature_iter.all_selected_cols) == 0:
+                self.subset_widgets = pn.Column()
+                return
             is_not_categorical = self.data_loader.column_details[self.feature_iter.all_selected_cols[-1]]['type'] != 'categorical'
 
             if len(self.feature_iter.all_selected_cols) > 1 and is_not_categorical:
