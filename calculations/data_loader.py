@@ -106,6 +106,9 @@ class DataLoader(Viewer):
         return all_data
 
     def get_column_details(self):
+
+        correlation_matrix = get_correlation_matrix(self.data, self.columns)
+
         details = {}
         for col in self.columns:
             details[col] = {
@@ -117,8 +120,18 @@ class DataLoader(Viewer):
                 'type': get_column_type(self.data[col]),
                 'bin_size': get_bin_size(self.data[col]),
                 'similarity_boundary': 0.05,  # default similarity boundary
+                'correlated_features': get_highly_correlated_columns(correlation_matrix, col),
             }
         return details
+
+
+def get_correlation_matrix(data: pd.DataFrame, columns: list) -> pd.DataFrame:
+    # get pearson correlation matrix for the specified columns
+    return data[columns].corr(method='pearson', numeric_only=True).abs()
+
+
+def get_highly_correlated_columns(correlation_matrix: pd.DataFrame, column: str, threshold: float = 0.8) -> list:
+    return [other_col for other_col in correlation_matrix.index if other_col != column and correlation_matrix.loc[column, other_col] > threshold]
 
 def get_column_type(column: pd.Series) -> str:
     # determine if column is categorical or continuous

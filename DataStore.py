@@ -327,12 +327,29 @@ class DataStore(param.Parameterized):
             if len(self.feature_iter.all_selected_cols) == 0:
                 self.subset_widgets = pn.Column()
                 return
-            is_not_categorical = self.data_loader.column_details[self.feature_iter.all_selected_cols[-1]]['type'] != 'categorical'
 
-            if len(self.feature_iter.all_selected_cols) > 1 and is_not_categorical:
+            last_col = self.feature_iter.all_selected_cols[-1]
+            is_not_categorical = self.data_loader.column_details[last_col]['type'] != 'categorical'
+
+            if len(self.feature_iter.all_selected_cols) > 1:
                 self.set_similarity_widget_values()
-                self.subset_widgets = pn.Column(f"### Settings (for last feature: {self.feature_iter.all_selected_cols[-1]})",
+
+                # correlated features
+                correlations = self.data_loader.column_details[last_col]['correlated_features']
+                correlation_widget=pn.Column()
+                correlation_text = pn.Column()
+                if correlations:
+                    correlation_widget = pn.Column(
+                        "### Hints",
+                        "Correlated features for " + last_col + ": ",
+                        pn.Column(correlation_text, styles=dict(margin_left="20px",)),
+                    )
+                    for feature in correlations:
+                        correlation_text.append(pn.pane.Str(feature, styles=dict(font_size='15px')))
+
+                self.subset_widgets = pn.Column(f"### Settings (for last feature: {last_col})",
                                                 self.similarity_widget,
+                                                correlation_widget,
                                                 styles=dict(margin_top="20px", width='100%'))
             else:
                 self.subset_widgets = pn.Column()

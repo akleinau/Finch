@@ -69,6 +69,9 @@ class DependencyPlot(Viewer):
 
         self.smooth_widget = smooth_widget
 
+        self.warning_widget = pn.Column(pn.pane.Markdown('Correlating features can lead to misleading results. Correlated features: '))
+
+
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item,
                     data_loader: DataLoader, feature_iter: FeatureIter, show_process: bool = True,
                     simple_next: bool = True):
@@ -103,6 +106,7 @@ class DependencyPlot(Viewer):
             self.plot = None
             self.density_plot = None
             self.col = None
+            self.warning_widget = None
         else:
             self.truth_widget.visible = self.truth
             self.truth_widget.name = 'show ground truth' if len(all_selected_cols) == 1 else \
@@ -110,6 +114,18 @@ class DependencyPlot(Viewer):
             self.additive_widget.visible = len(all_selected_cols) > 1 and show_process
 
             col = all_selected_cols[0]
+
+            # warning
+            self.warning_widget = pn.FlexBox("Correlated features: ")
+
+            for feature in data_loader.column_details[col]['correlated_features']:
+                self.warning_widget.append(pn.pane.Str(feature, styles=dict(font_size='15px')))
+
+            if len(data_loader.column_details[col]['correlated_features']) == 0:
+                self.warning_widget = pn.FlexBox("Correlated features: None.")
+
+
+            # completely reload
             if (self.col != col) or (self.item_x != item.data_prob_raw[col]) or (self.plot.title != ""):
                 plot = self.create_figure(col, data, item, data_loader)
                 if not self.simple:
@@ -123,6 +139,7 @@ class DependencyPlot(Viewer):
                 self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, data_loader,
                                                         show_process, False, isSmooth)
                 self.item_x = item.data_prob_raw[col]
+            # only reload reduced parts
             else:
                 self.remove_old(self.plot, simple_next, all_selected_cols)
                 self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, data_loader,
@@ -130,6 +147,7 @@ class DependencyPlot(Viewer):
 
             self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
             self.toggle_widget.value = 'change in prediction'
+
 
     @param.depends('density_plot')
     def __panel__(self):
@@ -152,6 +170,14 @@ class DependencyPlot(Viewer):
                 self.smooth_widget,
                styles=dict(margin='auto', width='100%'),
                sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
+            pn.pane.Markdown("### Hints:", styles=dict(margin='auto', width='100%', margin_top='15px'),
+                             sizing_mode='stretch_width', min_width=500, max_width=1000, ),
+            pn.FlexBox(
+                pn.pane.Markdown('Correlating features can lead to misleading results, as our plots cannot directly determine which of these features the impact is from.'),
+                self.warning_widget,
+                styles=dict(margin='auto', width='100%'),
+                sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"
+            ),
             styles=dict(margin='auto', width='100%'), align="center")
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item,
