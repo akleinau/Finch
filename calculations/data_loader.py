@@ -122,6 +122,9 @@ class DataLoader(Viewer):
                 'similarity_boundary': 0.05,  # default similarity boundary
                 'correlated_features': get_highly_correlated_columns(correlation_matrix, col),
             }
+
+            details[col]['similarity_boundary'] = 0 if details[col]['type'] == 'categorical' else 0.05
+
         return details
 
 
@@ -136,7 +139,7 @@ def get_highly_correlated_columns(correlation_matrix: pd.DataFrame, column: str,
 def get_column_type(column: pd.Series) -> str:
     # determine if column is categorical or continuous
     unique = column.nunique()
-    if unique < 24:
+    if unique <= 24:
         return 'categorical'
     else:
         return 'continuous'

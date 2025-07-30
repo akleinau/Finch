@@ -306,9 +306,25 @@ class DataStore(param.Parameterized):
         # get the current similarity value of the last column in the plot
         if len(self.feature_iter.all_selected_cols) > 1:
             last_col = self.feature_iter.all_selected_cols[-1]
-            similarity_value = self.data_loader.column_details[last_col]['similarity_boundary']
-
+            last_col_details = self.data_loader.column_details[last_col]
+            similarity_value = last_col_details['similarity_boundary']
             self.similarity_widget.value = similarity_value
+            is_categorical = last_col_details['type'] == 'categorical'
+
+            if (is_categorical):
+                self.similarity_widget.start = 0
+                self.similarity_widget.end = last_col_details['range']
+                self.similarity_widget.step = last_col_details['bin_size' if 'bin_size' in last_col_details else 1]
+
+            else:
+                self.similarity_widget.start = 0
+                self.similarity_widget.end = 1
+                self.similarity_widget.step = 0.01
+
+
+
+
+
 
     def similarity_widget_changed(self, *params):
         if self.active:
@@ -329,7 +345,6 @@ class DataStore(param.Parameterized):
                 return
 
             last_col = self.feature_iter.all_selected_cols[-1]
-            is_not_categorical = self.data_loader.column_details[last_col]['type'] != 'categorical'
 
             if len(self.feature_iter.all_selected_cols) > 1:
                 self.set_similarity_widget_values()
