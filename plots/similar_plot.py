@@ -9,7 +9,6 @@ from panel.viewable import Viewer
 from calculations.data_loader import DataLoader
 from calculations.item_functions import Item
 from calculations.similarity import get_similar_items
-from plots.helper_functions import check_if_categorical
 from plots.styling import add_style
 
 
@@ -56,7 +55,10 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
         include_cols = [col for col in all_selected_cols if col != cur_feature]
 
     data = get_data(data_loader)
-    similar_item_group = get_similar_items(data, item, include_cols)
+    similar_item_group = get_similar_items(data, item, include_cols, data_loader.column_details)
+
+    if len(similar_item_group) == 0:
+        return pn.Column()
 
     diff = find_order(data, similar_item_group)
 
@@ -75,7 +77,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         # create a figure
         x_range = [data[col].min(), data[col].max()]
-        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=80, width=300,
+        plot = figure(title="Similar items", x_range=x_range, toolbar_location=None, height=90, width=300,
                       sizing_mode='fixed', tools='tap, xpan, xwheel_zoom', active_scroll="xwheel_zoom")
 
         if i == 0:
@@ -87,7 +89,7 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
             plot.add_layout(Legend(), 'above')
             plot.legend.visible = False
 
-        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
+        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group, data_loader)
 
         # add the mean of the data and of similar_item_group as lines
         # data_mean = data[col].mean()
@@ -99,6 +101,9 @@ def similar_plot(data_loader: DataLoader, item: Item, all_selected_cols: list) -
 
         plot.yaxis.axis_label = col + " = " + "{:.2f}".format(item.data_raw[col].values[0])
         plot.yaxis.axis_label_orientation = "horizontal"
+        plot.xaxis.axis_label = col
+        plot.xaxis.axis_label_text_font_size = '10pt'
+        plot.xaxis.axis_label_standoff = 1  # move the x-axis label down
 
         style_axes(plot)
 
@@ -152,10 +157,10 @@ def add_scatter_points(all_selected_cols, col, color_item, color_similar, data, 
     plot.line([item.data_prob_raw[col], item.data_prob_raw[col]], [-2, 2], color=color_item,
               line_width=4, legend_label='Item')
 
-def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group):
+def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group, data_loader):
     unique_values = data[col].unique()
     # find out if this is a categorical column
-    if check_if_categorical(data, col):
+    if data_loader.column_details[col]['type'] == 'categorical':
         # add one area for each unique value, brighter if more instances
         bins = data.groupby(col).size()
 
@@ -173,7 +178,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
                   fill_color=linear_cmap('count', 'Greys256', low, high),
                   line_color='lightgrey', alpha=0.7)
 
-        if len(all_selected_cols) > 1:
+        if len(similar_item_group) > 0:
             bins = similar_item_group.groupby(col).size()
             low = bins.max()
             high = 0
@@ -197,7 +202,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
         # create 100 bins
         bins = data.copy()
         data_min = data[col].min()
-        step = (data[col].max() - data_min) / 50
+        step = data_loader.column_details[col]['bin_size']
         bins['bin'] = bins[col].apply(lambda x: (x-data_min) // step * step + data_min)
         bins = bins.groupby('bin').size()
         low = bins.max()
@@ -211,7 +216,7 @@ def add_scatter(all_selected_cols, col, color_item, color_similar, data, item, p
                     fill_color=linear_cmap('count', 'Greys256', low, high),
                     line_color='lightgrey', alpha=0.7)
 
-        if len(all_selected_cols) > 1:
+        if len(similar_item_group) > 0:
             bins = similar_item_group.copy()
             bins['bin'] = bins[col].apply(lambda x: (x-data_min) // step * step + data_min)
             bins = bins.groupby('bin').size()

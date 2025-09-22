@@ -6,7 +6,7 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 
-data <- ds %>% filter(AN03 == "Accept")
+data <- ds %>% filter(AN03 == "Accept") %>% filter(FINISHED == "TRUE") 
 ```
 
 

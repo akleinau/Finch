@@ -22,6 +22,8 @@ class DataStore(param.Parameterized):
     data_loader = param.ClassSelector(class_=data_loader.DataLoader)
     render_plot = param.ClassSelector(class_=dependency_plot.DependencyPlot)
     similar_plot = param.ClassSelector(class_=similar_plot.SimilarPlot)
+    subset_widgets = param.ClassSelector(class_=pn.Column)
+    similarity_widget = param.ClassSelector(class_=pn.widgets.FloatSlider)
     feature_iter = param.ClassSelector(class_=feature_iter.FeatureIter)
     item_widgets = param.ClassSelector(class_=pn.Column)
     #ranked_buttons = param.ClassSelector(class_=ranked_buttons.RankedButtons)
@@ -116,12 +118,25 @@ class DataStore(param.Parameterized):
         self.feature_iter.param.watch(self.clear_overview_plot,
                                         parameter_names=['all_selected_cols'], onlychanged=False)
 
+        # similarity widget
+        self.similarity_widget = pn.widgets.FloatSlider(name='similarity threshold', start=0, end=1, value=0.5, step=0.01,
+                                                        styles=dict(margin_left="20px",),
+                                                        stylesheets=[style_options], width=200)
+        self.similarity_widget.param.watch(self.similarity_widget_changed, parameter_names=['value'], onlychanged=False)
+
+        self.subset_widgets = pn.Column()
+        self.feature_iter.param.watch(self.update_subset_widgets,
+                                      parameter_names=['all_selected_cols'], onlychanged=False)
+
+
         # render similar plot
         self.update_similar_plot()
         self.feature_iter.param.watch(self.update_similar_plot,
                                       parameter_names=['all_selected_cols'], onlychanged=False)
         self.param.watch(self.update_similar_plot,
                          parameter_names=['item'], onlychanged=False)
+
+
 
         # help
         self.feature_iter.param.watch(self.update_help, parameter_names=['all_selected_cols'], onlychanged=False)
@@ -281,8 +296,75 @@ class DataStore(param.Parameterized):
     def update_recommendation_item(self, *params):
         if self.active:
             self.recommendation.update_item(self.data_loader.data_and_probabilities, self.item, self.predict_class.value,
-                                            self.data_loader.columns, self.feature_iter.all_selected_cols)
+                                            self.data_loader.columns, self.feature_iter.all_selected_cols, self.data_loader.column_details)
 
     def update_recommendation_selected_cols(self, *params):
         if self.active:
-            self.recommendation.update_selected_cols(self.feature_iter.all_selected_cols)
+            self.recommendation.update_selected_cols(self.feature_iter.all_selected_cols, self.data_loader.column_details)
+
+    def set_similarity_widget_values(self):
+        # get the current similarity value of the last column in the plot
+        if len(self.feature_iter.all_selected_cols) > 1:
+            last_col = self.feature_iter.all_selected_cols[-1]
+            last_col_details = self.data_loader.column_details[last_col]
+            similarity_value = last_col_details['similarity_boundary']
+            self.similarity_widget.value = similarity_value
+            is_categorical = last_col_details['type'] == 'categorical'
+
+            if (is_categorical):
+                self.similarity_widget.start = 0
+                self.similarity_widget.end = last_col_details['range']
+                self.similarity_widget.step = last_col_details['bin_size' if 'bin_size' in last_col_details else 1]
+
+            else:
+                self.similarity_widget.start = 0
+                self.similarity_widget.end = 1
+                self.similarity_widget.step = 0.01
+
+
+
+
+
+
+    def similarity_widget_changed(self, *params):
+        if self.active:
+            last_col = self.feature_iter.all_selected_cols[-1]
+            new_value = self.similarity_widget.value
+            self.data_loader.column_details[last_col]['similarity_boundary'] = new_value
+
+            # update the similar plot with the new similarity boundary
+            self.update_similar_plot()
+            # also update the dependency plot to reflect the new similarity boundary
+            self.update_render_plot()
+
+    def update_subset_widgets(self, *params):
+        if self.active:
+
+            if len(self.feature_iter.all_selected_cols) == 0:
+                self.subset_widgets = pn.Column()
+                return
+
+            last_col = self.feature_iter.all_selected_cols[-1]
+
+            if len(self.feature_iter.all_selected_cols) > 1:
+                self.set_similarity_widget_values()
+
+                # correlated features
+                correlations = self.data_loader.column_details[last_col]['correlated_features']
+                correlation_widget=pn.Column()
+                correlation_text = pn.Column()
+                if correlations:
+                    correlation_widget = pn.Column(
+                        "### Hints",
+                        "Correlated features for " + last_col + ": ",
+                        pn.Column(correlation_text, styles=dict(margin_left="20px",)),
+                    )
+                    for feature in correlations:
+                        correlation_text.append(pn.pane.Str(feature, styles=dict(font_size='15px')))
+
+                self.subset_widgets = pn.Column(f"### Settings (for last feature: {last_col})",
+                                                self.similarity_widget,
+                                                correlation_widget,
+                                                styles=dict(margin_top="20px", width='100%'))
+            else:
+                self.subset_widgets = pn.Column()

@@ -7,6 +7,7 @@ from bokeh.models import (Band, HoverTool, Legend, LegendItem, BoxAnnotation, Li
 from bokeh.plotting import figure
 from panel.viewable import Viewer
 
+import DataStore
 from calculations.data_loader import DataLoader
 from calculations.feature_iter import FeatureIter
 from calculations.item_functions import Item
@@ -14,6 +15,8 @@ from calculations.similarity import get_similar_items, get_window_size, get_wind
 from plots.similar_plot import get_data, add_scatter
 from plots.styling import add_style, style_truth, style_additive, style_options
 
+
+no_data_title = "No data available for this feature (combination)"
 
 class DependencyPlot(Viewer):
     """
@@ -66,6 +69,9 @@ class DependencyPlot(Viewer):
 
         self.smooth_widget = smooth_widget
 
+        self.warning_widget = pn.Column(pn.pane.Markdown('Correlating features can lead to misleading results. Correlated features: '))
+
+
     def update_plot(self, data: pd.DataFrame, all_selected_cols: list, item: Item,
                     data_loader: DataLoader, feature_iter: FeatureIter, show_process: bool = True,
                     simple_next: bool = True):
@@ -100,6 +106,7 @@ class DependencyPlot(Viewer):
             self.plot = None
             self.density_plot = None
             self.col = None
+            self.warning_widget = None
         else:
             self.truth_widget.visible = self.truth
             self.truth_widget.name = 'show ground truth' if len(all_selected_cols) == 1 else \
@@ -107,7 +114,19 @@ class DependencyPlot(Viewer):
             self.additive_widget.visible = len(all_selected_cols) > 1 and show_process
 
             col = all_selected_cols[0]
-            if (self.col != col) or (self.item_x != item.data_prob_raw[col]):
+
+            # warning
+            self.warning_widget = pn.FlexBox("Correlated features: ")
+
+            for feature in data_loader.column_details[col]['correlated_features']:
+                self.warning_widget.append(pn.pane.Str(feature, styles=dict(font_size='15px')))
+
+            if len(data_loader.column_details[col]['correlated_features']) == 0:
+                self.warning_widget = pn.FlexBox("Correlated features: None.")
+
+
+            # completely reload
+            if (self.col != col) or (self.item_x != item.data_prob_raw[col]) or (self.plot.title != ""):
                 plot = self.create_figure(col, data, item, data_loader)
                 if not self.simple:
                     add_axis(plot, self.y_range_padded, self.color_map)
@@ -120,6 +139,7 @@ class DependencyPlot(Viewer):
                 self.plot = self.dependency_scatterplot(plot, all_selected_cols, item, data_loader,
                                                         show_process, False, isSmooth)
                 self.item_x = item.data_prob_raw[col]
+            # only reload reduced parts
             else:
                 self.remove_old(self.plot, simple_next, all_selected_cols)
                 self.plot = self.dependency_scatterplot(self.plot, all_selected_cols, item, data_loader,
@@ -127,6 +147,7 @@ class DependencyPlot(Viewer):
 
             self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
             self.toggle_widget.value = 'change in prediction'
+
 
     @param.depends('density_plot')
     def __panel__(self):
@@ -149,6 +170,14 @@ class DependencyPlot(Viewer):
                 self.smooth_widget,
                styles=dict(margin='auto', width='100%'),
                sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"),
+            pn.pane.Markdown("### Hints:", styles=dict(margin='auto', width='100%', margin_top='15px'),
+                             sizing_mode='stretch_width', min_width=500, max_width=1000, ),
+            pn.FlexBox(
+                pn.pane.Markdown('Correlating features can lead to misleading results, as our plots cannot directly determine which of these features the impact is from.'),
+                self.warning_widget,
+                styles=dict(margin='auto', width='100%'),
+                sizing_mode="stretch_width", min_width=500, max_width=1000, justify_content="start"
+            ),
             styles=dict(margin='auto', width='100%'), align="center")
 
     def dependency_scatterplot(self, plot: figure, all_selected_cols: list, item: Item,
@@ -183,9 +212,14 @@ class DependencyPlot(Viewer):
         color_data = {}
         for i, color in enumerate(colors):
             y_col = get_group_col(color, item, self.truth_class, self.color_map)
-            color_data[color] = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map,
-                                                  y_col)
-            color_data[color] = get_rolling(color_data[color], y_col, col, isSmooth)
+            color_data[color]  = get_filtered_data(color, all_selected_cols, item, self.sorted_data, self.color_map,
+                                                  y_col, data_loader.column_details)
+
+            # stop if there is no data, return empty plot
+            if len(color_data[color]) == 0:
+                return figure(title=no_data_title, width=900, height=50)
+
+            color_data[color] = get_rolling(color_data[color], y_col, col, data_loader.column_details, isSmooth)
 
         for i, color in enumerate(colors):
             # choose right data
@@ -201,22 +235,25 @@ class DependencyPlot(Viewer):
 
             if len(group_data) > 0:
                 # choose right label
-                cluster_label = get_group_label(color, self.color_map)
+                cluster_label = get_group_label(color, self.color_map, all_selected_cols, item)
 
                 self.create_line(plot, alpha, cluster_label, col, color, group_data, line_type,
-                                 self.color_map, simple_next)
+                                 self.color_map, simple_next, data_loader)
 
 
         # add influence
-        create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "normal")
+        create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "normal", data_loader)
         if len(all_selected_cols) >= 1 and self.truth:
-            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "truth")
+            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "truth", data_loader)
         if self.color_map['additive_prediction'] in color_data:
-            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "additive")
+            create_influence_band(plot, col, color_data, self.color_map, previous_prediction, "additive", data_loader)
         create_uncertainty_band(plot, col, color_data, self.color_map)
 
         # add legend
         plot.legend.items.extend([LegendItem(label=x, renderers=y) for (x, y) in legend_items])
+
+        # add item
+        add_item(plot, col, item, self.y_range, self.color_map)
 
         return plot
 
@@ -238,7 +275,8 @@ class DependencyPlot(Viewer):
                               or any([c in r.glyph.tags for c in keep_colors])]
 
             # change the current subset line to be the previous prediction line
-            plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
+            if plot.legend:
+                plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
             old_line = [r for r in plot.renderers if self.color_map['subset'] in r.glyph.tags]
             for l in old_line:
                 # this actually should only  be one line, hopefully
@@ -246,12 +284,14 @@ class DependencyPlot(Viewer):
                 l.glyph.line_color = self.color_map['previous_prediction']
                 l.name = "Previous prediction"
                 # add to legend
-                plot.legend.items = [i for i in plot.legend.items if i.label.value != "Subset Prediction"]
-                plot.legend.items.append(LegendItem(label="Previous prediction", renderers=[l]))
+                if plot.legend:
+                    plot.legend.items = [i for i in plot.legend.items if i.label.value != "Subset Prediction"]
+                    plot.legend.items.append(LegendItem(label="Previous prediction", renderers=[l]))
 
         else:
             plot.renderers = [r for r in plot.renderers if "prediction" not in r.glyph.tags]
-            plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
+            if plot.legend:
+                plot.legend.items = [i for i in plot.legend.items if i.label.value != "Previous prediction"]
 
     def create_figure(self, col: str, data: pd.DataFrame, item: Item, data_loader: DataLoader) -> figure:
         """
@@ -347,7 +387,6 @@ class DependencyPlot(Viewer):
                     Label(x=self.item_x, y=self.y_range[1], text=col + " = " + str(self.item_x), text_align='center',
                           text_baseline='bottom', text_font_size='14pt', text_color=self.color_map['selected_color']))
 
-            add_item(plot, col, item, self.y_range, self.color_map)
 
         # remove stuff for simple
         if self.simple:
@@ -381,13 +420,13 @@ class DependencyPlot(Viewer):
         color_item = "#19b57A"
 
         data = get_data(data_loader)
-        similar_item_group = get_similar_items(data, item, all_selected_cols[1:])
+        similar_item_group = get_similar_items(data, item, all_selected_cols[1:], data_loader.column_details)
 
         plot = figure(title="", toolbar_location=None, tools="tap, xpan, xwheel_zoom", width=900,
                       sizing_mode='stretch_both', min_width=500, min_height=100, max_width=1000, max_height=300,
                       styles=dict(margin='auto', width='100%'),
                       x_range=self.plot.x_range, active_scroll="xwheel_zoom", )
-        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group)
+        add_scatter(all_selected_cols, col, color_item, color_similar, data, item, plot, similar_item_group, data_loader)
 
         plot = add_style(plot)
 
@@ -517,28 +556,57 @@ class DependencyPlot(Viewer):
             self.toggle_help.object = self.toggle_dict[self.toggle_widget.value]
 
     def create_line(self, chart3: figure, alpha: float, cluster_label: str, col: str, color: str,
-                    combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool):
+                    combined: pd.DataFrame, line_type: str, colors: dict, simple_next: bool, data_loader: DataLoader):
         line_width = 3.5 if color == colors['subset'] or color == colors['previous_prediction'] else 3 if color == \
                                                                                                                 colors[
                                                                                                                     'base'] else 2
+        # create a new column indicating the distance of the index to the previous index
+        combined['distance'] = combined.index.to_series().diff().abs()
+
+        # creating a new column from the current index called after col, and create new index
+        combined = combined.reset_index(drop=False)
+
+
+        # distance threshold is minimal distance between two points, but filter out NA
+        distance_threshold = data_loader.column_details[col]['bin_size'] * 2
+        # split the line into parts every time mean is NaN, or the distance is too big, and draw a line for each part
+        split_indizes_distance_too_high = np.where(combined['distance'] >= distance_threshold)
+        split_indizes_mean_is_nan = np.where(combined['mean'].isna())
+        split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0], split_indizes_mean_is_nan[0])))
+
+        combined_split = split(combined, split_indizes)
+
+        # remove NA
+        combined_split = [part[~np.isnan(part['mean'])] for part in combined_split]
+        # remove empty parts
+        combined_split = [part for part in combined_split if not len(part) == 0]
+
+
         if not simple_next or (color != colors['previous_prediction'] and color != colors['base']):
-            if len(combined) > 1:
-                line = chart3.line(col, 'mean', source=combined, color=color, line_width=line_width,
-                               legend_label=cluster_label, tags=[color, "prediction"],
-                               name=cluster_label, line_dash=line_type, alpha=alpha, visible=False)
-            else:
-                line = chart3.scatter(col, 'mean', source=combined, color=color, size=10, legend_label=cluster_label,
-                                     tags=[color, "prediction"], name=cluster_label, alpha=alpha, visible=False)
-            if color == colors['ground_truth'] or color == colors['subset_truth']:
-                line.visible = self.truth_widget.value
-                line.on_change('visible', self.set_truth)
-            elif color == colors['additive_prediction']:
-                line.visible = self.additive_widget.value
-                line.on_change('visible', self.set_additive)
-            else:
-                line.visible = True
-            line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
-            chart3.add_tools(line_hover)
+            for i, part in enumerate(combined_split):
+
+                # if the label is longer than 15 characters, shorten it as "...label"
+                cluster_legend = cluster_label
+                if len(cluster_legend) > 30:
+                    cluster_legend = '...' + cluster_label[-27:]
+
+                if len(combined) > 1:
+                    line = chart3.line(col, 'mean', source=part, color=color, line_width=line_width,
+                                   legend_label=cluster_legend, tags=[color, "prediction"],
+                                   name=cluster_label, line_dash=line_type, alpha=alpha, visible=False)
+                else:
+                    line = chart3.scatter(col, 'mean', source=part, color=color, size=10, legend_label=cluster_legend,
+                                         tags=[color, "prediction"], name=cluster_label, alpha=alpha, visible=False)
+                if color == colors['ground_truth'] or color == colors['subset_truth']:
+                    line.visible = self.truth_widget.value
+                    line.on_change('visible', self.set_truth)
+                elif color == colors['additive_prediction']:
+                    line.visible = self.additive_widget.value
+                    line.on_change('visible', self.set_additive)
+                else:
+                    line.visible = True
+                line_hover = HoverTool(renderers=[line], tooltips=[('', '$name')])
+                chart3.add_tools(line_hover)
 
     def set_truth(self, attr, old, new):
         self.truth_widget.value = new
@@ -547,7 +615,8 @@ class DependencyPlot(Viewer):
         self.additive_widget.value = new
 
 
-def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool, type: str):
+def create_influence_band(chart3: figure, col: str, color_data: dict, color_map: dict, show_process: bool, type: str,
+                          data_loader: DataLoader):
     """
     creates the influence band in red and blue, highlighting the last influence changes
 
@@ -588,7 +657,7 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
     combined = group_data.join(compare_data, lsuffix='_p', rsuffix='_g', how='outer')
 
     ## fill the missing values with the previous value
-    combined = combined.interpolate(method="index")
+    #combined = combined.interpolate(method="index")
     combined.reset_index(inplace=True)
 
     # create two bands, a positive and a negative one
@@ -606,10 +675,44 @@ def create_influence_band(chart3: figure, col: str, color_data: dict, color_map:
         tags.append("influence_normal")
         visible = True
 
-    chart3.varea(x=col, y1='mean_g', y2='max', source=combined, fill_color=color_map['positive_color'],
-                 fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
-    chart3.varea(x=col, y1='mean_g', y2='min', source=combined, fill_color=color_map['negative_color'],
-                 fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
+    distance_threshold = data_loader.column_details[col]['bin_size'] * 2
+
+    # split the line into parts every time mean is NaN, or the distance is too big, and draw a line for each part
+    split_indizes_distance_too_high = np.where(combined['distance_p'] >= distance_threshold)
+    split_indizes_mean_is_nan = np.where(combined['mean_p'].isna())
+    split_indizes_mean_g_is_nan = np.where(combined['mean_g'].isna())
+
+    # only select values in both mean_p and mean_g
+    split_indices_both_nan = np.intersect1d(split_indizes_mean_is_nan[0], split_indizes_mean_g_is_nan[0])
+
+    split_indizes = np.unique(np.concatenate((split_indizes_distance_too_high[0], split_indices_both_nan)))
+
+    combined_split = split(combined, split_indizes)
+
+    # remove NA
+    combined_split = [part[~np.isnan(part['mean_p']) & ~np.isnan(part['mean_g'])] for part in combined_split]
+    # remove empty parts
+    combined_split = [part for part in combined_split if not len(part) == 0]
+
+    for i, part in enumerate(combined_split):
+        chart3.varea(x=col, y1='mean_g', y2='max', source=part, fill_color=color_map['positive_color'],
+                     fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
+        chart3.varea(x=col, y1='mean_g', y2='min', source=part, fill_color=color_map['negative_color'],
+                     fill_alpha=0.4, level='underlay', tags=tags, visible=visible)
+
+def split(data: pd.DataFrame, split_indizes: np.ndarray) -> list:
+    """
+    splits the data into parts, every time the index is in split_indizes
+
+    :param data: pd.DataFrame
+    :param split_indizes: np.ndarray
+    :return: list of pd.DataFrame
+    """
+    if len(split_indizes) == 0:
+        return [data]
+
+    split_indizes = np.concatenate(([0], split_indizes, [len(data)]))
+    return [data.iloc[split_indizes[i]:split_indizes[i + 1]] for i in range(len(split_indizes) - 1)]
 
 def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_map: dict):
     if color_map['subset'] in color_data:
@@ -628,7 +731,7 @@ def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_ma
                         fill_color=color, tags=tags, visible=False, fill_alpha=0.4)
 
 
-def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = False) -> pd.DataFrame:
+def get_rolling(data: pd.DataFrame, y_col: str, col: str,  column_details, isSmoothed : bool = False) -> pd.DataFrame:
     """
     creates dataframe with rolling mean and quantiles
 
@@ -643,10 +746,14 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
     individual_values = data_subset[col].unique()
 
 
-    mean_data = data_subset.groupby(col).agg({y_col: 'mean'})
+    mean_data = data_subset.groupby(col).agg({y_col:  'mean'})
+    count_data = data_subset.groupby(col).agg({y_col: 'count'})
+
+    # rename count_data column to "count"
+    count_data.rename(columns={y_col: 'count'}, inplace=True)
 
     # then second smooth of the line
-    window = get_window_size(mean_data)
+    window = get_window_size(mean_data, column_details)
 
     # min_periods should be the first point where there are more than 10 values
     # so get the 10th value of data
@@ -679,7 +786,10 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
 
     mean_data = mean_data.drop(columns=[y_col])
 
-    combined = pd.concat([mean_data, rolling], axis=1)
+    combined = pd.concat([count_data, rolling ], axis=1)
+
+    # if count is smaller than 10, set mean and std to NaN
+    #combined.loc[combined['count'] < 10, ['mean', 'std']] = np.nan
 
     # if there are only few values in the data, find where they cross 0 and add a middle value
     if len(combined) < 30:
@@ -702,11 +812,12 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str, isSmoothed : bool = Fa
             combined = combined.sort_values(by=col)
             combined = combined.set_index(col)
 
+
     return combined
 
 
 def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_data: pd.DataFrame,
-                      color_map: dict, y_col) -> pd.DataFrame:
+                      color_map: dict, y_col, column_details) -> pd.DataFrame:
     """
     returns the data used for the calculation of the current line
 
@@ -723,16 +834,16 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
     if (color == color_map['base']) or (color == color_map['ground_truth']):
         filtered_data = sorted_data
     elif (color == color_map['subset']) or (color == color_map['subset_truth']):
-        filtered_data = get_similar_items(sorted_data, item, include_cols)
+        filtered_data = get_similar_items(sorted_data, item, include_cols, column_details)
     elif color == color_map['previous_prediction']:
         if len(include_cols) == 1:
             filtered_data = sorted_data
         else:
-            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1])
+            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1], column_details)
     elif color == color_map['additive_prediction']:
         # first get the prediction of just the newest feature alone
         last_col = include_cols[-1]
-        single_mean = get_window_items(sorted_data, item, last_col, y_col)[y_col].mean()
+        single_mean = get_window_items(sorted_data, item, last_col, y_col, column_details)[y_col].mean()
 
         # get previous prediction data
         if len(include_cols) == 0:
@@ -741,7 +852,7 @@ def get_filtered_data(color: str, all_selected_cols: list, item: Item, sorted_da
         elif len(include_cols) == 1:
             filtered_data = sorted_data.copy()
         else:
-            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1]).copy()
+            filtered_data = get_similar_items(sorted_data, item, include_cols[:-1], column_details).copy()
         filtered_data[y_col] = filtered_data[y_col] + single_mean
     else:
         filtered_data = sorted_data[sorted_data["scatter_group"] == color]
@@ -774,7 +885,7 @@ def add_item(chart3: figure, col: str, item: Item, y_range: list,
              colors: dict):
     line_width = 4
     chart3.line(x=[item.data_prob_raw[col], item.data_prob_raw[col]], y=[y_range[0], y_range[1]],
-                line_width=line_width, color=colors['selected_color'], tags=["item"], line_cap='round', level='overlay')
+                line_width=line_width, color=colors['selected_color'], tags=["item"], line_cap='round', level='glyph')
 
 
 def get_colors(all_selected_cols: list, item: Item, truth: bool, color_map: dict, show_progress: bool) -> list:
@@ -831,17 +942,32 @@ def get_group_style(color: str, color_map: dict, show_truth, show_additive) -> t
     return alpha, line_type
 
 
-def get_group_label(color: str, color_map: dict) -> str:
+def get_group_label(color: str, color_map: dict, all_selected_cols: list, item: Item) -> str:
     if color == color_map['base']:
-        cluster_label = 'Base Prediction'
+        cluster_label = "Base Prediction"
     elif color == color_map['subset']:
-        cluster_label = 'Subset Prediction'
+        # concatenate all selected columns, except the first one
+        all_selected_cols = all_selected_cols[1:]
+        label = ""
+        for i, col in enumerate(all_selected_cols):
+            label += col + "=" + str(item.data_prob_raw[all_selected_cols[i]])
+            if i < len(all_selected_cols) - 1:
+                label += ", "
+
+        cluster_label = label
     elif color == color_map['ground_truth']:
         cluster_label = 'Ground truth'
     elif color == color_map['subset_truth']:
         cluster_label = 'Ground truth'
     elif color == color_map['previous_prediction']:
-        cluster_label = 'Previous prediction'
+        # concatenate all selected columns, except the first one and the last one
+        all_selected_cols = all_selected_cols[1:-1]
+        label = ""
+        for i, col in enumerate(all_selected_cols):
+            label += col + "=" + str(item.data_prob_raw[all_selected_cols[i]])
+            if i < len(all_selected_cols) - 1:
+                label += ", "
+        cluster_label = label
     elif color == color_map['additive_prediction']:
         cluster_label = 'only main effect'
     else:
