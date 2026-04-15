@@ -31,7 +31,8 @@ class Help(Viewer):
         self.str_base = ("**The grey line shows how the prediction changes based on the selected feature** \n"
                          " - centered around the mean prediction \n"
                          " - this is NOT the same as the partial dependence plot, as it only uses the real "
-                         "data points without changing/ permutating them \n")
+                         "data points without changing/ permutating them \n"
+                         " - switch to partial dependence to average model predictions over the full data \n")
         self.base_text = pn.pane.Markdown(self.str_base, sizing_mode='stretch_width',
                                           styles={'font-size': '11pt', 'color': '#606060'})
         self.close_button_base = pn.widgets.ButtonIcon(icon="x")

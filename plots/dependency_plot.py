@@ -54,13 +54,15 @@ class DependencyPlot(Viewer):
         self.normal_widget.param.watch(self.normal_changed, parameter_names=['value'], onlychanged=False)
 
         self.toggle_widget = pn.widgets.RadioButtonGroup(options=['change in prediction', 'ground truth',
-                                                                  'interaction effect', 'uncertainty'],
+                                                                  
+                                                                  'interaction effect', 'partial dependence', 'uncertainty'],
                                                          value='change in prediction',
                                                          button_style='outline', stylesheets=[style_options])
         self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
 
         self.toggle_dict = {
             'change in prediction': '',
+            'partial dependence': '(show the PDP curve)',
             'ground truth': '(ground truth of the subset)',
             'interaction effect': '(highlight interaction effect)',
             'uncertainty': '(show standard deviation of the predictions)'
@@ -89,8 +91,10 @@ class DependencyPlot(Viewer):
 
         self.truth = "truth" in data.columns
         self.truth_class = "truth_" + item.predict_class[5:]
+        self._last_update_args = (data, all_selected_cols, item, data_loader, feature_iter, show_process, simple_next)
 
         toggle_options = ['change in prediction']
+        toggle_options.append('partial dependence')
         if len(all_selected_cols) >= 1 and self.truth:
             toggle_options.append('ground truth')
         if len(all_selected_cols) > 1 and show_process:
@@ -146,7 +150,8 @@ class DependencyPlot(Viewer):
                                                         show_process, simple_next, isSmooth)
 
             self.density_plot = self.create_density_plot(col, item, data_loader, all_selected_cols)
-            self.toggle_widget.value = 'change in prediction'
+            if self.toggle_widget.value not in toggle_options:
+                self.toggle_widget.value = 'change in prediction'
 
 
     @param.depends('density_plot')
@@ -196,6 +201,7 @@ class DependencyPlot(Viewer):
         """
 
         col = all_selected_cols[0]
+        use_pdp = self.toggle_widget.value == 'partial dependence'
         if self.simple:
             last = all_selected_cols[-1]
             plot.title = f"{last} = {item.data_prob_raw[last]:.2f}"
@@ -219,7 +225,8 @@ class DependencyPlot(Viewer):
             if len(color_data[color]) == 0:
                 return figure(title=no_data_title, width=900, height=50)
 
-            color_data[color] = get_rolling(color_data[color], y_col, col, data_loader.column_details, isSmooth)
+            color_data[color] = get_rolling(color_data[color], y_col, col, data_loader.column_details,
+                                            isSmooth, use_pdp, data_loader, self.mean)
 
         for i, color in enumerate(colors):
             # choose right data
@@ -318,13 +325,14 @@ class DependencyPlot(Viewer):
         self.y_range = [self.sorted_data[item.predict_class].min(), self.sorted_data[item.predict_class].max()]
         self.y_range_padded = [self.y_range[0] - 0.025 * (self.y_range[1] - self.y_range[0]),
                                self.y_range[1] + 0.05 * (self.y_range[1] - self.y_range[0])]
+        y_axis_label = "partial dependence" if self.toggle_widget.value == 'partial dependence' else "change in prediction"
         if self.simple:
             item_value = item.data_prob_raw[col]
             title = f"{col} = {item_value:.2f}"
-            plot = figure(title=title, y_axis_label="prediction", y_range=self.y_range_padded, x_range=x_range_padded,
+            plot = figure(title=title, y_axis_label=y_axis_label, y_range=self.y_range_padded, x_range=x_range_padded,
                           width=250, height=200, toolbar_location=None, x_axis_label=col, tools="tap")
         else:
-            plot = figure(title="", y_axis_label="change in prediction", tools="tap, xpan, xwheel_zoom",
+            plot = figure(title="", y_axis_label=y_axis_label, tools="tap, xpan, xwheel_zoom",
                           y_range=self.y_range_padded,
                           x_range=x_range_padded, styles=dict(margin='auto', width='100%'),
                           sizing_mode='stretch_both', min_width=500, min_height=400, max_width=1000, max_height=600,
@@ -540,12 +548,22 @@ class DependencyPlot(Viewer):
             self.normal_widget.value = False
             self.prev_line_changed(False)
             self.uncertainty_changed(True)
+        elif self.toggle_widget.value == "partial dependence":
+            self.truth_widget.value = False
+            self.additive_widget.value = False
+            self.normal_widget.value = True
+            self.prev_line_changed(True)
+            self.uncertainty_changed(False)
+            if hasattr(self, "_last_update_args"):
+                self.update_plot(*self._last_update_args)
         else:
             self.truth_widget.value = False
             self.additive_widget.value = False
             self.normal_widget.value = True
             self.prev_line_changed(True)
             self.uncertainty_changed(False)
+            if hasattr(self, "_last_update_args") and self.toggle_widget.value == "change in prediction":
+                self.update_plot(*self._last_update_args)
 
         if self.toggle_widget.value is not None:
             self.toggle_help.object = self.toggle_dict[self.toggle_widget.value]
@@ -726,7 +744,8 @@ def create_uncertainty_band(chart3: figure, col: str, color_data: dict, color_ma
                         fill_color=color, tags=tags, visible=False, fill_alpha=0.4)
 
 
-def get_rolling(data: pd.DataFrame, y_col: str, col: str,  column_details, isSmoothed : bool = False) -> pd.DataFrame:
+def get_rolling(data: pd.DataFrame, y_col: str, col: str, column_details, isSmoothed: bool = False,
+                use_pdp: bool = False, data_loader: DataLoader = None, base_mean: float = None) -> pd.DataFrame:
     """
     creates dataframe with rolling mean and quantiles
 
@@ -734,8 +753,57 @@ def get_rolling(data: pd.DataFrame, y_col: str, col: str,  column_details, isSmo
     :param y_col: str
     :param col: str
     :param isSmoothed: bool
-    :return: pd.Dataframe
+    :return: pd.DataFrame
     """
+
+    if use_pdp:
+
+        if data_loader is None:
+            raise ValueError("data_loader is required for PDP curves")
+
+        x_values = sorted(data[col].dropna().unique())
+        if len(x_values) == 0:
+            return pd.DataFrame(columns=['count', 'mean', 'std', 'upper', 'lower'])
+
+        rows = []
+        class_index = None
+        if hasattr(data_loader, 'classes') and y_col in data_loader.classes:
+            class_index = data_loader.classes.index(y_col)
+
+
+        # Manually does PDP by going through the columns and replacing the values. 
+        for x_value in x_values:
+            modified = data.copy()
+            modified[col] = x_value
+
+            predictions = np.asarray(data_loader.predict(modified[data_loader.columns]))
+            if predictions.ndim == 1:
+                values = predictions
+            else:
+                if class_index is None:
+                    class_index = 0
+                values = predictions[:, class_index]
+
+            mean = float(np.mean(values))
+            std = float(np.std(values))
+            if base_mean is not None:
+                mean -= base_mean
+
+            rows.append({col: x_value, 'count': len(values), 'mean': mean, 'std': std,
+                         'upper': mean + std, 'lower': mean - std})
+
+        combined = pd.DataFrame(rows).set_index(col)
+
+        if isSmoothed and len(combined) > 1:
+            alpha = max(0.01, min(np.sqrt(10 / len(combined)), 1))
+            combined['std'] = combined['std'].ewm(alpha=alpha).mean()
+            combined['mean'] = combined['mean'].ewm(alpha=alpha).mean()
+            combined['upper'] = combined['mean'] + combined['std']
+            combined['lower'] = combined['mean'] - combined['std']
+
+        return combined
+    
+    # for non-PDP, we can just do a normal rolling mean and std
 
     data_subset = data[[col, y_col]].copy()
     individual_values = data_subset[col].unique()

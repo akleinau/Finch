@@ -22,7 +22,7 @@ class OverviewPlot(Viewer):
         self.ranked_plots = pn.FlexBox()
         self.dps = []
         self.toggle_widget = pn.widgets.RadioButtonGroup(options=['change in prediction',
-                                                                  'interaction effect'],
+                          'interaction effect'],
                                                          value='change in prediction',
                                                          button_style='outline', stylesheets=[style_options])
         self.toggle_widget.param.watch(self.toggle_changed, parameter_names=['value'], onlychanged=False)
