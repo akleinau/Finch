@@ -246,6 +246,19 @@ def get_data(data_loader):
     return data
 
 
+def has_small_bins(data, col, data_loader):
+    if data_loader.column_details[col]['type'] == 'categorical':
+        counts = data.groupby(col).size()
+    else:
+        data_min = data[col].min()
+        step = data_loader.column_details[col]['bin_size']
+        bins = data.copy()
+        bins['bin'] = bins[col].apply(lambda x: (x - data_min) // step * step + data_min)
+        counts = bins.groupby('bin').size()
+
+    return (counts < 20).any()
+
+
 def find_order(data, similar_item_group):
     # normalize the data
     normalized_data = data.copy()

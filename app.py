@@ -52,6 +52,7 @@ template.sidebar.append(acc)
 # somehow necessary for reactivity
 render_plot = pn.bind(lambda e: e, ds.param.render_plot)
 sim_plot = pn.bind(lambda e: e, ds.param.similar_plot)
+similar_warning = pn.bind(lambda e: e, ds.param.similar_warning)
 subset_widgets = pn.bind(lambda e: e, ds.param.subset_widgets)
 item_data = pn.bind(lambda e: e, ds.param.item)
 overview_plot = pn.bind(lambda e: e, ds.param.overview_plot)
@@ -65,6 +66,7 @@ template.main.append(pn.Column(
     pn.Row(pn.bind(lambda a: a.prediction_string(), ds.param.item)),
     pn.Row(help, styles=dict(width='100%')),
     overview_plot,
+    pn.Row(similar_warning, styles=dict(width='100%')),
     pn.Row(ds.render_plot,
            pn.Column(sim_plot, subset_widgets, styles=dict(margin_left='20px', align='center')),
            styles=dict(margin='auto', width='100%', padding='10px')),

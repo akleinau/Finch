@@ -32,6 +32,7 @@ class DataStore(param.Parameterized):
     overview_plot = param.ClassSelector(class_=overview_plot.OverviewPlot)
     recommendation = param.ClassSelector(class_=recommendation.Recommendation)
     smooth_widget = param.ClassSelector(class_=pn.widgets.Checkbox)
+    similar_warning = param.Parameter(default=None)
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -256,8 +257,32 @@ class DataStore(param.Parameterized):
 
     def update_similar_plot(self, *params):
         if self.active:
+            self.param.update(similar_warning=self._build_similar_warning())
             self.param.update(
                 similar_plot=similar_plot.SimilarPlot(self.data_loader, self.item, self.feature_iter.all_selected_cols))
+
+    def _build_similar_warning(self):
+        if len(self.feature_iter.all_selected_cols) == 0:
+            return pn.Spacer(height=0)
+
+        warn_needed = False
+        try:
+            for col in self.feature_iter.all_selected_cols:
+                if similar_plot.has_small_bins(self.data_loader.data, col, self.data_loader):
+                    warn_needed = True
+                    break
+        except Exception:
+            warn_needed = False
+
+        if not warn_needed:
+            return pn.Spacer(height=0)
+
+        return pn.pane.HTML(
+            "<div style='background:#FFF4D6;border:1px solid #D39E00;border-radius:6px;"
+            "padding:10px 12px;margin:0 0 10px 0;color:#7A4B00;font-weight:600;'>"
+            "Please be cautious when interpreting the visualization, as some bins are very small."
+            "</div>",
+            sizing_mode='stretch_width')
 
     def update_ranked_buttons(self, *params):
         if self.active:
